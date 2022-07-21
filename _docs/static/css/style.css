@@ -1,0 +1,16 @@
+/* Show it is fixed to the top */
+body {
+  padding-top: 4.5rem;
+}
+
+@supports (position: sticky) {
+  .sticky-top.top-aligned {
+    top: 4.5rem;
+  }
+}
+
+.img-avatar {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 100%;
+}

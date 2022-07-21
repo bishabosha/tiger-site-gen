@@ -1,2 +1,9 @@
 *.class
 *.log
+*.tasty
+.bsp
+.metals
+.vscode
+.scala-build
+
+out
