@@ -39,10 +39,12 @@ object paths:
         )
         val docs = pairs
           .sortBy((i, _) => i)(using Ordering.Int.reverse)
-          .map((_, p) => md.render(p))
+          .map((_, p) => p)
+          .zipWithIndex
+          .map((p, i) => md.render(i, p))
         name -> model.Docs(docs)
       else
-        name -> md.render(paths.head)
+        name -> md.render(-1, paths.head)
     ).toMap
     model.Site.read(data)
 
@@ -121,7 +123,7 @@ object md:
     end Visitor
   end ContentSampler
 
-  def render(path: os.Path): model.Doc =
+  def render(index: Int, path: os.Path): model.Doc =
     val document = parser.parse(os.read(path))
     val data =
       val fmVisitor = AbstractYamlFrontMatterVisitor()
@@ -141,5 +143,6 @@ object md:
       frontMatter = data,
       wordCount = wordCount,
       htmlPreview = sample,
-      htmlContent = html
+      htmlContent = html,
+      index = index,
     )

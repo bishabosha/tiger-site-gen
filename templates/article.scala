@@ -4,8 +4,10 @@ import scalatags.Text.all.*
 import scalatags.Text.tags2.article as tArticle
 
 import templates.all.PageCategory
+import model.ctx
 
-def article(doc: model.md.Doc, prev: Option[model.md.Doc], next: Option[model.md.Doc])(using model.Context) =
+def article(doc: model.md.Doc)(using model.Context) =
+  val (prev, next) = ctx.site.articles.prevNext(doc).swap // articles is in reverse order
   val articleNav = (
     Option.when(prev.orElse(next).isDefined)(
       div(cls := "container mb-2",

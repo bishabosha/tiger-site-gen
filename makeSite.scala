@@ -19,15 +19,8 @@ import model.ctx
   os.remove.all(curr / "out")
   os.makeDir.all(curr / "out" / "articles")
 
-
-  def prevNext[A <: model.Doc](i: Int, items: model.Docs[A]): (Option[A], Option[A]) =
-    val prev = if i > 0 then Some(items(i - 1)) else None
-    val next = if i < items.size - 1 then Some(items(i + 1)) else None
-    (prev, next)
-
-  for (doc, i) <- ctx.site.articles.zipWithIndex do
-    val (prev, next) = prevNext(i, ctx.site.articles).swap // articles is in reverse order
-    val article = templates.all.article(doc, prev, next)
+  for doc <- ctx.site.articles do
+    val article = templates.all.article(doc)
     os.write(
       curr / "out" / "articles" / templates.sanatise.mdNameToHtml(doc.frontMatter.title),
       article
