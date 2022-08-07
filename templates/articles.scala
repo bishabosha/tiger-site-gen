@@ -3,8 +3,9 @@ package templates
 import scalatags.Text.all.*
 
 import templates.all.PageCategory
+import model.ctx
 
-def articles(posts: Seq[model.md.Doc])(using model.Context) =
+def articles(using model.Context) =
   templates.all.basic(PageCategory.Articles, title = s"Articles | ${summon[model.Context].whoAmI}")(
     div(cls := "container",
       div(cls := "row",
@@ -13,7 +14,7 @@ def articles(posts: Seq[model.md.Doc])(using model.Context) =
           div(cls := "jumbotron bg-light py-lg-5 py-3",
             h1(cls := "display-4", "Articles"),
             hr(),
-            for doc <- posts yield
+            for doc <- ctx.site.articles yield
               val published = doc.frontMatter.published
               val title = doc.frontMatter.title
               val sample = doc.htmlPreview

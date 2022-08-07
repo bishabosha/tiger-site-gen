@@ -6,7 +6,7 @@ import scalatags.Text.tags2.article as tArticle
 import templates.all.PageCategory
 
 def article(doc: model.md.Doc, prev: Option[model.md.Doc], next: Option[model.md.Doc])(using model.Context) =
-  val articleNav =
+  val articleNav = (
     Option.when(prev.orElse(next).isDefined)(
       div(cls := "container mb-2",
         div(cls := "row",
@@ -33,6 +33,7 @@ def article(doc: model.md.Doc, prev: Option[model.md.Doc], next: Option[model.md
         )
       )
     )
+  )
 
   templates.all.basic(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${summon[model.Context].whoAmI}")(
     div(cls := "container",

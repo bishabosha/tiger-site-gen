@@ -28,7 +28,7 @@ object cards:
       )
     )
 
-  def recentPosts(kind: String, posts: model.md.Doc*): scalatags.Text.Modifier =
+  def recentPosts(kind: String, posts: model.md.Docs): scalatags.Text.Modifier =
     wrap(s"Recent $kind",
       table(cls := "table table-sm table-borderless",
         tbody(
@@ -50,7 +50,7 @@ object cards:
       )
     )
 
-  def links(title: String, links: model.md.Doc*): scalatags.Text.Modifier =
+  def links(title: String, links: model.md.Docs): scalatags.Text.Modifier =
     wrap(title,
       (for link <- links yield
         div(

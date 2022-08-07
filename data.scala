@@ -26,32 +26,25 @@ import com.vladsch.flexmark.ast.Code
 object paths:
   def curr(using model.SiteRoot) = summon[model.SiteRoot].root
 
-  private[readData] def fetchDir(name: String)(using model.SiteRoot): IndexedSeq[os.Path] =
-    os.list(curr / "_docs" / name)
-
-  private[readData] def sortedDir(name: String)(using model.SiteRoot): IndexedSeq[(String, os.Path)] =
-    fetchDir(name).map( p =>
-      val s"$prefix - $suffix.md" = p.last
-      (prefix, p)
-    )
-    .sortBy(_(0).toInt)(using Ordering.Int.reverse)
-
-  private[readData] def singleton(name: String)(using model.SiteRoot): Option[os.Path] =
-    fetchDir(name)
-      .take(1)
-      .headOption
-
-object about:
-  def first()(using model.SiteRoot) = paths.singleton("about")
-
-object articles:
-  def all()(using model.SiteRoot) = paths.sortedDir("articles")
-
-object talks:
-  def all()(using model.SiteRoot) = paths.sortedDir("talks")
-
-object videos:
-  def all()(using model.SiteRoot) = paths.sortedDir("videos")
+  def buildSiteDb[S <: model.Site](using model.SiteRoot): S =
+    val roots = os.list(curr / "_docs").filter(os.isDir)
+    val (static, colls) = roots.partition(_.baseName == "static")
+    val data: Map[String, model.Doc | model.Docs[?]] = colls.map(r =>
+      val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")
+      val name = r.baseName
+      if name.endsWith("s") then
+        val pairs = paths.map(p =>
+          val s"$prefix - $suffix.md" = p.last
+          (prefix.toInt, p)
+        )
+        val docs = pairs
+          .sortBy((i, _) => i)(using Ordering.Int.reverse)
+          .map((_, p) => md.render(p))
+        name -> model.Docs(docs)
+      else
+        name -> md.render(paths.head)
+    ).toMap
+    model.Site.read(data)
 
 object md:
 

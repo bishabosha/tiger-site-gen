@@ -4,6 +4,15 @@ import readData.md.Data
 
 object md:
 
+  type Site = model.Site {
+    val about: Doc
+    val articles: Docs
+    val talks: Docs
+    val videos: Docs
+  }
+
+  type Docs = model.Docs[Doc]
+
   type Doc = model.Doc {
     val frontMatter: Data {
       val title: String
@@ -15,7 +24,3 @@ object md:
       val url: String
     }
   }
-
-  object Doc:
-
-    def fromRaw(raw: model.Doc): Doc = raw.asInstanceOf[Doc]

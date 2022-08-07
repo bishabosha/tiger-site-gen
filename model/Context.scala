@@ -1,6 +1,6 @@
 package model
 
-final case class Context(siteRoot: SiteRoot, about: About):
-  def whoAmI: String = about.me.frontMatter.name
+final case class Context(siteRoot: SiteRoot, site: model.md.Site):
+  def whoAmI: String = site.about.frontMatter.name
 
-final case class About(me: md.Doc)
+inline def ctx(using ctx: Context): ctx.type = ctx

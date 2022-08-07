@@ -1,6 +1,7 @@
 package templates
 
 import scalatags.Text.all.*
+import model.ctx
 
 object sidebar:
 
@@ -8,7 +9,7 @@ object sidebar:
     div(cls := "col-lg-4",
       div(cls := s"jumbotron shadow py-lg-5 py-3",
         div(
-          bio(summon[model.Context].about.me, hideable),
+          bio(ctx.site.about, hideable),
         )
       )
     )
