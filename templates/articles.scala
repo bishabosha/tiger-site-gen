@@ -5,7 +5,7 @@ import scalatags.Text.all.*
 import templates.all.PageCategory
 import model.ctx
 
-def articles(using model.Context) =
+def articles(doc: model.md.DocPage)(using model.Context) =
   templates.all.basic(PageCategory.Articles, title = s"Articles | ${summon[model.Context].whoAmI}")(
     div(cls := "container",
       div(cls := "row",

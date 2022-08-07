@@ -1,4 +1,5 @@
 ---
+isRoot:
 title: About
 name: Jamie Thompson
 avatar: /static/img/profile.jpg

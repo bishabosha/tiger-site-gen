@@ -28,23 +28,26 @@ object paths:
 
   def buildSiteDb[S <: model.Site](using model.SiteRoot): S =
     val roots = os.list(curr / "_docs").filter(os.isDir)
-    val (static, colls) = roots.partition(_.baseName == "static")
-    val data: Map[String, model.Doc | model.Docs[?]] = colls.map(r =>
+    val colls = roots.filterNot(_.baseName == "static")
+    val data: Map[String, model.Doc[?] | model.Docs[?]] = colls.map(r =>
       val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")
       val name = r.baseName
       if name.endsWith("s") then
-        val pairs = paths.map(p =>
+        val triples = paths.map(p =>
           val s"$prefix - $suffix.md" = p.last
-          (prefix.toInt, p)
+          (prefix.toInt, suffix, p)
         )
-        val docs = pairs
-          .sortBy((i, _) => i)(using Ordering.Int.reverse)
-          .map((_, p) => p)
+        val all = triples
+          .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
+          .map((_, n, p) => n -> p)
           .zipWithIndex
-          .map((p, i) => md.render(i, p))
-        name -> model.Docs(docs)
+          .map { case ((n, p), i) => n -> md.render(i, p) }
+        val (indexes, docs) = all.partition((n, _) => n == "index")
+        name -> model.Docs(indexes.headOption.map((_, doc) => doc), docs.map((_, doc) => doc))
       else
-        name -> md.render(-1, paths.head)
+        val path = paths.head
+        val pName = path.baseName
+        name -> model.Doc(pName == "index", md.render(-1, paths.head))
     ).toMap
     model.Site.read(data)
 
@@ -80,7 +83,11 @@ object md:
     try Some(LocalDate.parse(date, dateParser).format(shortDateFormatter))
     catch case NonFatal(_) => None
 
-  class Data(data: scala.collection.mutable.LinkedHashMap[String, List[String]]) extends Selectable:
+  class Data(data: scala.collection.mutable.LinkedHashMap[String, List[String]])
+      extends Selectable:
+
+    lazy val isRoot: Boolean = data.contains("isRoot")
+
     def selectDynamic(name: String): Any = name match
       case s"is$_" => data.contains(name)
       case s"${_}s" => data.get(name).getOrElse(Nil)
@@ -123,26 +130,26 @@ object md:
     end Visitor
   end ContentSampler
 
-  def render(index: Int, path: os.Path): model.Doc =
+  def render(index: Int, path: os.Path): model.DocPage =
     val document = parser.parse(os.read(path))
     val data =
       val fmVisitor = AbstractYamlFrontMatterVisitor()
       fmVisitor.visit(document)
-      Data(
+      val entries =
         fmVisitor
           .getData()
           .asScala
           .to(scala.collection.mutable.LinkedHashMap)
           .map((k, vs) => k -> vs.asScala.toList)
-      )
+      Data(entries)
 
     val html = renderer.render(document)
     val (sample, wordCount) = ContentSampler.sampleContent(document)
 
-    model.Doc(
+    model.DocPage(
       frontMatter = data,
       wordCount = wordCount,
       htmlPreview = sample,
       htmlContent = html,
-      index = index,
+      idx = index,
     )

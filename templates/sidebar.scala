@@ -9,7 +9,7 @@ object sidebar:
     div(cls := "col-lg-4",
       div(cls := s"jumbotron shadow py-lg-5 py-3",
         div(
-          bio(ctx.site.about, hideable),
+          bio(ctx.site.about.page, hideable),
         )
       )
     )

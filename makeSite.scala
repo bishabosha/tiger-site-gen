@@ -25,16 +25,16 @@ import model.ctx
       curr / "out" / "articles" / templates.sanatise.mdNameToHtml(doc.frontMatter.title),
       article
     )
-
-  val indexPage = templates.all.index
-  os.write(
-    curr / "out" / "index.html",
-    indexPage
-  )
-  val articlesPage = templates.all.articles
+  val articlesPage = templates.all.articles(ctx.site.articles.index)
   os.write(
     curr / "out" / "articles" / "index.html",
     articlesPage
+  )
+
+  val indexPage = templates.all.index(ctx.site.about.index)
+  os.write(
+    curr / "out" / "index.html",
+    indexPage
   )
   os.copy(
     curr / "_docs" / "static",

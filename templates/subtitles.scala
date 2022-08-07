@@ -4,7 +4,7 @@ import scalatags.Text.all.*
 
 object subtitles:
 
-  def article(doc: model.md.Doc, extras: scalatags.Text.Modifier*): scalatags.Text.Modifier =
+  def article(doc: model.md.DocPage, extras: scalatags.Text.Modifier*): scalatags.Text.Modifier =
     ul(cls := "list-inline mb-2",
       li(cls := "list-inline-item",
         small(
