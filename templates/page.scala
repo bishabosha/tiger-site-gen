@@ -2,9 +2,7 @@ package templates
 
 import scalatags.Text.all.*
 
-object all:
-
-  export templates.{article, index, articles}
+object page:
 
   val useUtf8 = meta(charset := "utf-8")
   val viewport = meta(name := "viewport", content := "width=device-width, initial-scale=1")
@@ -54,28 +52,26 @@ object all:
     )
   )
 
-  private val (year, today) = readData.md.renderNow()
+  private val (year, today) = io.util.md.renderNow()
 
-  def basic(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using model.Context) =
+  def wrap(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using model.Context) =
     import scalatags.Text.tags2.title as titleTag
-    doctype("html")(
-      html(
-        head(useUtf8, viewport, bootstrapCss, siteStyleCss, hljsStyle, fontAwesome, titleTag(title)),
-        body(cls := "d-flex flex-column min-vh-100",
-          navbar(siteNav(category)),
-          content,
-          footer(cls := "mt-auto",
-            div(cls := "footer-copyright text-center py-3",
-              small(
-                s"© $year ${summon[model.Context].whoAmI}.",
-                span(cls := "text-muted", s" Last published $today")
-              )
-            ),
+    html(
+      head(useUtf8, viewport, bootstrapCss, siteStyleCss, hljsStyle, fontAwesome, titleTag(title)),
+      body(cls := "d-flex flex-column min-vh-100",
+        navbar(siteNav(category)),
+        content,
+        footer(cls := "mt-auto",
+          div(cls := "footer-copyright text-center py-3",
+            small(
+              s"© $year ${summon[model.Context].whoAmI}.",
+              span(cls := "text-muted", s" Last published $today")
+            )
           ),
-          bootstrapJs,
-          hljsScript,
-          hljsScala,
-          hljsAll
-        )
+        ),
+        bootstrapJs,
+        hljsScript,
+        hljsScala,
+        hljsAll
       )
     )

@@ -2,11 +2,11 @@ package templates
 
 import scalatags.Text.all.*
 
-import templates.all.PageCategory
+import templates.page.PageCategory
 import model.ctx
 
-def index(doc: model.md.DocPage)(using model.Context) =
-  templates.all.basic(PageCategory.About, title = s"About | ${summon[model.Context].whoAmI}")(
+def about(doc: model.md.DocPage)(using model.Context) =
+  templates.page.wrap(PageCategory.About, title = s"About | ${summon[model.Context].whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(hideable = false),

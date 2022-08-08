@@ -2,11 +2,11 @@ package templates
 
 import scalatags.Text.all.*
 
-import templates.all.PageCategory
+import templates.page.PageCategory
 import model.ctx
 
 def articles(doc: model.md.DocPage)(using model.Context) =
-  templates.all.basic(PageCategory.Articles, title = s"Articles | ${summon[model.Context].whoAmI}")(
+  templates.page.wrap(PageCategory.Articles, title = s"Articles | ${summon[model.Context].whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(),
@@ -20,7 +20,7 @@ def articles(doc: model.md.DocPage)(using model.Context) =
               val sample = doc.htmlPreview
               div(cls := "row",
                 div(cls := "col-lg-12",
-                  h2(a(href := s"/articles/${sanatise.mdNameToHtml(title)}", title)),
+                  h2(a(href := s"/articles/${sanatise.mdNameToHtml(doc.name)}", title)),
                   subtitles.article(doc),
                   p(sample)
                 )

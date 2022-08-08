@@ -1,13 +1,13 @@
 package model
 
-import readData.md.Data
+import io.util.md.Data
 
-import templates.{index, article, articles}
+import templates.{about, article, articles}
 
 object md:
 
-  val templates = model.Templates(
-    "index" -> index,
+  val layouts = model.Layouts(
+    "about" -> about,
     "article" -> article,
     "articles" -> articles,
   )

@@ -1,7 +1,8 @@
 package model
 
 final case class DocPage(
-  frontMatter: readData.md.Data,
+  name: String,
+  frontMatter: io.util.md.Data,
   wordCount: Int,
   htmlPreview: String,
   htmlContent: String,
@@ -20,13 +21,13 @@ class Doc[D <: DocPage](isIndex: Boolean, data: D) extends DocCollection[D]:
 
 
 class Docs[D <: DocPage](optIndex: Option[D], data: IndexedSeq[D]) extends DocCollection[D]:
-  export data.{apply, size, map, foreach, take}
+  export data.{apply as page, size, map, foreach, take}
 
   def willRender: Boolean = optIndex.isDefined
 
   def index: D = optIndex.get
 
   def prevNext(doc: D): (Option[D], Option[D]) =
-    val prev = if doc.idx > 0 then Some(apply(doc.idx - 1)) else None
-    val next = if doc.idx > 0 && doc.idx < size - 1 then Some(apply(doc.idx + 1)) else None
+    val prev = if doc.idx > 0 then Some(page(doc.idx - 1)) else None
+    val next = if doc.idx > 0 && doc.idx < size - 1 then Some(page(doc.idx + 1)) else None
     (prev, next)

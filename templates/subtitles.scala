@@ -9,7 +9,7 @@ object subtitles:
       li(cls := "list-inline-item",
         small(
           span(cls := "text-muted",
-            readData.md.renderDate(doc.frontMatter.published).getOrElse("unknown publish date"),
+            io.util.md.renderDate(doc.frontMatter.published).getOrElse("unknown publish date"),
           ),
         ),
       ),

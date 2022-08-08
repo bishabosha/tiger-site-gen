@@ -1,4 +1,5 @@
 ---
+layout: article
 title: The Beginning
 published: 01-Aug-2022
 ---

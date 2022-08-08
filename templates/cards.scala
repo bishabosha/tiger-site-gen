@@ -38,10 +38,10 @@ object cards:
             tr(
               td(
                 small(cls := "text-muted",
-                  readData.md.renderShortDate(published).getOrElse("No Date")
+                  io.util.md.renderShortDate(published).getOrElse("No Date")
                 )
               ),
-              td(a(href := s"/${kind.toLowerCase}/${sanatise.mdNameToHtml(title)}", title)),
+              td(a(href := s"/${kind.toLowerCase}/${sanatise.mdNameToHtml(post.name)}", title)),
             )
         )
       ),

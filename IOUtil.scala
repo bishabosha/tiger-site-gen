@@ -1,6 +1,6 @@
 //> using lib "com.vladsch.flexmark:flexmark-all:0.64.0"
 
-package readData
+package io.util
 
 import com.vladsch.flexmark.util.ast.Node
 import com.vladsch.flexmark.html.HtmlRenderer
@@ -8,7 +8,6 @@ import com.vladsch.flexmark.parser.Parser
 import com.vladsch.flexmark.util.data.MutableDataSet
 
 import scala.jdk.CollectionConverters.given
-import paths.curr
 import com.vladsch.flexmark.ext.yaml.front.matter.YamlFrontMatterExtension
 import com.vladsch.flexmark.ext.yaml.front.matter.AbstractYamlFrontMatterVisitor
 import com.vladsch.flexmark.ext.attributes.AttributesExtension
@@ -23,8 +22,9 @@ import com.vladsch.flexmark.ast.Paragraph
 import com.vladsch.flexmark.ast.Text
 import com.vladsch.flexmark.ast.Code
 
+import model.curr
+
 object paths:
-  def curr(using model.SiteRoot) = summon[model.SiteRoot].root
 
   def buildSiteDb[S <: model.Site](using model.SiteRoot): S =
     val roots = os.list(curr / "_docs").filter(os.isDir)
@@ -37,19 +37,32 @@ object paths:
           val s"$prefix - $suffix.md" = p.last
           (prefix.toInt, suffix, p)
         )
-        val all = triples
+        val (indexes, docs) = triples.partition((_, n, _) => n == "index")
+        assert(indexes.sizeIs <= 1, "more than 1 index file")
+        val ordered = docs
           .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
-          .map((_, n, p) => n -> p)
+          .map(_.tail)
+        val rendered = ordered
           .zipWithIndex
-          .map { case ((n, p), i) => n -> md.render(i, p) }
-        val (indexes, docs) = all.partition((n, _) => n == "index")
-        name -> model.Docs(indexes.headOption.map((_, doc) => doc), docs.map((_, doc) => doc))
+          .map { case ((n, p), i) => md.render(i, n, p) }
+        val indexOpt = indexes.headOption.map { case (_, n, p) => md.render(-1, n, p) }
+        name -> model.Docs(indexOpt, rendered)
       else
         val path = paths.head
         val pName = path.baseName
-        name -> model.Doc(pName == "index", md.render(-1, paths.head))
+        name -> model.Doc(pName == "index", md.render(-1, pName, paths.head))
     ).toMap
     model.Site.read(data)
+
+  def rootPage(redirect: String): scalatags.Text.all.doctype =
+    import scalatags.Text.all.*
+    doctype("html")(
+      html(
+        head(
+          meta(httpEquiv := "refresh", content := s"0; URL=$redirect"),
+        )
+      )
+    )
 
 object md:
 
@@ -87,6 +100,7 @@ object md:
       extends Selectable:
 
     lazy val isRoot: Boolean = data.contains("isRoot")
+    lazy val layout: String = data.get("layout").flatMap(_.headOption).getOrElse("")
 
     def selectDynamic(name: String): Any = name match
       case s"is$_" => data.contains(name)
@@ -130,7 +144,7 @@ object md:
     end Visitor
   end ContentSampler
 
-  def render(index: Int, path: os.Path): model.DocPage =
+  def render(index: Int, name: String, path: os.Path): model.DocPage =
     val document = parser.parse(os.read(path))
     val data =
       val fmVisitor = AbstractYamlFrontMatterVisitor()
@@ -147,6 +161,7 @@ object md:
     val (sample, wordCount) = ContentSampler.sampleContent(document)
 
     model.DocPage(
+      name = name,
       frontMatter = data,
       wordCount = wordCount,
       htmlPreview = sample,

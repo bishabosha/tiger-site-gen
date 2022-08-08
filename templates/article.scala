@@ -3,7 +3,7 @@ package templates
 import scalatags.Text.all.*
 import scalatags.Text.tags2.article as tArticle
 
-import templates.all.PageCategory
+import templates.page.PageCategory
 import model.ctx
 
 def article(doc: model.md.DocPage)(using model.Context) =
@@ -15,7 +15,7 @@ def article(doc: model.md.DocPage)(using model.Context) =
           div(cls := "col d-flex",
             (for pdoc <- prev yield
               small(
-                a(href := s"/articles/${templates.sanatise.mdNameToHtml(pdoc.frontMatter.title)}",
+                a(href := s"/articles/${templates.sanatise.mdNameToHtml(pdoc.name)}",
                   i(cls := "fa-solid fa-angle-left"),
                   s" ${pdoc.frontMatter.title}",
                 )
@@ -25,7 +25,7 @@ def article(doc: model.md.DocPage)(using model.Context) =
           div(cls := "col d-flex flex-row-reverse",
             (for ndoc <- next yield
               small(cls := "float-end",
-                a(href := s"/articles/${templates.sanatise.mdNameToHtml(ndoc.frontMatter.title)}",
+                a(href := s"/articles/${templates.sanatise.mdNameToHtml(ndoc.name)}",
                   s"${ndoc.frontMatter.title} ",
                   i(cls := "fa-solid fa-angle-right"),
                 )
@@ -37,7 +37,7 @@ def article(doc: model.md.DocPage)(using model.Context) =
     )
   )
 
-  templates.all.basic(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${summon[model.Context].whoAmI}")(
+  templates.page.wrap(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${summon[model.Context].whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(),
