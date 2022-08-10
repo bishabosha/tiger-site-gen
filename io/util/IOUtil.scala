@@ -24,6 +24,7 @@ import com.vladsch.flexmark.ast.Code
 
 import model.curr
 import model.ctx
+import scala.collection.mutable
 
 object sanatise:
   private val regex = raw"[!?&*^$$#@]".r
@@ -171,7 +172,13 @@ object md:
         val localSample = sample
         val nextText = read(text)
         if localSample == null then
-          sample = nextText
+          val md = parser.parse(nextText)
+          val text = new mutable.StringBuilder()
+          val pvisitor = NodeVisitor(
+            VisitHandler(classOf[Paragraph], p => p.getChildren().forEach(c => text ++= renderer.render(c))),
+          )
+          pvisitor.visit(md)
+          sample = text.toString
         addCount(nextText)
 
       def visit(text: Text): Unit =

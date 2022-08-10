@@ -22,7 +22,7 @@ def articles(doc: Breeze.DocPage)(using Breeze.Context) =
                 div(cls := "col-lg-12",
                   h2(a(href := s"/articles/${io.util.sanatise.mdNameToHtml(doc.name)}", title)),
                   subtitles.article(doc),
-                  p(sample)
+                  p(raw(sample))
                 )
               )
           )

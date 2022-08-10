@@ -64,7 +64,7 @@ object cards:
               em(cls := "text-muted",
                 link.frontMatter.event
               ),
-              ( if link.htmlPreview.nonEmpty then Seq(": ", link.htmlPreview)
+              ( if link.htmlPreview.nonEmpty then Seq(": ": Frag, raw(link.htmlPreview))
                 else Seq.empty[Frag]
               )
             )
