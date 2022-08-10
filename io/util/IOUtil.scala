@@ -23,12 +23,28 @@ import com.vladsch.flexmark.ast.Text
 import com.vladsch.flexmark.ast.Code
 
 import model.curr
+import model.ctx
+
+object sanatise:
+  private val regex = raw"[!?&*^$$#@]".r
+
+  def mdNameToHtml(name: String) =
+    regex.replaceAllIn(name.replace(" ", "-"), "").toLowerCase + ".html"
+
+  def readTime(wordCount: Int): String =
+    val raw = wordCount / 200.0 // a "comfortable" speed for reading out loud.
+    val time = math.max(math.round(raw), 1).toInt
+    s"$time minute read"
 
 object paths:
 
+  def generateSite[T <: model.Theme](out: String, theme: T)(using model.SiteRoot): Unit =
+    given model.Context = model.Context.fromTheme(theme)
+    renderSite(curr / out)
+
   def buildSiteDb[S <: model.Site](using model.SiteRoot): S =
     val roots = os.list(curr / "_docs").filter(os.isDir)
-    val colls = roots.filterNot(_.baseName == "static")
+    val (statics, colls) = roots.partition(_.baseName == "static")
     val data: Map[String, model.Doc[?] | model.Docs[?]] = colls.map(r =>
       val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")
       val name = r.baseName
@@ -46,13 +62,46 @@ object paths:
           .zipWithIndex
           .map { case ((n, p), i) => md.render(i, n, p) }
         val indexOpt = indexes.headOption.map { case (_, n, p) => md.render(-1, n, p) }
-        name -> model.Docs(indexOpt, rendered)
+        name -> model.Docs(name, indexOpt, rendered)
       else
         val path = paths.head
         val pName = path.baseName
-        name -> model.Doc(pName == "index", md.render(-1, pName, paths.head))
+        name -> model.Doc(name, pName == "index", md.render(-1, pName, paths.head))
     ).toMap
-    model.Site.read(data)
+    model.Site.read(statics.headOption, data)
+
+  def renderSite(dest: os.Path)(using model.Context): Unit =
+    os.remove.all(dest)
+    val activeCols = ctx.site.allDocs.filter(_.willRender).asInstanceOf[Iterable[ctx.theme.DocCollection]]
+    var optRoots = Set.empty[model.DocCollection[?]]
+    for col <- activeCols do
+      os.makeDir.all(dest / col.collName)
+      if col.index.frontMatter.isRoot then
+        optRoots += col
+      for doc <- col do
+        val subPage = ctx.theme.layouts(doc.frontMatter.layout)(doc)(using ctx.asInstanceOf)
+        os.write(
+          dest / col.collName / sanatise.mdNameToHtml(doc.name),
+          scalatags.Text.all.doctype("html")(subPage)
+        )
+      val indexPage = ctx.theme.layouts(col.index.frontMatter.layout)(col.index)(using ctx.asInstanceOf)
+      os.write(
+        dest / col.collName / "index.html",
+        scalatags.Text.all.doctype("html")(indexPage)
+      )
+    end for
+    assert(optRoots.sizeIs <= 1, "more than one root")
+    for rootCol <- optRoots.headOption do
+      os.write(
+        dest / "index.html",
+        io.util.paths.rootPage(redirect = s"${rootCol.collName}/index.html")
+      )
+    for static <- ctx.site.optStatic do
+      os.copy(
+        static,
+        dest / "static"
+      )
+  end renderSite
 
   def rootPage(redirect: String): scalatags.Text.all.doctype =
     import scalatags.Text.all.*
@@ -95,20 +144,6 @@ object md:
   def renderShortDate(date: String): Option[String] =
     try Some(LocalDate.parse(date, dateParser).format(shortDateFormatter))
     catch case NonFatal(_) => None
-
-  class Data(data: scala.collection.mutable.LinkedHashMap[String, List[String]])
-      extends Selectable:
-
-    lazy val isRoot: Boolean = data.contains("isRoot")
-    lazy val layout: String = data.get("layout").flatMap(_.headOption).getOrElse("")
-
-    def selectDynamic(name: String): Any = name match
-      case s"is$_" => data.contains(name)
-      case s"${_}s" => data.get(name).getOrElse(Nil)
-      case _ => data.get(name).flatMap(_.headOption).getOrElse("")
-
-    override def toString(): String = data.toString
-
 
   object ContentSampler:
 
@@ -155,7 +190,7 @@ object md:
           .asScala
           .to(scala.collection.mutable.LinkedHashMap)
           .map((k, vs) => k -> vs.asScala.toList)
-      Data(entries)
+      model.FrontMatter(entries)
 
     val html = renderer.render(document)
     val (sample, wordCount) = ContentSampler.sampleContent(document)

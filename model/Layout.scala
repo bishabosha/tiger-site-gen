@@ -2,10 +2,10 @@ package model
 
 import scalatags.Text.all.ConcreteHtmlTag
 
-type Layout[D <: DocPage] = D => model.Context ?=> ConcreteHtmlTag[String]
+type Layout[C <: model.Context, D <: DocPage] = D => C ?=> ConcreteHtmlTag[String]
 
-class Layouts[D <: DocPage](data: Map[String, Layout[D]]):
-  def apply(name: String)(using model.Context): Layout[D] = data(name)
+class Layouts[C <: model.Context, D <: DocPage](data: Map[String, Layout[C, D]]):
+  def apply(name: String)(doc: D)(using C): ConcreteHtmlTag[String] = data(name)(doc)
 
 object Layouts:
-  def apply[D <: DocPage](elems: (String, Layout[D])*): Layouts[D] = new Layouts(elems.toMap)
+  def apply[C <: model.Context, D <: DocPage](elems: (String, Layout[C, D])*): Layouts[C, D] = new Layouts(elems.toMap)

@@ -5,48 +5,8 @@
 
 package example
 
-import model.curr
-import model.ctx
-
-import scalatags.Text.all.doctype
+import io.util.paths.generateSite
 
 @main def makeSite =
-  given model.SiteRoot = model.SiteRoot(root = os.Path(sourcecode.File()) / os.up)
-
-  given model.Context = model.Context(
-    siteRoot = summon[model.SiteRoot],
-    site = io.util.paths.buildSiteDb[model.md.Site]
-  )
-
-  os.remove.all(curr / "out")
-  os.makeDir.all(curr / "out" / "articles")
-  os.makeDir.all(curr / "out" / "about")
-
-  for doc <- ctx.site.articles do
-    val article = model.md.layouts(doc.frontMatter.layout)(doc)
-    os.write(
-      curr / "out" / "articles" / templates.sanatise.mdNameToHtml(doc.name),
-       doctype("html")(article)
-    )
-  val articlesPage = model.md.layouts(ctx.site.articles.index.frontMatter.layout)(ctx.site.articles.index)
-  os.write(
-    curr / "out" / "articles" / "index.html",
-    doctype("html")(articlesPage)
-  )
-
-  val aboutPage = model.md.layouts(ctx.site.about.index.frontMatter.layout)(ctx.site.about.index)
-  os.write(
-    curr / "out" / "about" / "index.html",
-    doctype("html")(aboutPage)
-  )
-
-  if ctx.site.about.index.frontMatter.isRoot then
-    os.write(
-      curr / "out" / "index.html",
-      io.util.paths.rootPage(redirect = "about/index.html")
-    )
-  os.copy(
-    curr / "_docs" / "static",
-    curr / "out" / "static"
-  )
-end makeSite
+  given model.SiteRoot = model.SiteRoot.here
+  generateSite("out", theme = breeze.Breeze)

@@ -1,7 +1,9 @@
 package model
 
-final class Site private (data: Map[String, Docs[?] | Doc[?]]) extends Selectable:
+final class Site private (val optStatic: Option[os.Path], data: Map[String, Docs[?] | Doc[?]]) extends Selectable:
   def selectDynamic(name: String): Docs[?] | Doc[?] = data(name)
+  def allDocs: Iterable[DocCollection[?]] = data.values
 
 object Site:
-  def read[S <: Site](data: Map[String, Doc[?] | Docs[?]]): S = Site(data).asInstanceOf[S]
+  def read[S <: Site](optStatic: Option[os.Path], data: Map[String, Doc[?] | Docs[?]]): S =
+    Site(optStatic, data).asInstanceOf[S]

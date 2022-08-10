@@ -1,4 +1,4 @@
-package templates
+package breeze
 
 import scalatags.Text.all.*
 
@@ -41,20 +41,26 @@ object page:
     crossorigin := "anonymous"
   )
 
+  final case class Link(href: String, text: String)
+
+  final case class NavLink(isActive: Boolean, link: Link)
+
+  final case class NavBar(brand: String, links: Seq[NavLink])
+
   enum PageCategory(val index: String):
     case About extends PageCategory("/")
     case Articles extends PageCategory("/articles/index.html")
 
-  private def siteNav(category: PageCategory)(using model.Context) = model.Navbar(
-    brand = summon[model.Context].whoAmI,
+  private def siteNav(category: PageCategory)(using Breeze.Context) = NavBar(
+    brand = Breeze.whoAmI,
     links = PageCategory.values.toIndexedSeq.map(c =>
-      model.NavLink(isActive = c == category, model.Link(c.index, c.toString))
+      NavLink(isActive = c == category, Link(c.index, c.toString))
     )
   )
 
   private val (year, today) = io.util.md.renderNow()
 
-  def wrap(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using model.Context) =
+  def wrap(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using Breeze.Context) =
     import scalatags.Text.tags2.title as titleTag
     html(
       head(useUtf8, viewport, bootstrapCss, siteStyleCss, hljsStyle, fontAwesome, titleTag(title)),
@@ -64,7 +70,7 @@ object page:
         footer(cls := "mt-auto",
           div(cls := "footer-copyright text-center py-3",
             small(
-              s"© $year ${summon[model.Context].whoAmI}.",
+              s"© $year ${Breeze.whoAmI}.",
               span(cls := "text-muted", s" Last published $today")
             )
           ),

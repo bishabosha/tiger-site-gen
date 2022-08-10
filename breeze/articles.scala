@@ -1,12 +1,12 @@
-package templates
+package breeze
 
 import scalatags.Text.all.*
 
-import templates.page.PageCategory
+import breeze.page.PageCategory
 import model.ctx
 
-def articles(doc: model.md.DocPage)(using model.Context) =
-  templates.page.wrap(PageCategory.Articles, title = s"Articles | ${summon[model.Context].whoAmI}")(
+def articles(doc: Breeze.DocPage)(using Breeze.Context) =
+  breeze.page.wrap(PageCategory.Articles, title = s"Articles | ${Breeze.whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(),
@@ -20,7 +20,7 @@ def articles(doc: model.md.DocPage)(using model.Context) =
               val sample = doc.htmlPreview
               div(cls := "row",
                 div(cls := "col-lg-12",
-                  h2(a(href := s"/articles/${sanatise.mdNameToHtml(doc.name)}", title)),
+                  h2(a(href := s"/articles/${io.util.sanatise.mdNameToHtml(doc.name)}", title)),
                   subtitles.article(doc),
                   p(sample)
                 )

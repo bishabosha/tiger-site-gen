@@ -1,4 +1,4 @@
-package templates
+package breeze
 
 import scalatags.Text.all.*
 
@@ -28,7 +28,7 @@ object cards:
       )
     )
 
-  def recentPosts(kind: String, posts: model.md.Docs): scalatags.Text.Modifier =
+  def recentPosts(kind: String, posts: Breeze.Docs): scalatags.Text.Modifier =
     wrap(s"Recent $kind",
       table(cls := "table table-sm table-borderless",
         tbody(
@@ -41,7 +41,7 @@ object cards:
                   io.util.md.renderShortDate(published).getOrElse("No Date")
                 )
               ),
-              td(a(href := s"/${kind.toLowerCase}/${sanatise.mdNameToHtml(post.name)}", title)),
+              td(a(href := s"/${kind.toLowerCase}/${io.util.sanatise.mdNameToHtml(post.name)}", title)),
             )
         )
       ),
@@ -50,7 +50,7 @@ object cards:
       )
     )
 
-  def links(title: String, links: model.md.Docs): scalatags.Text.Modifier =
+  def links(title: String, links: Breeze.Docs): scalatags.Text.Modifier =
     wrap(title,
       (for link <- links yield
         div(

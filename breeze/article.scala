@@ -1,12 +1,12 @@
-package templates
+package breeze
 
 import scalatags.Text.all.*
 import scalatags.Text.tags2.article as tArticle
 
-import templates.page.PageCategory
+import breeze.page.PageCategory
 import model.ctx
 
-def article(doc: model.md.DocPage)(using model.Context) =
+def article(doc: Breeze.DocPage)(using Breeze.Context) =
   val (prev, next) = ctx.site.articles.prevNext(doc).swap // articles is in reverse order
   val articleNav = (
     Option.when(prev.orElse(next).isDefined)(
@@ -15,7 +15,7 @@ def article(doc: model.md.DocPage)(using model.Context) =
           div(cls := "col d-flex",
             (for pdoc <- prev yield
               small(
-                a(href := s"/articles/${templates.sanatise.mdNameToHtml(pdoc.name)}",
+                a(href := s"/articles/${io.util.sanatise.mdNameToHtml(pdoc.name)}",
                   i(cls := "fa-solid fa-angle-left"),
                   s" ${pdoc.frontMatter.title}",
                 )
@@ -25,7 +25,7 @@ def article(doc: model.md.DocPage)(using model.Context) =
           div(cls := "col d-flex flex-row-reverse",
             (for ndoc <- next yield
               small(cls := "float-end",
-                a(href := s"/articles/${templates.sanatise.mdNameToHtml(ndoc.name)}",
+                a(href := s"/articles/${io.util.sanatise.mdNameToHtml(ndoc.name)}",
                   s"${ndoc.frontMatter.title} ",
                   i(cls := "fa-solid fa-angle-right"),
                 )
@@ -37,7 +37,7 @@ def article(doc: model.md.DocPage)(using model.Context) =
     )
   )
 
-  templates.page.wrap(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${summon[model.Context].whoAmI}")(
+  breeze.page.wrap(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${Breeze.whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(),

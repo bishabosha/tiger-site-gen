@@ -1,9 +1,11 @@
-package templates
+package breeze
 
 import scalatags.Text.all.*
 import scalatags.Text.tags2.nav
 
-def navbar(from: model.Navbar) =
+import breeze.page.{NavLink, NavBar}
+
+def navbar(from: NavBar) =
   nav(cls := "navbar navbar-expand-md navbar-light fixed-top bg-light",
     div(cls := "container-fluid",
       a(cls := "navbar-brand", href := "/", from.brand),
@@ -15,7 +17,7 @@ def navbar(from: model.Navbar) =
       ),
       div(cls := "collapse navbar-collapse", id := "navbarSupportedContent",
         ul(cls := "navbar-nav me-auto mb-2 mb-lg-0",
-          (for model.NavLink(active, link) <- from.links yield
+          (for NavLink(active, link) <- from.links yield
             val linkCls = if active then "nav-link active" else "nav-link"
             val isCurrent = if active then Seq(attr("aria-current") := "page") else Seq.empty
             li(cls := "nav-item",

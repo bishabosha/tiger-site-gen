@@ -1,12 +1,12 @@
-package templates
+package breeze
 
 import scalatags.Text.all.*
 
-import templates.page.PageCategory
+import breeze.page.PageCategory
 import model.ctx
 
-def about(doc: model.md.DocPage)(using model.Context) =
-  templates.page.wrap(PageCategory.About, title = s"About | ${summon[model.Context].whoAmI}")(
+def about(doc: Breeze.DocPage)(using Breeze.Context) =
+  breeze.page.wrap(PageCategory.About, title = s"About | ${Breeze.whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(hideable = false),
