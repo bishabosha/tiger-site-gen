@@ -2,6 +2,8 @@ package breeze
 
 import scalatags.Text.all.*
 
+import Breeze.*
+
 object cards:
 
   def wrap(title: String, content: scalatags.Text.Modifier*): scalatags.Text.Modifier =
@@ -28,7 +30,7 @@ object cards:
       )
     )
 
-  def recentPosts(kind: String, posts: Breeze.Docs): scalatags.Text.Modifier =
+  def recentPosts(kind: String, posts: Docs): scalatags.Text.Modifier =
     wrap(s"Recent $kind",
       table(cls := "table table-sm table-borderless",
         tbody(
@@ -50,7 +52,7 @@ object cards:
       )
     )
 
-  def links(title: String, links: Breeze.Docs): scalatags.Text.Modifier =
+  def links(title: String, links: Docs): scalatags.Text.Modifier =
     wrap(title,
       (for link <- links yield
         div(
@@ -72,5 +74,3 @@ object cards:
         )
       )
     )
-
-

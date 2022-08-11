@@ -2,7 +2,9 @@ package breeze
 
 import scalatags.Text.all.*
 
-def bio(me: Breeze.DocPage, hideable: Boolean)(using Breeze.Context) = Seq(
+import Breeze.*
+
+def bio(me: DocPage, hideable: Boolean)(using Context) = Seq(
   p(img(src := me.frontMatter.avatar, alt := s"photo of ${me.frontMatter.name}", cls := "img-avatar")),
   ul(cls := "list-inline",
     (for s"$linkText|$iconCls|$link" <- me.frontMatter.links yield

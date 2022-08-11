@@ -5,8 +5,10 @@ import scalatags.Text.all.*
 import breeze.page.PageCategory
 import model.ctx
 
-def about(doc: Breeze.DocPage)(using Breeze.Context) =
-  breeze.page.wrap(PageCategory.About, title = s"About | ${Breeze.whoAmI}")(
+import Breeze.*
+
+def about(doc: DocPage)(using Context) =
+  breeze.page.wrap(PageCategory.About, title = s"About | $whoAmI")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(hideable = false),

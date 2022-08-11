@@ -40,8 +40,8 @@ object sanatise:
 object paths:
 
   def generateSite[T <: model.Theme](out: String, theme: T)(using model.SiteRoot): Unit =
-    given model.Context = model.Context.fromTheme(theme)
-    renderSite(curr / out)
+    given theme.Context = model.Context.fromTheme(theme)
+    renderSite(curr / out, theme)
 
   def buildSiteDb[S <: model.Site](using model.SiteRoot): S =
     val roots = os.list(curr / "_docs").filter(os.isDir)
@@ -71,21 +71,23 @@ object paths:
     ).toMap
     model.Site.read(statics.headOption, data)
 
-  def renderSite(dest: os.Path)(using model.Context): Unit =
+  def renderSite(dest: os.Path, theme: model.Theme)(using theme.Context): Unit =
     os.remove.all(dest)
-    val activeCols = ctx.site.allDocs.filter(_.willRender).asInstanceOf[Iterable[ctx.theme.DocCollection]]
-    var optRoots = Set.empty[model.DocCollection[?]]
+    val activeCols = ctx.site.allDocs.collect {
+      case col: theme.DocCollection @unchecked if col.willRender => col
+    }
+    var optRoots = Set.empty[theme.DocCollection]
     for col <- activeCols do
       os.makeDir.all(dest / col.collName)
       if col.index.frontMatter.isRoot then
         optRoots += col
       for doc <- col do
-        val subPage = ctx.theme.layouts(doc.frontMatter.layout)(doc)(using ctx.asInstanceOf)
+        val subPage = theme.metadata.layouts(doc.frontMatter.layout)(doc)
         os.write(
           dest / col.collName / sanatise.mdNameToHtml(doc.name),
           scalatags.Text.all.doctype("html")(subPage)
         )
-      val indexPage = ctx.theme.layouts(col.index.frontMatter.layout)(col.index)(using ctx.asInstanceOf)
+      val indexPage = theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
       os.write(
         dest / col.collName / "index.html",
         scalatags.Text.all.doctype("html")(indexPage)

@@ -3,9 +3,13 @@ package model
 trait Theme:
   thisTheme =>
 
-  def name: String
+  final type Layout = model.Layout[Context, DocPage]
 
-  def layouts: model.Layouts[Context, DocPage]
+  val metadata: Metadata
+  trait Metadata extends Selectable:
+    val name: String
+    val layouts: model.Layouts
+
   type Site <: model.Site
   type FrontMatter <: model.FrontMatter
 

@@ -20,7 +20,6 @@ class Doc[D <: DocPage](val collName: String, isIndex: Boolean, data: D) extends
   def willRender: Boolean = isIndex
   def index: D = if isIndex then data else throw new NoSuchElementException()
   def page: D = data
-  def pages: IndexedSeq[D] = if isIndex then IndexedSeq(data) else IndexedSeq.empty
   def foreach(op: D => Unit): Unit = if isIndex then () else op(data)
 
 

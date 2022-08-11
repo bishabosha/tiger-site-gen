@@ -4,13 +4,14 @@ import model.ctx
 
 object Breeze extends model.Theme:
 
-  val name = "Breeze"
-
-  val layouts = model.Layouts(
-    "about" -> about,
-    "article" -> article,
-    "articles" -> articles,
-  )
+  val metadata = new {
+    val name = "Breeze"
+    val layouts = new {
+      val about: Layout = breeze.about
+      val article: Layout = breeze.article
+      val articles: Layout = breeze.articles
+    }
+  }
 
   type Site = model.Site {
     val about: Doc

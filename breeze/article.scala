@@ -6,7 +6,9 @@ import scalatags.Text.tags2.article as tArticle
 import breeze.page.PageCategory
 import model.ctx
 
-def article(doc: Breeze.DocPage)(using Breeze.Context) =
+import Breeze.*
+
+def article(doc: DocPage)(using Context) =
   val (prev, next) = ctx.site.articles.prevNext(doc).swap // articles is in reverse order
   val articleNav = (
     Option.when(prev.orElse(next).isDefined)(
@@ -37,7 +39,7 @@ def article(doc: Breeze.DocPage)(using Breeze.Context) =
     )
   )
 
-  breeze.page.wrap(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${Breeze.whoAmI}")(
+  breeze.page.wrap(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(),

@@ -2,9 +2,11 @@ package breeze
 
 import scalatags.Text.all.*
 
+import Breeze.*
+
 object subtitles:
 
-  def article(doc: Breeze.DocPage, extras: scalatags.Text.Modifier*): scalatags.Text.Modifier =
+  def article(doc: DocPage, extras: scalatags.Text.Modifier*): scalatags.Text.Modifier =
     ul(cls := "list-inline mb-2",
       li(cls := "list-inline-item",
         small(

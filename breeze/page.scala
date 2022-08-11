@@ -2,6 +2,8 @@ package breeze
 
 import scalatags.Text.all.*
 
+import Breeze.*
+
 object page:
 
   val useUtf8 = meta(charset := "utf-8")
@@ -51,8 +53,8 @@ object page:
     case About extends PageCategory("/")
     case Articles extends PageCategory("/articles/index.html")
 
-  private def siteNav(category: PageCategory)(using Breeze.Context) = NavBar(
-    brand = Breeze.whoAmI,
+  private def siteNav(category: PageCategory)(using Context) = NavBar(
+    brand = whoAmI,
     links = PageCategory.values.toIndexedSeq.map(c =>
       NavLink(isActive = c == category, Link(c.index, c.toString))
     )
@@ -60,7 +62,7 @@ object page:
 
   private val (year, today) = io.util.md.renderNow()
 
-  def wrap(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using Breeze.Context) =
+  def wrap(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using Context) =
     import scalatags.Text.tags2.title as titleTag
     html(
       head(useUtf8, viewport, bootstrapCss, siteStyleCss, hljsStyle, fontAwesome, titleTag(title)),
@@ -70,7 +72,7 @@ object page:
         footer(cls := "mt-auto",
           div(cls := "footer-copyright text-center py-3",
             small(
-              s"© $year ${Breeze.whoAmI}.",
+              s"© $year $whoAmI.",
               span(cls := "text-muted", s" Last published $today")
             )
           ),
