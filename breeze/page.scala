@@ -2,6 +2,7 @@ package breeze
 
 import scalatags.Text.all.*
 
+import model.ctx
 import Breeze.*
 
 object page:
@@ -49,15 +50,16 @@ object page:
 
   final case class NavBar(brand: String, links: Seq[NavLink])
 
-  enum PageCategory(val index: String):
-    case About extends PageCategory("/")
-    case Articles extends PageCategory("/articles/index.html")
+  enum PageCategory(val docs: Context ?=> DocCollection):
+    case About extends PageCategory(ctx.site.about)
+    case Articles extends PageCategory(ctx.site.articles)
 
   private def siteNav(category: PageCategory)(using Context) = NavBar(
     brand = whoAmI,
-    links = PageCategory.values.toIndexedSeq.map(c =>
-      NavLink(isActive = c == category, Link(c.index, c.toString))
-    )
+    links = PageCategory.values
+      .filter(_.docs.willRender)
+      .map(c => NavLink(isActive = c == category, Link(s"/${c.docs.collName}/index.html", c.toString)))
+      .toIndexedSeq
   )
 
   private val (year, today) = io.util.md.renderNow()

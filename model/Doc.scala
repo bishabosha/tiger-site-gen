@@ -32,7 +32,7 @@ class Docs[D <: DocPage](val collName: String, optIndex: Option[D], data: Indexe
 
   def prevNext(doc: D): (Option[D], Option[D]) =
     val prev = if doc.idx > 0 then Some(page(doc.idx - 1)) else None
-    val next = if doc.idx > 0 && doc.idx < size - 1 then Some(page(doc.idx + 1)) else None
+    val next = if doc.idx >= 0 && doc.idx < size - 1 then Some(page(doc.idx + 1)) else None
     (prev, next)
 
   def foreach(op: D => Unit): Unit = data.foreach(op)

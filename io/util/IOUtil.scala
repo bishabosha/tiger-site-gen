@@ -39,12 +39,12 @@ object sanatise:
 
 object paths:
 
-  def generateSite[T <: model.Theme](out: String, theme: T)(using model.SiteRoot): Unit =
-    given theme.Context = model.Context.fromTheme(theme)
+  def generateSite[T <: model.Theme](src: String, out: String, theme: T)(using model.SiteRoot): Unit =
+    given theme.Context = model.Context.fromTheme(curr / src, theme)
     renderSite(curr / out, theme)
 
-  def buildSiteDb[S <: model.Site](using model.SiteRoot): S =
-    val roots = os.list(curr / "_docs").filter(os.isDir)
+  def buildSiteDb[S <: model.Site](src: os.Path)(using model.SiteRoot): S =
+    val roots = os.list(src).filter(os.isDir)
     val (statics, colls) = roots.partition(_.baseName == "static")
     val data: Map[String, model.Doc[?] | model.Docs[?]] = colls.map(r =>
       val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")

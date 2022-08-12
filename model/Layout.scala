@@ -4,6 +4,18 @@ import scalatags.Text.all.ConcreteHtmlTag
 
 type Layout[C <: model.Context, D <: DocPage] = D => C ?=> ConcreteHtmlTag[String]
 
-class Layouts extends reflect.Selectable:
+class Layouts extends Selectable:
+  outer =>
+
+  def selectDynamic(name: String): Any =
+    reflect.Selectable.reflectiveSelectable(this).selectDynamic(name)
+
   def apply[C <: model.Context, D <: DocPage](name: String)(doc: D)(using C): ConcreteHtmlTag[String] =
     selectDynamic(name).asInstanceOf[Layout[C, D]](doc)
+
+  def & (additions: Layouts): this.type & additions.type = new Layouts {
+    override def selectDynamic(name: String): Any =
+      try additions.selectDynamic(name)
+      catch
+        case err => outer.selectDynamic(name)
+  }.asInstanceOf[this.type & additions.type]

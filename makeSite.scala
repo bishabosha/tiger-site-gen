@@ -6,7 +6,12 @@
 package example
 
 import io.util.paths.generateSite
+import model.SiteRoot
+
+given SiteRoot = SiteRoot.here
 
 @main def makeSite =
-  given model.SiteRoot = model.SiteRoot.here
-  generateSite("out", theme = breeze.Breeze)
+  generateSite("_docs", "out", theme = breezeSite.Breeze)
+
+@main def makeJournal =
+  generateSite("_journal", "out", theme = breezeJournal.Breeze)

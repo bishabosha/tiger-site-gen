@@ -43,7 +43,7 @@ object cards:
                   io.util.md.renderShortDate(published).getOrElse("No Date")
                 )
               ),
-              td(a(href := s"/${kind.toLowerCase}/${io.util.sanatise.mdNameToHtml(post.name)}", title)),
+              td(a(href := s"/${posts.collName}/${io.util.sanatise.mdNameToHtml(post.name)}", title)),
             )
         )
       ),
