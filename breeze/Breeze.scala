@@ -27,4 +27,13 @@ object Breeze extends model.Theme:
     val url: String
   }
 
+  trait Extra:
+    val extraHead: Seq[scalatags.Text.all.Modifier]
+    val extraFoot: Seq[scalatags.Text.all.Modifier]
+
+  def extras(using model.Context.InMakeCtx): Extra = new {
+    val extraHead = Seq.empty
+    val extraFoot = Seq.empty
+  }
+
   def whoAmI(using Context): String = ctx.site.about.page.frontMatter.name

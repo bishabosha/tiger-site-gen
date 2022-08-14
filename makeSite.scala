@@ -15,3 +15,6 @@ given SiteRoot = SiteRoot.here
 
 @main def makeJournal =
   generateSite("_journal", "out", theme = breezeJournal.Breeze)
+
+@main def makePitch =
+  generateSite("_pitch", "out", theme = breezePitch.Breeze)

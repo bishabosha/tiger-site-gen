@@ -18,22 +18,7 @@ object page:
     integrity := "sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM",
     crossorigin := "anonymous"
   )
-  val hljsStyle = link(
-    rel := "stylesheet",
-    href := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css"
-  )
-  val hljsScript = script(
-    src := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js",
-    tpe := "text/javascript"
-  )
-  val hljsScala = script(
-    src := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/scala.min.js",
-    tpe := "text/javascript"
-  )
-  val hljsAll = script(
-    src := "/static/js/hljs.js",
-    tpe := "text/javascript"
-  )
+
   val siteStyleCss = link(
     rel := "stylesheet",
     href := "/static/css/style.css"
@@ -67,7 +52,7 @@ object page:
   def wrap(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using Context) =
     import scalatags.Text.tags2.title as titleTag
     html(
-      head(useUtf8, viewport, bootstrapCss, siteStyleCss, hljsStyle, fontAwesome, titleTag(title)),
+      head(useUtf8, viewport, bootstrapCss, siteStyleCss, fontAwesome, titleTag(title), ctx.extra.extraHead),
       body(cls := "d-flex flex-column min-vh-100",
         navbar(siteNav(category)),
         content,
@@ -80,8 +65,6 @@ object page:
           ),
         ),
         bootstrapJs,
-        hljsScript,
-        hljsScala,
-        hljsAll
+        ctx.extra.extraFoot,
       )
     )

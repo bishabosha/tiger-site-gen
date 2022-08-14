@@ -13,6 +13,10 @@ trait Theme:
   type Site <: model.Site
   type FrontMatter <: model.FrontMatter
 
+  type Extra
+
+  def extras(using Context.InMakeCtx): Extra
+
   final type DocCollection = model.DocCollection[DocPage]
   final type Docs = model.Docs[DocPage]
   final type Doc = model.Doc[DocPage]
@@ -23,4 +27,5 @@ trait Theme:
 
   final type Context = model.Context {
     val site: Site
+    val extra: Extra
   }

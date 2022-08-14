@@ -25,7 +25,7 @@ object cards:
           )
       )
     Seq(col1, col2).map(col =>
-      div(cls := "col-lg-4",
+      div(cls := "col-lg",
         column(col),
       )
     )

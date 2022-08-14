@@ -1,4 +1,4 @@
-package breezeJournal
+package breezePitch
 
 import model.ctx
 
@@ -9,7 +9,7 @@ object Breeze extends model.Theme:
   val metadata = new {
     val name = parent.metadata.name
     val layouts = parent.metadata.layouts & new {
-      val about: Layout = breezeJournal.about
+      val about: Layout = breezePitch.about
     }
   }
 

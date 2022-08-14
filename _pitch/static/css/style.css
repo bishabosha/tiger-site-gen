@@ -1,0 +1,41 @@
+/* Show it is fixed to the top */
+body {
+  padding-top: 4.5rem;
+}
+
+@supports (position: sticky) {
+  .sticky-top.top-aligned {
+    top: 4.5rem;
+  }
+}
+
+.img-avatar {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 100%;
+}
+
+.hero-title {
+  font-size: clamp(3rem, calc(5vw + 1.2rem), 5.7rem);
+  font-weight: 800;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.hero-box {
+  background: #fd2;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.bio-box {
+  background: #878FBB;
+}
+
+.bio-box .bio-main {
+  color: #fff;
+}
+
+.bio-box a.bio-link {
+  color: #fff;
+}

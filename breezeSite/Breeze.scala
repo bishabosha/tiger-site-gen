@@ -18,5 +18,8 @@ object Breeze extends model.Theme:
     val videos: Docs
   }
 
+  export parent.Extra
+  def extras(using model.Context.InMakeCtx): Extra = breezeSite.Extra
+
   type FrontMatter = parent.FrontMatter
   export parent.whoAmI

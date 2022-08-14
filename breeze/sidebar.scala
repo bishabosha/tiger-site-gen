@@ -9,9 +9,7 @@ object sidebar:
 
   def ofBio(hideable: Boolean = true)(using Context): scalatags.Text.Modifier =
     div(cls := "col-lg-4",
-      div(cls := s"jumbotron shadow py-lg-5 py-3",
-        div(
-          bio(ctx.site.about.page, hideable),
-        )
+      div(cls := s"bio-box jumbotron shadow py-lg-5 py-3",
+        bio(ctx.site.about.page, hideable),
       )
     )
