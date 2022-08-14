@@ -16,8 +16,8 @@ def about(doc: DocPage)(using Context) =
         sidebar.ofBio(hideable = false),
         cards.stride(
           cards.recentPosts("Articles", ctx.site.articles),
-          cards.links("Conference Talks", ctx.site.talks),
           cards.links("Video Tutorials", ctx.site.videos),
+          cards.links("Conference Talks", ctx.site.talks),
         )
       ),
     )

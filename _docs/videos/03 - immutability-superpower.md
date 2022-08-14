@@ -1,5 +1,5 @@
 ---
-title: Pick any Card - Write Better Data Structures with Scala
+title: Immutable Data - Your Next Superpower
 event: Let's Talk About Scala 3
 url: https://www.youtube.com/watch?v=RZFfk-64vfk
 ---
