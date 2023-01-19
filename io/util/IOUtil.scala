@@ -1,5 +1,3 @@
-//> using lib "com.vladsch.flexmark:flexmark-all:0.64.0"
-
 package io.util
 
 import com.vladsch.flexmark.util.ast.Node
@@ -51,7 +49,7 @@ object paths:
       val name = r.baseName
       if name.endsWith("s") then
         val triples = paths.map(p =>
-          val s"$prefix - $suffix.md" = p.last
+          val s"$prefix - $suffix.md" = p.last: @unchecked
           (prefix.toInt, suffix, p)
         )
         val (indexes, docs) = triples.partition((_, n, _) => n == "index")

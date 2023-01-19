@@ -8,10 +8,10 @@ def bio(me: DocPage, hideable: Boolean)(using Context) =
   div(cls := "bio-main",
     p(img(src := me.frontMatter.avatar, alt := s"photo of ${me.frontMatter.name}", cls := "img-avatar")),
     ul(cls := "list-inline",
-      (for s"$linkText|$iconCls|$link" <- me.frontMatter.links yield
+      (for case s"$linkText|$kind|$iconCls|$link" <- me.frontMatter.links yield
         li(cls := "list-inline-item",
           p(cls := "text-center mb-1",
-            a(href := link, cls := "bio-link",
+            a(href := link, cls := "bio-link", Option.when(kind == "social")(rel := "me"),
               i(cls := s"${iconCls} fa-lg"),
               br(),
               linkText

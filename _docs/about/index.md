@@ -5,10 +5,11 @@ title: About
 name: Jamie Thompson
 avatar: /static/img/profile.jpg
 links:
-  - GitHub|fa-brands fa-github|https://github.com/bishabosha
-  - Twitter|fa-brands fa-twitter|https://twitter.com/bishabosha
-  - LinkedIn|fa-brands fa-linkedin|https://www.linkedin.com/in/james-thompson-3b1ba076/
-  - Resume|fa-solid fa-file|/static/pages/james-thompson-cv.html
+  - GitHub|social|fa-brands fa-github|https://github.com/bishabosha
+  - Twitter|social|fa-brands fa-twitter|https://twitter.com/bishabosha
+  - LinkedIn|social|fa-brands fa-linkedin|https://www.linkedin.com/in/james-thompson-3b1ba076/
+  - Mastodon|social|fa-brands fa-mastodon|https://fosstodon.org/@jrthompson
+  - Resume||fa-solid fa-file|/static/pages/james-thompson-cv.html
 ---
 
 I love to share ideas about programming, whether it is though speaking,
