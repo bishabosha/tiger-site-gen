@@ -15,6 +15,7 @@ object Breeze extends model.Theme:
 
   type Site = parent.Site & {
     val talks: Docs
+    val meetups: Docs
     val videos: Docs
   }
 

@@ -18,6 +18,7 @@ def about(doc: DocPage)(using Context) =
           cards.recentPosts("Articles", ctx.site.articles),
           cards.links("Video Tutorials", ctx.site.videos),
           cards.links("Conference Talks", ctx.site.talks),
+          cards.links("Meetups", ctx.site.meetups),
         )
       ),
     )
