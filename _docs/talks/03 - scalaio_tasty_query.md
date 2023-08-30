@@ -1,7 +1,7 @@
 ---
 title: Discover TASTy Query
 event: ScalaIO FR 2022
-url: https://www.youtube.com/live/OaMM7fpjHxQ?t=27305
+url: https://youtu.be/mSU1FfOZ_QA?si=SsRCK7sc2GD4m0E6
 ---
 
 Introducing the Scala Community to TASTy query, a library for whole program analysis of Scala 3.

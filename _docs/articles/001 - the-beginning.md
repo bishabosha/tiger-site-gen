@@ -29,7 +29,7 @@ A markdown file should declare if it will be published as an individual html pag
 
 ## A Basic Implementation
 
-In mid 2020 I read the excellent [Hands-on Scala Programming](https://www.handsonscala.com) from [Li Haoyi](https://www.lihaoyi.com). Its a brilliant book for showcasing Scala as the ultimate tool to "get stuff done", using simple libraries that are powerful while remaining safe and accessible.
+To begin I followed the guide to build a basic static website generator from [Hands-on Scala Programming](https://www.handsonscala.com) by [Li Haoyi](https://www.lihaoyi.com). I would recommend this book for beginners looking to get to speed with Scala: It shows how to build a number of practical projects using Scala libraries that are very accessible.
 
 Chapters 9 and 10 of the book have the reader incrementally develop a script to generate a static blog website, with an index page of all articles, and an individual page per article.
 
