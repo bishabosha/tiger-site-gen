@@ -19,6 +19,12 @@ body {
   font-size: 10pt;
 } */
 
+blockquote {
+  border-left: 3px solid rebeccapurple;
+  padding: 10px 0 1px 10px;
+  background-color: #e9eff6;
+}
+
 .bio-expand {
   overflow-y: hidden;
   max-height: 4em;
