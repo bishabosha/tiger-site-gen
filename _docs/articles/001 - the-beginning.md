@@ -1,31 +1,25 @@
 ---
 layout: article
-title: The Beginning
+title: How to write a website generator in Scala, Part 1
 published: 01-Aug-2022
 ---
 
-Here you are, reading my blog, but how did it come to be? and how can you do the same?
+I decided to write my own website generator to build my personal website.
+My goal was to use Markdown to drive the content, and use Scala to make templating the HTML easier.
+Read on for how you can do it yourself.
 
-I'd say a number of factors recently came into alignment:
+To help build the website I used a new tool [Scala CLI](https://scala-cli.virtuslab.org).
+It's a great aid for rapid prototyping of Scala code, making adding dependencies and other configuration simple.
+I also used [VS Code](https://code.visualstudio.com) with the [Metals](https://scalameta.org/metals/) extension to get IDE features when writing the code.
 
-1. the need to create a personal website,
-2. the itch to implement my own static site generator,
-3. the introduction of [Scala CLI](https://scala-cli.virtuslab.org) to aid with rapid prototyping of Scala code,
-   with the assistance of [VS Code](https://code.visualstudio.com) and [Metals](https://scalameta.org/metals/)
-   for rich IDE features.
+## Requirements
 
-So in this post I will outline the inspiration and process behind creating this site and the generator behind it.
+The key idea behind the site-generator should be simplicity: low on configuration, driven by markdown files that are expanded via templates, which wrap the markdown content in further HTML. I wanted a very flexible template language for generating websites, so I chose [Scala 3](https://www.scala-lang.org).
 
-## Inspiration
+The user of the framework should see the directory structure as a single type-safe object, with access to the metadata and contents of each markdown file.
 
-Recently I was interested in making a low-configuration site generator, driven by markdown files and templates, where
-templates are responsible for wrapping the markdown content in further HTML. I wanted a very flexible template language for generating websites, so I chose Scala.
-
-For the end user, I would expose the directory structure as a single object, so the metadata and contents of each markdown file could be directly addressable as a data structure.
-
-Each template would be a function that recieves the current markdown file's metadata and content, and also the database of all other markdown-derived data.
-
-A markdown file should declare if it will be published as an individual html page by specifying a template in its front matter. If no template is selected then it is still exposed as data to other templates.
+Some markdown files will just act as data, visible to all the pages, but if it declares a template in its front-matter, then it will be published to a page with a dedicated URL. A declared template will be resolved to a Scala function.
+That function will recieve the markdown file's metadata and content, and also see the database of all other markdown-derived data.
 
 ## A Basic Implementation
 
