@@ -80,9 +80,8 @@ case class Graph(v: Vertices, nodes: Map[Id, Vertices], w: Weight)
 
 In the problem statement, the vertices are strings. However, comparisons of strings are expensive, so to improve performance, we will represent each vertex as a unique integer.
 
-:::info
-Converting string keys to integer IDs is a lossy operation, so for debugging purposes, before you build the graph, it could be useful to store a reverse lookup from an integer ID to its original key, e.g. `0 -> "dpx"`, `1 -> "bkx"`, `2 -> "xzl"`, etc.
-:::
+!!! tip "Keep track of original String vertices"
+  Converting string keys to integer IDs is a lossy operation, so for debugging purposes, before you build the graph, it could be useful to store a reverse lookup from an integer ID to its original key, e.g. `0 -> "dpx"`, `1 -> "bkx"`, `2 -> "xzl"`, etc.
 
 the graph has three fields:
 - `v` a bitset of vertex IDs,
