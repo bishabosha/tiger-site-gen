@@ -43,13 +43,13 @@ def article(doc: DocPage)(using Context) =
     div(cls := "container",
       div(cls := "row",
         sidebar.wrap(
-          sidebar.innerBio(),
+          sidebar.innerBio(top = true),
           sidebar.toc(doc),
         ),
         div(cls := "col-lg-8",
           div(cls := "jumbotron bg-light py-lg-5 py-3",
             tArticle(
-              h1(cls := "display-4", doc.frontMatter.title),
+              h1(cls := "display-5", doc.frontMatter.title),
               subtitles.article(doc, small(
                 a(href := "/articles/",
                   i(cls := "fa-solid fa-angle-up"),

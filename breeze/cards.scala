@@ -7,7 +7,7 @@ import Breeze.*
 object cards:
 
   def wrap(title: String, content: scalatags.Text.Modifier*): scalatags.Text.Modifier =
-    div(cls := "jumbotron bg-light shadow py-lg-5 py-3",
+    div(cls := "jumbotron bg-light shadow py-lg-4 py-3",
       h4(title),
       hr(),
       content
@@ -32,13 +32,13 @@ object cards:
 
   def recentPosts(kind: String, posts: Docs): scalatags.Text.Modifier =
     wrap(s"Recent $kind",
-      table(cls := "table table-sm table-borderless",
+      table(cls := "table table-sm table-borderless table-fixed",
         tbody(
           for post <- posts.take(5) yield
             val published = post.frontMatter.published
             val title = post.frontMatter.title
             tr(
-              td(
+              td(cls := "narrow-col",
                 small(cls := "text-muted",
                   io.util.md.renderShortDate(published).getOrElse("No Date")
                 )

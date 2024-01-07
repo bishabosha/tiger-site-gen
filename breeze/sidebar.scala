@@ -8,9 +8,9 @@ import Breeze.*
 
 object sidebar:
 
-  def ofBio(hideable: Boolean = true)(using Context): scalatags.Text.Modifier =
+  def ofBio(hideable: Boolean = true, collapsable: Boolean = true)(using Context): scalatags.Text.Modifier =
     wrap(
-      innerBio(hideable),
+      innerBio(top = false, hideable, collapsable),
     )
 
   def wrap(elems: scalatags.Text.Modifier*)(using Context): scalatags.Text.Modifier =
@@ -18,13 +18,13 @@ object sidebar:
       elems
     )
 
-  def innerBio(hideable: Boolean = true)(using Context): scalatags.Text.Modifier =
-    div(cls := s"bio-box jumbotron shadow py-lg-4 py-3",
-      bio(ctx.site.about.page, hideable),
+  def innerBio(top: Boolean, hideable: Boolean = true, collapsable: Boolean = true)(using Context): scalatags.Text.Modifier =
+    div(cls := s"bio-box jumbotron sidebar shadow py-lg-4 py-3 ${if top then "bio-box__top" else ""}",
+      bio(ctx.site.about.page, hideable, collapsable),
     )
 
   def toc(doc: DocPage)(using Context): scalatags.Text.Modifier =
-    div(cls := s"sticky-top top-aligned jumbotron shadow py-lg-5 py-3",
+    div(cls := s"sticky-top top-aligned jumbotron sidebar shadow py-lg-4 py-3",
       nav(cls := "toc-nav",
         ol(cls := "list-unstyled",
           (for (title, anchor, level) <- doc.headings yield

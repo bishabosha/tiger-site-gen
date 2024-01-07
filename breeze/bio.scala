@@ -4,7 +4,7 @@ import scalatags.Text.all.*
 
 import Breeze.*
 
-def bio(me: DocPage, hideable: Boolean)(using Context) =
+def bio(me: DocPage, hideable: Boolean, collapsable: Boolean)(using Context) =
   div(cls := "bio-main",
     p(img(src := me.frontMatter.avatar, alt := s"photo of ${me.frontMatter.name}", cls := "img-avatar")),
     ul(cls := "list-inline",
@@ -24,7 +24,7 @@ def bio(me: DocPage, hideable: Boolean)(using Context) =
     ),
     div(Option.when(hideable)(cls := "d-none d-sm-none d-lg-block"),
       hr(),
-      div((if !hideable then cls := "bio-body" else Seq(cls := "bio-body bio-expand", tabindex := "0")),
+      div((if !collapsable then cls := "bio-body" else Seq(cls := "bio-body bio-expand", tabindex := "0")),
         raw(me.htmlContent),
       )
     )

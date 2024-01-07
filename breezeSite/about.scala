@@ -14,11 +14,19 @@ def about(doc: DocPage)(using Context) =
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(hideable = false),
-        cards.stride(
-          cards.recentPosts("Articles", ctx.site.articles),
-          cards.links("Video Tutorials", ctx.site.videos),
-          cards.links("Conference Talks", ctx.site.talks),
-          cards.links("Meetups", ctx.site.meetups),
+        div(cls := "col-lg",
+          div(cls := "row",
+            div(cls := "col-lg",
+              cards.recentPosts("Articles", ctx.site.articles)
+            ),
+          ),
+          div(cls := "row",
+            cards.stride(
+              cards.links("Meetups", ctx.site.meetups),
+              cards.links("Video Tutorials", ctx.site.videos),
+              cards.links("Conference Talks", ctx.site.talks),
+            )
+          )
         )
       ),
     )
