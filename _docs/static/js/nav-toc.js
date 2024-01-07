@@ -18,14 +18,11 @@ window.addEventListener('DOMContentLoaded', () => {
         seen.push(parent);
         parent.classList.add('active');
       }
-      // else {
-      //   document.querySelector(selector).parentElement.classList.remove('active');
-      // }
     });
   });
 
   // Track all sections that have an `id` applied
-  document.querySelectorAll('.anchor-link[id]').forEach((section) => {
+  document.querySelectorAll('.anchor-link__source[id]').forEach((section) => {
     console.log("section: ", section);
     observer.observe(section);
   });

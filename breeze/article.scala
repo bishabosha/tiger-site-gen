@@ -49,7 +49,10 @@ def article(doc: DocPage)(using Context) =
         div(cls := "col-lg-8",
           div(cls := "jumbotron bg-light py-lg-5 py-3",
             tArticle(
-              h1(cls := "display-5", doc.frontMatter.title),
+              h1(
+                id := io.util.sanatise.mdNameToHtml(doc.frontMatter.title),
+                cls := "display-5 anchor-link__source", doc.frontMatter.title
+              ),
               subtitles.article(doc, small(
                 a(href := "/articles/",
                   i(cls := "fa-solid fa-angle-up"),

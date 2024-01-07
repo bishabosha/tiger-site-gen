@@ -30,7 +30,7 @@ import model.ctx
 import scala.collection.mutable
 
 object sanatise:
-  private val regex = raw"[!?&*^$$#@]".r
+  private val regex = raw"[!?&*^$$#@,]".r
 
   def mdNameToHtml(name: String) =
     regex.replaceAllIn(name.replace(" ", "-"), "").toLowerCase + ".html"
@@ -138,7 +138,7 @@ object md:
     options.set(Parser.EXTENSIONS, exts.asJava)
     options.set(AnchorLinkExtension.ANCHORLINKS_WRAP_TEXT, false)
     options.set(AnchorLinkExtension.ANCHORLINKS_TEXT_SUFFIX, """<i class="fa-solid fa-link"></i>""")
-    options.set(AnchorLinkExtension.ANCHORLINKS_ANCHOR_CLASS, """anchor-link""")
+    options.set(AnchorLinkExtension.ANCHORLINKS_ANCHOR_CLASS, """anchor-link anchor-link__source""")
     // uncomment to convert soft-breaks to hard breaks
     //options.set(HtmlRenderer.SOFT_BREAK, "<br />\n");
     val parser = Parser.builder(options).build()

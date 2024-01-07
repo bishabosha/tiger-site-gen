@@ -13,7 +13,7 @@ def about(doc: DocPage)(using Context) =
   breeze.page.wrap(PageCategory.About, title = s"About | $whoAmI")(
     div(cls := "container",
       div(cls := "row",
-        sidebar.ofBio(hideable = false),
+        sidebar.ofBio(hideable = false, collapsable = false),
         div(cls := "col-lg",
           div(cls := "row",
             div(cls := "col-lg",

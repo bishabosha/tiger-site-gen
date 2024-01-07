@@ -27,6 +27,9 @@ object sidebar:
     div(cls := s"sticky-top top-aligned jumbotron sidebar shadow py-lg-4 py-3",
       nav(cls := "toc-nav",
         ol(cls := "list-unstyled",
+          li(cls := s"toc-level-1",
+            a(href := s"#${io.util.sanatise.mdNameToHtml(doc.frontMatter.title)}", doc.frontMatter.title)
+          ),
           (for (title, anchor, level) <- doc.headings yield
             li(cls := s"toc-level-$level",
               a(href := s"#$anchor", title)

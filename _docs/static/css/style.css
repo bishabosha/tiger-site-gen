@@ -32,10 +32,6 @@ table.table-fixed {
   box-shadow: 0 0.8rem 1rem rgba(0, 0, 0, 0.15) !important;
 }
 
-/* .bio-link {
-  font-size: 10pt;
-} */
-
 blockquote {
   border-left: 3px solid rebeccapurple;
   padding: 10px 0 1px 10px;
@@ -45,9 +41,9 @@ blockquote {
 .bio-expand {
   overflow-y: hidden;
   max-height: 4em;
-  box-shadow: inset 0 -33px 29px -26px #aaa;
-  transition: 200ms ease-in-out all;
+  box-shadow: inset 0 -75px 30px -45px #ccc;
   cursor: pointer;
+  border-bottom: 3px solid #447283;
 }
 
 .bio-expand:focus {
@@ -55,6 +51,7 @@ blockquote {
   max-height: none !important;
   cursor: auto !important;
   box-shadow: none !important;
+  border-bottom: none !important;
 }
 
 .bio-expand:before {
