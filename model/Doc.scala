@@ -4,6 +4,7 @@ final case class DocPage(
   name: String,
   frontMatter: FrontMatter,
   wordCount: Int,
+  headings: List[(String, String, Int)],
   htmlPreview: String,
   htmlContent: String,
   private[model] val idx: Int,

@@ -24,6 +24,23 @@ trait ExtraHljsScala extends breeze.Breeze.Extra:
   val hljsHead = Seq(hljsStyle)
   val hljsFoot = Seq(hljsScript, hljsScala, hljsAll)
 
-object Extra extends ExtraHljsScala:
-  val extraHead = hljsHead
-  val extraFoot = hljsFoot
+trait ExtraKatexScala extends breeze.Breeze.Extra:
+  val katexStyle = link(
+    rel := "stylesheet",
+    href := "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css"
+  )
+  val katexScript = script(
+    src := "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js",
+    tpe := "text/javascript"
+  )
+  val katexRender = script(
+    src := "/static/js/katex-render.js",
+    tpe := "text/javascript"
+  )
+
+  val katexHead = Seq(katexStyle, katexScript)
+  val katexFoot = Seq(katexRender)
+
+object Extra extends ExtraHljsScala with ExtraKatexScala:
+  val extraHead = hljsHead ++ katexHead
+  val extraFoot = hljsFoot ++ katexFoot

@@ -5,7 +5,7 @@ body {
 
 @supports (position: sticky) {
   .sticky-top.top-aligned {
-    top: 4.5rem;
+    top: 4.5rem !important;
   }
 }
 
@@ -13,4 +13,35 @@ body {
   max-width: 120px;
   max-height: 120px;
   border-radius: 100%;
+}
+
+.katex {
+  font-size: 1.15em !important;
+}
+
+.anchor-link {
+  font-size: 0.7em;
+  margin-right: 10px;
+  scroll-margin-top: 4.5rem;
+}
+
+.toc-nav li.active {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+.toc-level-2 {
+  margin-left: 10px;
+}
+.toc-level-3 {
+  margin-left: 20px;
+}
+.toc-level-4 {
+  margin-left: 30px;
+}
+.toc-level-5 {
+  margin-left: 40px;
+}
+.toc-level-6 {
+  margin-left: 50px;
 }

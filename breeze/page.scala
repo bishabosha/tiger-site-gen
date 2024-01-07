@@ -18,6 +18,10 @@ object page:
     integrity := "sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM",
     crossorigin := "anonymous"
   )
+  val navTocJs = script(
+    src := "/static/js/nav-toc.js",
+    tpe := "text/javascript"
+  )
 
   val siteStyleCss = link(
     rel := "stylesheet",
@@ -65,6 +69,7 @@ object page:
           ),
         ),
         bootstrapJs,
+        navTocJs,
         ctx.extra.extraFoot,
       )
     )

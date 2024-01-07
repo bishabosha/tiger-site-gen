@@ -9,6 +9,10 @@ import scala.jdk.CollectionConverters.given
 import com.vladsch.flexmark.ext.yaml.front.matter.YamlFrontMatterExtension
 import com.vladsch.flexmark.ext.yaml.front.matter.AbstractYamlFrontMatterVisitor
 import com.vladsch.flexmark.ext.attributes.AttributesExtension
+
+import com.vladsch.flexmark.ext.gitlab.GitLabExtension
+import com.vladsch.flexmark.ext.anchorlink.AnchorLinkExtension
+
 import java.time.format.DateTimeFormatter
 import java.time.LocalDate
 import scala.util.control.NonFatal.apply
@@ -18,7 +22,7 @@ import com.vladsch.flexmark.util.ast.VisitHandler
 import com.vladsch.flexmark.util.ast.Document
 import com.vladsch.flexmark.ast.Paragraph
 import com.vladsch.flexmark.ast.Text
-import com.vladsch.flexmark.ast.Code
+import com.vladsch.flexmark.ast.Heading
 
 import model.curr
 import model.ctx
@@ -125,9 +129,14 @@ object md:
     val options = MutableDataSet()
     val exts = List(
       AttributesExtension.create(),
-      YamlFrontMatterExtension.create()
+      YamlFrontMatterExtension.create(),
+      GitLabExtension.create(),
+      AnchorLinkExtension.create(),
     )
     options.set(Parser.EXTENSIONS, exts.asJava)
+    options.set(AnchorLinkExtension.ANCHORLINKS_WRAP_TEXT, false)
+    options.set(AnchorLinkExtension.ANCHORLINKS_TEXT_SUFFIX, """<i class="fa-solid fa-link"></i>""")
+    options.set(AnchorLinkExtension.ANCHORLINKS_ANCHOR_CLASS, """anchor-link""")
     // uncomment to convert soft-breaks to hard breaks
     //options.set(HtmlRenderer.SOFT_BREAK, "<br />\n");
     val parser = Parser.builder(options).build()
@@ -148,25 +157,30 @@ object md:
 
   object ContentSampler:
 
-    def sampleContent(document: Document): (String, Int) =
+    def sampleContent(document: Document): (String, Int, List[(String, String, Int)]) =
       val sampler = Visitor()
       sampler.visitor.visit(document)
       val sample = sampler.sample
-      (if sample == null then "" else sample, sampler.wordCount)
+      (if sample == null then "" else sample, sampler.wordCount, sampler.headings.result())
 
     private class Visitor:
       var wordCount = 0
       var sample: String | Null = null
+      var headings = List.newBuilder[(String, String, Int)]
 
       // example of visitor for a node or nodes, just add VisitHandlers<> to the list
       // any node type not handled by the visitor will default to visiting its children
       val visitor = NodeVisitor(
         VisitHandler(classOf[Text], visit(_)),
         VisitHandler(classOf[Paragraph], visit(_)),
+        VisitHandler(classOf[Heading], visit(_)),
       )
 
       def addCount(nextText: String) = wordCount += nextText.split("\\s+").length
       def read(node: Node) = node.getChars().unescape()
+
+      def visit(heading: Heading): Unit =
+        headings += ((heading.getText().unescape(), heading.getAnchorRefId(), heading.getLevel()))
 
       def visit(text: Paragraph): Unit =
         val localSample = sample
@@ -200,12 +214,13 @@ object md:
       model.FrontMatter(entries)
 
     val html = renderer.render(document)
-    val (sample, wordCount) = ContentSampler.sampleContent(document)
+    val (sample, wordCount, headings) = ContentSampler.sampleContent(document)
 
     model.DocPage(
       name = name,
       frontMatter = data,
       wordCount = wordCount,
+      headings = headings,
       htmlPreview = sample,
       htmlContent = html,
       idx = index,

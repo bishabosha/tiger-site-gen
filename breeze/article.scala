@@ -42,7 +42,10 @@ def article(doc: DocPage)(using Context) =
   breeze.page.wrap(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${whoAmI}")(
     div(cls := "container",
       div(cls := "row",
-        sidebar.ofBio(),
+        sidebar.wrap(
+          sidebar.innerBio(),
+          sidebar.toc(doc),
+        ),
         div(cls := "col-lg-8",
           div(cls := "jumbotron bg-light py-lg-5 py-3",
             tArticle(
