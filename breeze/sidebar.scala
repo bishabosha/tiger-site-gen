@@ -19,7 +19,7 @@ object sidebar:
     )
 
   def innerBio(hideable: Boolean = true)(using Context): scalatags.Text.Modifier =
-    div(cls := s"bio-box jumbotron shadow py-lg-5 py-3",
+    div(cls := s"bio-box jumbotron shadow py-lg-4 py-3",
       bio(ctx.site.about.page, hideable),
     )
 
