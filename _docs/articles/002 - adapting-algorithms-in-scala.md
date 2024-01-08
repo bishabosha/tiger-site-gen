@@ -1,19 +1,20 @@
 ---
 layout: article
-title: Algorithms
-published: 06-Jan-2024
+title: Adapting algorithms to Scala, with the help of elves
+published: 08-Jan-2024
 ---
 
-We are told that there are 3 connections that when removed will partition the components into two groups.
-We then have to multiply the sizes of the two partitions.
-This is equivalent to finding a minimum cut in an undirected, unweighted graph, which can be solved with the
-[Stoer-Wagner minimum cut algorithm](https://dl.acm.org/doi/pdf/10.1145/263867.263872).
+Follow my journey solving the last day of [Advent of Code](https://adventofcode.com) 2023 in Scala 3, the score?
+Adapting the [Stoer-Wagner minimum cut algorithm](https://dl.acm.org/doi/pdf/10.1145/263867.263872).
 
-### Naive Way
-You may be tempted to brute force the solution by testing all combinations of three edges to remove, and checking if the result makes two partitions. This works in reasonable time with the sample input. The real input is much larger however, and with about $`\sim 3400`$ connections, which means there are
-$`{\sim 3400 \choose 3} \approx 6,500,000,000`$ combinations to test.
+> I wrote a [sibling article](https://scalacenter.github.io/scala-advent-of-code/2023/puzzles/day25) on the Scala Center's Advent of Code solutions website which you may also want to read.
+> The article you are reading now focuses on the process of reaching the code presented there.
 
-### Minumum Cut Algorithm
+Why this article? I think it is useful to see the decision making process. What does it take to adapt "the literature" i.e. a specification of an algorithm in mathematical language, to practical code that can run on a computer?
+
+I think that for this specific algorithm, Scala is particularly suited. Its immutable collections are very rooted in mathematical foundations, while the language itself has a highly expressive syntax.
+
+## Introducing the algorithm
 
 The pseudo code for the [Stoer-Wagner algorithm](https://dl.acm.org/doi/pdf/10.1145/263867.263872) is as follows:
 ```scala
