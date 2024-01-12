@@ -1,8 +1,8 @@
-//> using scala "3.3.0"
-//> using lib "com.lihaoyi::os-lib:0.9.1"
-//> using lib "com.lihaoyi::scalatags:0.12.0"
-//> using lib "com.lihaoyi::sourcecode:0.3.0"
-//> using lib "com.vladsch.flexmark:flexmark-all:0.64.8"
+//> using scala "3.4.0-RC1"
+//> using dep com.lihaoyi::os-lib:0.9.3
+//> using dep com.lihaoyi::scalatags:0.12.0
+//> using dep com.lihaoyi::sourcecode:0.3.1
+//> using dep com.vladsch.flexmark:flexmark-all:0.64.8
 //> using jvm "17"
 
 package example

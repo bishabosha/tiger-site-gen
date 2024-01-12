@@ -13,6 +13,7 @@ import com.vladsch.flexmark.ext.attributes.AttributesExtension
 import com.vladsch.flexmark.ext.gitlab.GitLabExtension
 import com.vladsch.flexmark.ext.anchorlink.AnchorLinkExtension
 import com.vladsch.flexmark.ext.admonition.AdmonitionExtension
+import com.vladsch.flexmark.ext.superscript.SuperscriptExtension
 
 import java.time.format.DateTimeFormatter
 import java.time.LocalDate
@@ -134,6 +135,7 @@ object md:
       GitLabExtension.create(),
       AnchorLinkExtension.create(),
       AdmonitionExtension.create(),
+      SuperscriptExtension.create(),
     )
     options.set(Parser.EXTENSIONS, exts.asJava)
     options.set(AnchorLinkExtension.ANCHORLINKS_WRAP_TEXT, false)

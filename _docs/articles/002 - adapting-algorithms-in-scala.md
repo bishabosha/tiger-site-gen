@@ -6,65 +6,220 @@ published: 08-Jan-2024
 
 Follow my journey solving the last day of [Advent of Code](https://adventofcode.com) 2023 in Scala 3, the score?
 Adapting the [Stoer-Wagner minimum cut algorithm](https://dl.acm.org/doi/pdf/10.1145/263867.263872).
+If you were wondering, it finds a minimal set of edges to remove (a cut) to split a graph into two partitions.
 
-> I wrote a [sibling article](https://scalacenter.github.io/scala-advent-of-code/2023/puzzles/day25) on the Scala Center's Advent of Code solutions website which you may also want to read.
-> The article you are reading now focuses on the process of reaching the code presented there.
+> The article you are reading focuses on adapting the Stoer-Wagner algorithm.
+> If you want to see it used in a practical problem, I also wrote a [sibling article](https://scalacenter.github.io/scala-advent-of-code/2023/puzzles/day25) on the Scala Center's Advent of Code solutions website which you may also want to read.
 
-Why this article? I think it is useful to see the decision making process. What does it take to adapt "the literature" i.e. a specification of an algorithm in mathematical language, to practical code that can run on a computer?
+Why this article? I think it is useful to see the decision process when adapting "the literature" a.k.a. a high-level specification of an algorithm in mathematical language, to practical code that can run on a computer.
 
-I think that for this specific algorithm, Scala is particularly suited. Its immutable collections are very rooted in mathematical foundations, while the language itself has a highly expressive syntax.
+For this specific algorithm, [Scala](https://scala-lang.org) is a particularly suitable programming language.
+Its immutable collections are very rooted in mathematical foundations, while the language itself has a highly expressive syntax.
 
 ## Introducing the algorithm
 
-The pseudo code for the [Stoer-Wagner algorithm](https://dl.acm.org/doi/pdf/10.1145/263867.263872) is as follows:
+The [original paper](https://dl.acm.org/doi/pdf/10.1145/263867.263872) describing the Stoer-Wagner algorithm provides a high level specification as an imperative algorithm, described concisely by the following pseudo code:
 ```scala
-G := {V, E}
+G := {V, E} // 1.
 
 def MinimumCutPhase(G, w, a) =
-  A := {a}
+  A := {a} // 2.
   while A != V do
-    A += MostTightlyConnected(G, w, A)
-  cut := CutOfThePhase(G, A)
-  Shrink(G, w, A)
+    A += MostTightlyConnected(G, w, A) // 3.
+  cut := CutOfThePhase(G, A) // 4.
+  Shrink(G, w, A) // 5.
   return cut
 
 def MinumumCut(G, w, a) =
-  min := EmptyCut // an empty cut (impossible)
+  min := EmptyCut // 6.
   while V.size > 1 do
-    cut := MinimumCutPhase(G, w, a)
+    cut := MinimumCutPhase(G, w, a) // 7.
     if Weight(cut) < Weight(min) || IsEmpty(min) then
       min = cut
   return min
 ```
 
-i.e. it is an iterative algorithm that begins with a graph (`G`) made of vertices (`V`) and undirected edges (`E`), with a weight function (`w`). It assumes that there is at most a single edge between any two vertices.
-The algorithm works by iteratively shrinking a graph by removing edges, and testing if the cut (i.e. the removed edges) is minimal.
+The algorithm begins in the `MinimumCut` loop, and iteratively shrinks a graph by delegating to the `MinimumCutPhase`, which yields a cut (i.e. edges removed by shrinking). The minimal cut is finally returned. Here is a more detailed overview:
 
-Begin in the main `minimum-cut` loop. Initialise the `min` to an empty cut.
-While the graph has more than one vertex, run the `minimum-cut-phase` on the graph with an arbitrary vertex `a`. The phase returns a single `cut-of-the-phase`, stored in `cut`.
-If the cut has a smaller weight than `min` (or is non-empty), record it as the new minimum.
-At the end of iteration, return `min` which will be the minimum cut.
+> 1. `G` is a graph, made of the composition of a vertex set `V` and an edge set `E`.
+>    There is also a weight function, where `w(e)` gives the weight of an edge `e`.
+> 2. Initialise `A` to the set containing `a`, an arbitrary vertex of `V`.
+> 3. Until `A` is equal to `V`, keep adding the `most-tightly-connected` vertex of `V`, `z`, to the vertices in `A`. `z` is a vertex in `V` (and not in `A`) where the total weight of edges from `A` to `z` is maximum.
+> 4. Make a cut by removing edges from vertex `added-last` to `A` to the rest of `V`.
+> 5. Shrink `G` by removing the vertex `added-last` to `A`, Update `E` and `w` by merging the edges of the two `added-last` vertices.
+> 6. Initialize `min` to an empty cut, which signals that no cut was found yet.
+> 7. Until `G` has a single vertex, run the `MinimumCutPhase`. If the resulting `cut-of-the-phase` is minimal, update `min`.
 
-In each `minimum-cut-phase`, initialise `A` to a set containing `a`.
-Iteratively add new vertices to `A` until it equals `V`.
-In each iteration, the vertex added is always the current `most-tightly-connected`<sup>1.</sup> vertex from `V` to vertices of `A`.
-After iteration, store the `cut-of-the-phase`<sup>2.</sup> in `cut`; then shrink the graph by merging<sup>3.</sup> the two vertices `added-last` to `A`. Return `cut`.
+## The Naive Adaption
 
-1. The `most-tightly-connected` vertex, `z`, is a vertex in `V` (and not in `A`) where the total weight of edges from `A` to `z` is maximum.
-2. The `cut-of-the-phase` is the cut formed by removing the vertex `added-last` to `A`.
-3. Call `t` the vertex `added-last` to `A`, and `s` the next `added-last` vertex.
-   Remove `t` from `V`.
-   From `E`, remove edges from `t` to all other vertices (this is the `cut-of-the-phase`).
-   Update the weight function `w` such that the weight of an edge from `t` to some vertex `v` is added to the weight of any edge from `s` to the same `v`.
+Let's try to adapt this by the letter to Scala, and then we will analyse for possible optimisations.
 
+### Framework
 
-## Solving in Scala
+```scala
+type Vertex = String
+type Edge = (Vertex, Vertex)
 
-### Prerequisites
+case class Graph(v: Set[Vertex], e: Set[Edge], w: Map[Edge, Int]) // 1.
+case class Cut(edges: Set[Edge], weight: Int) // 2.
 
-Scala comes standard with a rich collections library to help us, we will solve this problem with purely immutable collections. However we will need to augment with a few custom data structures:
-- the `Graph` to store the vertices, edges and weights
-- a `MostConnected` heap structure that will provide the next "most-tightly-connected" vertex.
+def minimumCutPhase(G: Graph, a: Vertex) =
+  var A = Set(a)
+  var history = List(a) // 3.
+  while A != G.v do
+    val z = mostTightlyConnected(G, A)
+    A += z
+    history ::= z // 3.
+  val List(t, s, _*) = history: @unchecked // 3.
+  val cut = cutOfThePhase(G, t) // 4.
+  val g = shrink(G, cut, t, s) // 5.
+  (g, cut) // 6.
+
+def minumumCut(G: Graph, a: Vertex) =
+  var g = G
+  var min = Cut(Set.empty, 0)
+  while g.v.size > 1 do
+    val (g1, cut) = minimumCutPhase(g, a)
+    g = g1
+    if cut.weight < min.weight || min.weight == 0 then
+      min = cut
+  min
+
+def mostTightlyConnected(G: Graph, A: Set[Vertex]): Vertex = ???
+
+def cutOfThePhase(G: Graph, t: Vertex): Cut = ???
+
+def shrink(G: Graph, cut: Cut, t: Vertex, s: Vertex): Graph = ???
+```
+
+Let's leave some details out for now, and compare the differences:
+> 1. We use an immutable representation for the Graph. Also combine `w` with the graphs and edges.
+> 2. Represent the Cut as a pair of edges and their total weight.
+> 3. The default `Set` type in Scala does not remember insertion order, so use `history` to record the order by prepending `z` on each iteration.
+> 4. We only need `t`, the vertex `added-last` to compute the `cut-of-the-phase`.
+> 5. We also only need `t` and `s` the two vertices `added-last` to shrink the graph, which returns a new graph, rather than mutating in place.
+> 6. Because graph is immutable, we need to return the shrunk graph alongside the `cut-of-the-phase`.
+
+### Most Tightly Connected
+
+according to the [Stoer-Wagner algorithm](https://dl.acm.org/doi/pdf/10.1145/263867.263872) the "most-tightly-connected" vertex `z` is defined as follows:
+
+> $`z \notin A`$ such that $`w(A, z) = max \{ w(A, y) ~|~ y \notin A\}`$
+>
+> where $`w(A, y)`$ is the sum of the weights of all the edges between $`A`$ and $`y`$.
+
+This gives the naive implementation in Scala as follows:
+```scala
+def mostTightlyConnected(G: Graph, A: Set[Vertex]): Vertex =
+  val ys = G.v `diff` A
+  val frontier = G.e
+    .collect:
+      case edge @ (a, y) if A(a) && ys(y) => edge
+    .groupBy((_, y) => y)
+    .view
+    .mapValues(_.foldLeft(0)(_ + G.w(_)))
+    .toMap
+    .withDefaultValue(0)
+  ys.maxBy(frontier)
+```
+
+!!! danger "Runtime Complexity"
+  This current form of `mostTightlyConnected` is much too inefficient, will adapt it later to avoid repeated computation.
+
+### Cut of the phase
+
+To compute the cut of the phase, you must find all the edges from `t`, the vertex `added-last` to `A`. Then compute the total weight as usual.
+
+```scala
+def cutOfThePhase(G: Graph, t: Vertex): Cut =
+  val edges = G.e.collect:
+    case edge @ (t1, _) if t == t1 => edge
+  val weight = edges.foldLeft(0)(_ + G.w(_))
+  Cut(edges, weight)
+```
+
+!!! danger "Runtime Complexity"
+  Again, there is more we can do later to avoid repeated computation.
+
+### Shrinking the Graph
+
+The hardest part is to shrink the graph. This involves removing `t` from `G.v`, then any edges from `t` must be removed. Then weights from `t` to another vertex `u` (that isn't `s`) must be merged with the weight of the edge from `s` to `u`. Edges are undirected, so we must consider both directions also.
+
+```scala
+def shrink(G: Graph, cut: Cut, t: Vertex, s: Vertex): Graph =
+  val edgesFromT = cut.edges
+  val removedEdges = edgesFromT ++ edgesFromT.map(_.swap)
+  val mergeableLookup = edgesFromT
+    .collect({ case e @ (_, u) if u != s => e })
+    .groupBy((_, u) => u)
+  val mergeableEdges =
+    val us = mergeableLookup.view
+      .filter((_, ws) => ws.sizeIs == 1)
+      .keys
+    us.flatMap(u => List(u -> s, s -> u))
+  val mergedWeights = mergeableLookup
+    .flatMap: (u, ws) =>
+      val e = (s, u)
+      val w0 = G.w.getOrElse(e, 0)
+      val w1 = ws.foldLeft(w0)(_ + G.w(_))
+      List(e -> w1, e.swap -> w1)
+  val v1 = G.v - t
+  val e1 = G.e -- removedEdges ++ mergeableEdges
+  val w1 = G.w -- removedEdges ++ mergedWeights
+  Graph(v1, e1, w1)
+```
+
+### Review
+
+So we have all the pieces, are we done? It turns out that we are inefficient in two ways, representation of the graph, and not factoring out redundant computation. Let's optimise.
+
+## Helper
+
+```scala
+def minumumCut(G: Graph, a: Vertex) =
+  var g = G
+  var i = 0
+  var min = (i, Cut(Set.empty, 0))
+  while g.v.size > 1 do
+    i += 1
+    println(s"iteration $i")
+    val (g1, cut) = minimumCutPhase(g, a)
+    g = g1
+    if cut.weight < min(1).weight || min(1).weight == 0 then
+      min = (i, cut)
+  min
+
+type AList = Seq[(String, Seq[String])]
+def parse(input: String): AList =
+  val lines = input.linesIterator.map:
+    case s"$key: $cons" =>
+      key -> cons.split(" ").toIndexedSeq
+  lines.toSeq
+
+def readGraph(alist: AList): Graph =
+  def idOf(v: String) = asVertex(v)
+
+  def asVertex(v: String) = v match
+    case s"$n@$_" => n
+    case n => n
+  def asWeight(v: String) = v match
+    case s"$_@$w" => w.toInt
+    case n => 1
+  def asEdges(k: String, v: String) =
+    val e = (idOf(k), idOf(v))
+    List(e, e.swap)
+  def asWeights(k: String, v: String) =
+    val t = (idOf(k), idOf(v))
+    val w = asWeight(v)
+    List(t -> w, t.swap -> w)
+
+  val vertices = alist.flatMap((k, vs) => k +: vs).map(asVertex).toSet
+  val weights = alist.flatMap((k, vs) => vs.flatMap(v => asWeights(k, v))).toMap
+  val edges = alist.flatMap((k, vs) => vs.flatMap(v => asEdges(k, v))).toSet
+  Graph(vertices, edges, weights)
+```
+
+## Improving
 
 ### Graph
 
