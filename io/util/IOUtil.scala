@@ -14,6 +14,7 @@ import com.vladsch.flexmark.ext.gitlab.GitLabExtension
 import com.vladsch.flexmark.ext.anchorlink.AnchorLinkExtension
 import com.vladsch.flexmark.ext.admonition.AdmonitionExtension
 import com.vladsch.flexmark.ext.superscript.SuperscriptExtension
+import com.vladsch.flexmark.ext.tables.TablesExtension
 
 import java.time.format.DateTimeFormatter
 import java.time.LocalDate
@@ -136,11 +137,17 @@ object md:
       AnchorLinkExtension.create(),
       AdmonitionExtension.create(),
       SuperscriptExtension.create(),
+      TablesExtension.create(),
     )
     options.set(Parser.EXTENSIONS, exts.asJava)
     options.set(AnchorLinkExtension.ANCHORLINKS_WRAP_TEXT, false)
     options.set(AnchorLinkExtension.ANCHORLINKS_TEXT_SUFFIX, """<i class="fa-solid fa-link"></i>""")
     options.set(AnchorLinkExtension.ANCHORLINKS_ANCHOR_CLASS, """anchor-link anchor-link__source""")
+    options.set(TablesExtension.COLUMN_SPANS, false)
+    options.set(TablesExtension.APPEND_MISSING_COLUMNS, true)
+    options.set(TablesExtension.DISCARD_EXTRA_COLUMNS, true)
+    options.set(TablesExtension.HEADER_SEPARATOR_COLUMN_MATCH, true)
+    options.set(TablesExtension.CLASS_NAME, "article-table")
     // uncomment to convert soft-breaks to hard breaks
     //options.set(HtmlRenderer.SOFT_BREAK, "<br />\n");
     val parser = Parser.builder(options).build()

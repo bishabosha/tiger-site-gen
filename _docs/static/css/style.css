@@ -9,6 +9,25 @@ body {
   }
 }
 
+article table.article-table {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: #212529;
+  border-collapse: collapse;
+  thead {
+    tr {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+  }
+  tbody {
+    tr {
+      &:nth-of-type(even) {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+    }
+  }
+}
+
 .img-avatar {
   max-width: 120px;
   max-height: 120px;
