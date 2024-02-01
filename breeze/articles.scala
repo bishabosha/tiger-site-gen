@@ -8,7 +8,7 @@ import model.ctx
 import Breeze.*
 
 def articles(doc: DocPage)(using Context) =
-  breeze.page.wrap(PageCategory.Articles, title = s"Articles | $whoAmI")(
+  breeze.page.wrap(doc, PageCategory.Articles, title = s"Articles | $whoAmI")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(collapsable = false),

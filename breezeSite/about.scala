@@ -10,7 +10,7 @@ import Breeze.*
 import breeze.{cards, sidebar}
 
 def about(doc: DocPage)(using Context) =
-  breeze.page.wrap(PageCategory.About, title = s"About | $whoAmI")(
+  breeze.page.wrap(doc, PageCategory.About, title = s"About | $whoAmI")(
     div(cls := "container",
       div(cls := "row",
         sidebar.ofBio(hideable = false, collapsable = false),

@@ -34,6 +34,15 @@ article table.article-table {
   border-radius: 100%;
 }
 
+.bio-name {
+  font-size: 1.7em;
+  font-weight: 300;
+}
+
+.bio-right {
+  padding-left: 0.8em;
+}
+
 td.narrow-col {
   width: 100px;
 }

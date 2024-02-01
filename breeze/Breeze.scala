@@ -23,8 +23,10 @@ object Breeze extends model.Theme:
     val avatar: String
     val links: List[String]
     val name: String
+    val copyright: String
     val event: String
     val url: String
+    val description: String
   }
 
   trait Extra:
@@ -37,3 +39,4 @@ object Breeze extends model.Theme:
   }
 
   def whoAmI(using Context): String = ctx.site.about.page.frontMatter.name
+  def copyright(using Context): String = ctx.site.about.page.frontMatter.copyright

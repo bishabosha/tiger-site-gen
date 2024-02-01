@@ -6,7 +6,22 @@ import Breeze.*
 
 def bio(me: DocPage, hideable: Boolean, collapsable: Boolean)(using Context) =
   div(cls := "bio-main",
-    p(img(src := me.frontMatter.avatar, alt := s"photo of ${me.frontMatter.name}", cls := "img-avatar")),
+    table(
+      tr(
+        td(cls := "bio-left",
+          div(cls := "bio-photo",
+            img(src := me.frontMatter.avatar, alt := s"photo of ${me.frontMatter.name}", cls := "img-avatar"),
+          )
+        ),
+        td(cls := "bio-right",
+          p(span(cls := "bio-name", me.frontMatter.copyright))
+        )
+      )
+    ),
+    // p(
+    //   img(src := me.frontMatter.avatar, alt := s"photo of ${me.frontMatter.name}", cls := "img-avatar"),
+    //   span(cls := "bio-name", me.frontMatter.copyright),
+    // ),
     ul(cls := "list-inline",
       (for case s"$linkText|$kind|$iconCls|$link" <- me.frontMatter.links yield
         li(cls := "list-inline-item",

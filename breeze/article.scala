@@ -39,7 +39,7 @@ def article(doc: DocPage)(using Context) =
     )
   )
 
-  breeze.page.wrap(PageCategory.Articles, title = s"${doc.frontMatter.title} | ${whoAmI}")(
+  breeze.page.wrap(doc, PageCategory.Articles, title = s"${doc.frontMatter.title} | ${whoAmI}")(
     div(cls := "container",
       div(cls := "row",
         sidebar.wrap(

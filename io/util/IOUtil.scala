@@ -49,7 +49,8 @@ object paths:
     renderSite(curr / out, theme)
 
   def buildSiteDb[S <: model.Site](src: os.Path)(using model.SiteRoot): S =
-    val roots = os.list(src).filter(os.isDir)
+    val (roots, files) = os.list(src).partition(os.isDir)
+    val optFavicon = files.find(_.last == "favicon.ico")
     val (statics, colls) = roots.partition(_.baseName == "static")
     val data: Map[String, model.Doc[?] | model.Docs[?]] = colls.map(r =>
       val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")
@@ -74,7 +75,7 @@ object paths:
         val pName = path.baseName
         name -> model.Doc(name, pName == "index", md.render(-1, pName, paths.head))
     ).toMap
-    model.Site.read(statics.headOption, data)
+    model.Site.read(statics.headOption, optFavicon, data)
 
   def renderSite(dest: os.Path, theme: model.Theme)(using theme.Context): Unit =
     os.remove.all(dest)
@@ -108,6 +109,11 @@ object paths:
       os.copy(
         static,
         dest / "static"
+      )
+    for favicon <- ctx.site.optFavicon do
+      os.copy(
+        favicon,
+        dest / "favicon.ico"
       )
   end renderSite
 

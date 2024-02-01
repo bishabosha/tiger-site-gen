@@ -1,12 +1,13 @@
 ---
 layout: article
 title: Enhanced Simple Parsing for Scala
+description: Describes a new string interpolator for Scala that can be used for simple parsing of structured data.
 published: 01-Feb-2024
 ---
 
 I developed a new String interpolator for Advent of Code to help with parsing - it turns out that I didn't need anything else for solving all this years problems.
 
-## The Brief
+## An Example Problem
 
 [Advent of Code](https://www.adventofcode.com) is a yearly challenge, giving a small programming puzzle each day through December. Typically you need to read some text input into a suitable data structure for processing. The twist being that each day has some brand new unique format (not anything typical such as CSV, JSON, etc).
 
@@ -38,12 +39,16 @@ i.e. another sequence of substrings, each separated by `", "`, e.g. `"9 aqua"`, 
 ```text
 %d %s
 ```
-where again `%d` is an integer and `%s` is an arbitrary string.
+where again `%d` is an integer (e.g. `9`) and `%s` is an arbitrary string (e.g. `"aqua"`).
 
-## Parsing in Scala
+## Parsing it with Scala
 
-I created a new String interpolator for Scala, `r`, based on the existing `s` pattern interpolator.
-Its enhanced to apply a format to each globbed element, and can even match arbitrarily nested sequences of Strings (see implementation [here](https://github.com/bishabosha/advent-of-code-2023/blob/main/regexglob.scala)).
+The reason why I used such a specific format to describe the text input, is that I made my own String interpolator that understands the same format. It's called `r`, and is based on the existing `s` pattern interpolator, (see implementation [here](https://github.com/bishabosha/advent-of-code-2023/blob/main/regexglob.scala)).
+
+I gave it enhancements so that you can to apply a format to each globbed element, and extract a typed value matching that format.
+It can even match sequences of strings (arbitrarily nested) that share the same format.
+
+### Show me the use case!
 
 Using `r`, one line of input from the above problem can be parsed with the following snippet of code:
 
@@ -77,7 +82,7 @@ Game(id, countss.zip(namess).map(_.zip(_)))
 // Game(1,Seq(Seq((1,gold), (2,pink), (6,aqua)), Seq((9,aqua), (5,gold)), Seq((2,pink))))
 ```
 
-This is the structure I used to finish solving Day 2.
+This is the structure I used to finish [solving Day 2](https://github.com/bishabosha/advent-of-code-2023/blob/main/2023-day02.scala).
 
 **Bonus round**
 

@@ -12,8 +12,12 @@ trait HljsExtra extends breeze.Breeze.Extra:
     src := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js",
     tpe := "text/javascript"
   )
+  // val hljsScala = script(
+  //   src := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/scala.min.js",
+  //   tpe := "text/javascript"
+  // )
   val hljsScala = script(
-    src := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/languages/scala.min.js",
+    src := "/static/js/hljs-scala3.js",
     tpe := "text/javascript"
   )
   val hljsAll = script(

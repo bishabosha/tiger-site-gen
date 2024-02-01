@@ -1,14 +1,18 @@
 package breeze
 
 import scalatags.Text.all.*
+import scalatags.Text.all.content as attrContent
 
 import model.ctx
 import Breeze.*
 
 object page:
 
-  val useUtf8 = meta(charset := "utf-8")
-  val viewport = meta(name := "viewport", content := "width=device-width, initial-scale=1")
+  val httpMeta = Seq(
+    meta(charset := "utf-8"),
+    meta(name := "Content-Type", attrContent := "text/html; charset=utf-8"),
+    meta(name := "viewport", content := "width=device-width, initial-scale=1"),
+  )
   val bootstrapCss = link(
     rel := "stylesheet",
     href := "https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.css"
@@ -44,7 +48,7 @@ object page:
     case Articles extends PageCategory(ctx.site.articles)
 
   private def siteNav(category: PageCategory)(using Context) = NavBar(
-    brand = whoAmI,
+    brand = s"$whoAmI",
     links = PageCategory.values
       .filter(_.docs.willRender)
       .map(c => NavLink(isActive = c == category, Link(s"/${c.docs.collName}/index.html", c.toString)))
@@ -53,17 +57,25 @@ object page:
 
   private val (year, today) = io.util.md.renderNow()
 
-  def wrap(category: PageCategory, title: String)(content: scalatags.Text.Modifier*)(using Context) =
+  def wrap(using Context)(page: DocPage, category: PageCategory, title: String)(content: scalatags.Text.Modifier*) =
     import scalatags.Text.tags2.title as titleTag
+
+    val metaDescription = Seq(
+      meta(name := "description", attrContent := page.frontMatter.description),
+      meta(name := "twitter:card", attrContent := "summary"),
+      meta(name := "og:title", attrContent := title),
+      meta(name := "og:description", attrContent := page.frontMatter.description),
+    )
+
     html(
-      head(useUtf8, viewport, bootstrapCss, siteStyleCss, fontAwesome, titleTag(title), ctx.extra.extraHead),
+      head(httpMeta, bootstrapCss, siteStyleCss, fontAwesome, titleTag(title), metaDescription, ctx.extra.extraHead),
       body(cls := "d-flex flex-column min-vh-100",
         navbar(siteNav(category)),
         content,
         footer(cls := "mt-auto",
           div(cls := "footer-copyright text-center py-3",
             small(
-              s"© $year $whoAmI.",
+              s"© $year $copyright.",
               span(cls := "text-muted", s" Last published $today")
             )
           ),

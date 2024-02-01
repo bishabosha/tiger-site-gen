@@ -2,7 +2,9 @@
 isRoot:
 layout: about
 title: About
-name: Jamie Thompson
+name: Jamie Talking about Code
+copyright: Jamie Thompson
+description: Homepage of Jamie Thompson (@bishabosha)
 avatar: /static/img/profile.jpg
 links:
   - GitHub|social|fa-brands fa-github|https://github.com/bishabosha
