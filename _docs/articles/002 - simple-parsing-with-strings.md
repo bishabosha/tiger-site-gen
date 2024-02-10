@@ -43,7 +43,7 @@ where again `%d` is an integer (e.g. `9`) and `%s` is an arbitrary string (e.g. 
 
 ## Parsing it with Scala
 
-The reason why I used such a specific format to describe the text input, is that I made my own String interpolator that understands the same format. It's called `r`, and is based on the existing `s` pattern interpolator, (see implementation [here](https://github.com/bishabosha/advent-of-code-2023/blob/main/regexglob.scala)).
+The reason why I used such a specific format to describe the text input, is that I made my own String interpolator that understands the same format. It's called `r`, and is based on the existing `s` pattern interpolator, (see implementation [here](https://index.scala-lang.org/bishabosha/enhanced-string-interpolator)).
 
 I gave it enhancements so that you can to apply a format to each globbed element, and extract a typed value matching that format.
 It can even match sequences of strings (arbitrarily nested) that share the same format.
@@ -176,6 +176,8 @@ which (by **rule 1**) is finally converted to
 
 ## What's next?
 
-I'm thinking of polishing the extractor a bit more before publishing as a library. I'd like to propose it for the Scala standard library, or perhaps [Scala Toolkit](https://github.com/scala/toolkit), accepting any feedback or simplifications suggested.
+> ~~I'm thinking of polishing the extractor a bit more before publishing as a library.~~ As of 11th February 2024, there is now a [published library](https://index.scala-lang.org/bishabosha/enhanced-string-interpolator) for the interpolator.
+
+I'd like to propose it for the Scala standard library, or perhaps [Scala Toolkit](https://github.com/scala/toolkit), accepting any feedback or simplifications suggested.
 
 But the purpose is to continue to be a lightweight parsing solution, to compliment the `s` interpolator by adding a bit more convenience, enough for typical problems in interview-style questions. However serious parsing problems will need an even more powerful solution, such as a parser combinator library.

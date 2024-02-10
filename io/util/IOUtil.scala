@@ -15,6 +15,7 @@ import com.vladsch.flexmark.ext.anchorlink.AnchorLinkExtension
 import com.vladsch.flexmark.ext.admonition.AdmonitionExtension
 import com.vladsch.flexmark.ext.superscript.SuperscriptExtension
 import com.vladsch.flexmark.ext.tables.TablesExtension
+import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension
 
 import java.time.format.DateTimeFormatter
 import java.time.LocalDate
@@ -144,6 +145,7 @@ object md:
       AdmonitionExtension.create(),
       SuperscriptExtension.create(),
       TablesExtension.create(),
+      StrikethroughExtension.create(),
     )
     options.set(Parser.EXTENSIONS, exts.asJava)
     options.set(AnchorLinkExtension.ANCHORLINKS_WRAP_TEXT, false)
