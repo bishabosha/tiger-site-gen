@@ -1,4 +1,4 @@
-//> using scala "3.4.0-RC1"
+//> using scala "3.4.0"
 //> using dep com.lihaoyi::os-lib:0.9.3
 //> using dep com.lihaoyi::scalatags:0.12.0
 //> using dep com.lihaoyi::sourcecode:0.3.1
