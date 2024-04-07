@@ -1,16 +1,22 @@
 ---
 layout: article
-title: The case for operation mirrors in type class derivation
+title: The case for type class derivation of services
 published: 23-Mar-2024
 ---
 
-Recently I spoke at [Scalar 2024](https://scalar-conf.com) conference in Warsaw about type class derivation, why it should be used with operations, and a new kind of Mirror in Scala to support that.
+Recently I spoke at [Scalar 2024](https://scalar-conf.com) conference in Warsaw about type class derivation, why it should be used with services as well as data, and a new kind of Mirror in Scala to support that.
 
 > All the code and demos in this article can be found at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror), and also you can see the slides for my talk ["Mirrors for operations, not data"](https://speakerdeck.com/bishabosha/mirrors-for-operations-not-data-3e9bd880-ef29-4937-ba17-d96a27bafba0).
 
 ## A motivating example
 
-What's the key idea? In practice, Scala developers have taken to modelling HTTP endpoints as pure data (see Tapir, endpoints4s, zio-http). This is amazing because from a single source of truth you can derive servers, clients, and static documentation. My issue is that these solutions are less readable than the old days of declaring very simple code like the following:
+It can be hard to keep track of API changes in web services, and to ensure that servers and clients don't fall out of sync.
+
+In practice, to solve this issue, Scala developers have taken to modelling HTTP endpoints as pure data (see Tapir, endpoints4s, zio-http).
+Other solutions use code generation, such as Smithy.
+The important part is that a single source of truth allows static validation that your servers, clients, and static documentation are in sync, because they will all be checked against it.
+
+I think using a pure data model is great, but I think the way to create that model idiomatically should be through [type class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html). Imagine (or not, [try it out](https://github.com/bishabosha/ops-mirror/blob/main/examples/GreetService.scala)) the following, simple, definition of a service to set custom user greetings:
 
 ```scala
 @fail[HttpError]
@@ -22,17 +28,16 @@ trait GreetService derives HttpService:
   def setGreeting(@path name: String, @body greeting: String): Unit
 ```
 
-So why don't we do just that? That's right, from this very simple trait declaration, let's derive `HttpService`, a pure data model of the service, that is the single source of truth to base both servers and clients on top of. What's more we can delegate tangential concerns such as effect-tracking, transport layer, and data format to downstream interpreters of that model.
-
-And shortcutting to the end a bit, here is what the final code looks like (try it out at [ops-mirror](https://github.com/bishabosha/ops-mirror/blob/main/examples/HelloService.scala)).
+It looks highly readable, and should be familiar to a beginner ("oh endpoints are like methods!").
+Here is what a like to define server handlers and create a simple client:
 
 ```scala
 @main def server =
-  val e = Endpoints.of[GreetService]
+  val e = HttpService.endpoints[GreetService]
 
   val greetings = concurrent.TrieMap.empty[String, String]
 
-  val server = ServerBuilder()
+  ServerBuilder()
     .addEndpoint:
       e.greet.handle: name =>
         Right(s"${greetings.getOrElse(name, "Hello")}, $name")
@@ -44,7 +49,7 @@ And shortcutting to the end a bit, here is what the final code looks like (try i
 
 ```scala
 @main def client(who: String, newGreeting: String) =
-  val e = Endpoints.of[GreetService]
+  val e = HttpService.endpoints[GreetService]
   val baseUrl = "http://localhost:8080"
 
   val greetRequest = PartialRequest(e.greet, baseUrl)
@@ -53,112 +58,175 @@ And shortcutting to the end a bit, here is what the final code looks like (try i
   val setGreetingRequest = PartialRequest(e.setGreeting, baseUrl)
     .prepare(who, newGreeting)
 
-  val greetRequest2 = PartialRequest(e.greet, baseUrl)
-    .prepare(who)
-
-  for
-    init    <- greetRequest.send()
-    _       <- setGreetingRequest.send()
-    updated <- greetRequest2.send()
-  do
+  either:
+    val init = greetRequest.send().?
+    setGreetingRequest.send().?
+    val updated = greetRequest.send().?
     println(s"greeting for $who was: $init, now is: $updated")
 ```
 
-## The pure data model
+## A type class for HTTP services
 
-So what is `HttpService` that we are going to derive?
-
-essentially, a structure that can associate names to server routes:
+The `HttpService` type class is going to be a holder for the pure data model:
 
 ```scala
 trait HttpService[T]:
   val routes: Map[String, Route]
-
-case class Route(route: model.method, inputs: Seq[Input])
-case class Input(label: String, source: model.source)
-
-object model:
-  enum method:
-    case get(route: String) // GET method
-    case post(route: String) // POST method
-
-  enum source:
-    case path() // from a URL path segment
-    case body() // from the request/response body
 ```
 
-But how do we generate this structure from `GreetService`? This is where the main initiative of my talk starts. Following the [type class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html) documentation, we know that `derives HttpService` will desugar to a call to `HttpService.derived` in the companion of `GreetService`, so we know that `HttpService` needs to have a function like the following:
+What is a `Route`? it holds metadata for a route, such as the URI template, and a description of the parts of the request.
+
+We also have endpoints, which reify the `routes` map as static types that can be statically selected:
 
 ```scala
-object HttpService:
-  def derived[T]: HttpService[T]
+val e: Endpoints {
+  val greet: Endpoint[(String *: EmptyTuple), HttpError, String];
+  val setGreeting: Endpoint[(String, String), HttpError, Unit]
+} = HttpService.endpoints[GreetService]
 ```
 
-But how would we implement this? With the current signature, this is basically not possible to implement, as we know nothing about `T` from the definition.
+`Endpoint` itself is an opaque type wrapper of `Route`, i.e. it only adds static type information:
 
-To provide a satisfactory implementation, we need some evidence of the structure of `T`, describing the various methods, annotations, inputs/outputs etc. If `T` was a case class or an enum, we could ask for a context parameter of `scala.deriving.Mirror.Of[T]`, however this would not work for `GreetService`, as it is neither.
+```scala
+opaque type Endpoint[I <: Tuple, E, O] <: Route = Route
+```
 
-`GreetService` is really a different category, as it isn't data like case classes and enums, it's a service with operations. However, it is very possible to model the signatures of the operations in a service with pure data, which I propose to do with a new mirror for operations (implemented so far as `mirrorops.OpsMirror`).
+I won't go into details, but for the purpose of this article it is enough to state that both `Route` and `Endpoint` together contain a reification of all the metadata necessary for both `ServerBuilder` and `PartialRequest` to build upon.
 
-Given the availability of an operations mirror, a useful definition of `derived` can have this signature:
+## Proposal for a new kind of Mirror
+
+But how do we create these data structures from `GreetService`?
+
+We need to inspect the trait, and its methods, for any metadata useful for describing endpoints. This is the information we want to extract:
+
+> `GreetService` is a trait where:
+> - each method may error with `HttpError`
+> - method `greet` returns `String`,
+>   - with annotation `@get("/greet/{name}")`
+>   - with param `name` of type `String`
+>     - with annotation `@path`
+> - method `setGreeting` returns `Unit`,
+>   - with annotation `@post("/greet/{name}")`
+>   - with param `name` of type `String`
+>     - with annotation `@path`
+>   - with param `greeting` of type `String`
+>     - with annotation `@body`
+
+I hope you can see that this information is enough to describe each endpoint.
+
+Extracting this information is possible using the built-in reflection API's of Scala 3, but it is tedious and error-prone. So I propose to provide this automatically in a data structure (Call it an operation mirror).
+
+Here is how it would look for `GreetService`:
+
+```scala
+val Mirror_GreetService: OpsMirror {
+  type MirroredType = GreetService;
+  type MirroredLabel = "GreetService";
+  type MirroredOperationLabels = ("greet", "setGreeting");
+  type MirroredOperations = (
+    Operation {
+      type InputLabels = ("name" *: EmptyTuple);
+      type InputTypes = (String *: EmptyTuple);
+      type InputMetadatas = (
+        ((Meta @path) *: EmptyTuple) *: EmptyTuple
+      );
+      type ErrorType = HttpError;
+      type OutputType = String;
+      type Metadata = (
+        (Meta @get("/greet/{name}")) *: EmptyTuple
+      );
+    },
+    Operation {
+      type InputLabels = ("name", "greeting");
+      type InputTypes = (String, String);
+      type InputMetadatas = (
+        ((Meta @path) *: EmptyTuple),
+        ((Meta @body) *: EmptyTuple)
+      );
+      type ErrorType = HttpError;
+      type OutputType = Unit;
+      type Metadata = (
+        (Meta @post("/greet/{name}")) *: EmptyTuple
+      );
+    }
+  );
+} = summon[OpsMirror.Of[GreetService]]
+```
+
+i.e. a single value, with type refinements that encode all the necessary details about `GreetService` that we described above.
+
+!!! info "You may notice some strange syntax"
+`Meta @foo`: it is not possible for a type to be a standalone annotation, so the throwaway type `Meta` acts as a target for the annotation `@foo`.
+
+## Deriving the HttpService
+
+Coming back to the original thesis, the goal was to use the type class derivation mechanism to compute `HttpService`, (and the underlying `Route` metadata) for `GreetService` exactly once.
+
+Following the documentation for [type class derivation with macros](https://docs.scala-lang.org/scala3/reference/contextual/derivation-macro.html), we will need to implement the `derived` function in the companion object, and here I would propose to use `OpsMirror` as a contextual argument:
 
 ```scala
 object HttpService:
   inline def derived[T](using OpsMirror.Of[T]): HttpService[T]
 ```
 
-notice the use of `inline`, which will help us inspect the structure of the OpsMirror evidence at compile time.
+being an `inline` method, you can extract all the type refinements such as `MirroredOperations` at compile time, and use them to derive code as described in the linked documentation.
 
-## The typed endpoint layer
+Then to get the endpoints, we can reuse the base `HttpService` that has already been derived, and also requesting again the `OpsMirror` to access the static types:
 
-Assuming that `HttpService` can now be derived is not enough however, as the various `Route` do not capture any type information, only metadata for describing an HTTP exchange.
-
-We need something else to capture the type information so that we can get a handle on individual routes, and provide type-safe handlers (in the case of a server) and arguments (in the case of a client).
-
-So we introduce `Endpoints` on top, which is a [structural type](https://docs.scala-lang.org/scala3/reference/changed-features/structural-types.html) extending `Selectable`.
-
-expanding a bit from the [example](#a-motivating-example), here is how it looks:
 ```scala
-val e: Endpoints {
-  val greet: Endpoint[EmptyTuple, HttpError, String]
-  val setGreeting: Endpoint[(String, String), HttpError, Unit]
-} = Endpoints.of[GreetService]
+object HttpService:
+  ...
+  transparent inline def endpoints[T](using HttpService[T], OpsMirror.Of[T]): Endpoints
 ```
 
-i.e. each method from `GreetService` has been reified as an `Endpoint` (a thin wrapper over `Route`), selectable from the `e` value.
+Notice that we use `transparent inline`, which will allow us to refine the result at call-site, as shown above.
 
-> How does `Endpoint` look?
->
-> ```scala
-> opaque type Endpoint[I <: Tuple, E, O] = Route
-> ```
-> `I` is a tuple of argument types, `E` is the error type that the endpoint may fail with, and `O` is the
-> expected result type.
+To see the code that does this, [look at ServerMacros.scala](https://github.com/bishabosha/ops-mirror/blob/main/examples/serverlib/ServerMacros.scala).
 
-Again, to implement `Endpoints.of[GreetService]` we will use `OpsMirror`:
+## Other examples
+
+I think that the operation mirror is a general enough concept to take seriously. For example, it is also suitable for describing most RPC services, such as Language Server Protocol:
+
 ```scala
-object Endpoints:
-  transparent inline def of[T](using OpsMirror.Of[T]): Endpoints
+@error[ResponseError]
+trait LSP derives JsonRpcService {
+
+  @method("$/progress")
+  def progress(params: ProgressParams): Unit
+
+  @method("textDocument/completion")
+  def completion(
+    params: CompletionParams
+  ): Array[CompletionItem]
+
+  ...
+}
 ```
 
-this time the method is `transparent inline` because it will add refinements to `Endpoints`. If [SIP-58 Named Tuples](https://github.com/scala/improvement-proposals/pull/72) becomes reality, we could instead use ordinary inline with match types.
+The idea being that `JsonRpcService` would also use `OpsMirror` as a helper in its `derived` method.
 
-## Interpreting as Server or Client
+## What about Effect tracking?
 
-Now we can build a server by adding handlers for each endpoint as such:
-```scala
-val server = ServerBuilder()
-  .addEndpoint:
-    e.greet.handle: name =>
-      Right(s"${greetings.getOrElse(name, "Hello")}, $name")
-  .addEndpoint:
-    e.setGreeting.handle: (name, greeting) =>
-      Right(greetings(name) = greeting)
-  .create(port = 8080)
-```
+You might notice that all the examples so far have used no so-called "effect" types (such as `IO`, `Future`, etc.)
 
-Each handler uses direct style, based on Java's virtual threads.
+This is deliberate. The idea being that the endpoint description should only contain the necessary detail to model the inputs/outputs of the service. Other concerns, such as execution model, error handling model, and others should be delegated to interpreters.
 
-`handle` is an extension method added to `Endpoint` that requires a correctly typed lambda for each endpoint, e.g.
-- `String => Either[HttpError, String]` for `greet`,
-- `(String, String) => Either[HttpError, Unit]` for `setGreeting`.
+e.g. in the HTTP example - the `ServerBuilder` provides an interpreter in direct-style via its `handle` extension method, which expects handlers as such:
+- for `greet`, a function of type `String => Either[HttpError, String]`,
+- for `setGreeting`, a function of type `(String, String) => Either[HttpError, Unit]`.
+
+If instead you prefer a purely functional style, then perhaps you would use an alternative server builder, that is specialized to an effect type.
+
+## A Call to Action
+
+At Scalar conference after the talk there was a lot of interest in this concept.
+
+If you are interested in developing the idea for operation mirrors, I invite you to participate at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror) where we can develop more examples that push the boundaries of what is possible, discover the optimal API representation, and identify any shortcomings.
+
+My aim overall would be to publish a small prototype, then propose possibly for inclusion in the language itself.
+
+My view is that we should stay opinionated. e.g. the built-in `scala.deriving.Mirror` type-classes only work for a small subset of data structures. This makes them predicatable and overall a simpler programming model.
+
+So correspondingly I think a small subset of trait "shaped" should be supported, rather than a kitchen sink.
+
+Let's find out together.

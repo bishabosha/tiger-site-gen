@@ -11,7 +11,7 @@ links:
   - Twitter|social|fa-brands fa-twitter|https://twitter.com/bishabosha
   - LinkedIn|social|fa-brands fa-linkedin|https://www.linkedin.com/in/james-thompson-3b1ba076/
   - Mastodon|social|fa-brands fa-mastodon|https://fosstodon.org/@jrthompson
-  - Resume||fa-solid fa-file|/static/pages/james-thompson-cv.html
+  - Resume||fa-solid fa-file|/static/pages/JamesThompsonCV2024.html
 ---
 
 I love to share ideas about programming, whether it is though speaking,
