@@ -1,55 +1,65 @@
 ---
 layout: article
-title: The case for type class derivation of services
-published: 23-Mar-2024
+title: Just declare your services: the case for operation mirrors
+published: 22-May-2024
 ---
 
-Recently I spoke at [Scalar 2024](https://scalar-conf.com) conference in Warsaw about type class derivation, why it should be used with services as well as data, and a new kind of Mirror in Scala to support that.
+Scala 3's greatest strength is the powerful new metaprogramming system, which doesn't require you to be a genius to get started. At [Scalar 2024](https://scalar-conf.com) I presented a way to use metaprogramming to derive schema descriptions automatically from simple trait definitions. It turns out this is a great building block to create declarative frameworks, such as a simple web server.
 
 > All the code and demos in this article can be found at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror), and also you can see the slides for my talk ["Mirrors for operations, not data"](https://speakerdeck.com/bishabosha/mirrors-for-operations-not-data-3e9bd880-ef29-4937-ba17-d96a27bafba0).
+
+Recently I spoke at [Scalar 2024](https://scalar-conf.com) conference in Warsaw about [type class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html).
+It's a powerful mechanism, but so far only supports data types. I propose we can extend it to support operations, aka interfaces.
 
 ## A motivating example
 
 It can be hard to keep track of API changes in web services, and to ensure that servers and clients don't fall out of sync.
 
-In practice, to solve this issue, Scala developers have taken to modelling HTTP endpoints as pure data (see Tapir, endpoints4s, zio-http).
-Other solutions use code generation, such as Smithy.
-The important part is that a single source of truth allows static validation that your servers, clients, and static documentation are in sync, because they will all be checked against it.
+A common solution to this problem is to describe the API as a set of endpoints, using pure data. A single endpoint is a schema of the expected input/output data, and any metadata necessary to describe the endpoint (such as the HTTP method, path, and query parameters).
 
-I think using a pure data model is great, but I think the way to create that model idiomatically should be through [type class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html). Imagine (or not, [try it out](https://github.com/bishabosha/ops-mirror/blob/main/examples/GreetService.scala)) the following, simple, definition of a service to set custom user greetings:
+In Scala, there are many libraries that help you do this. For example, via an embedded DSL (see [tapir](https://tapir.softwaremill.com/en/latest/), [endpoints4s](https://endpoints4s.github.io), [zio-http](https://github.com/zio/zio-http)).
+Other solutions use code generation from another source language, such as [Smithy4s](https://disneystreaming.github.io/smithy4s/).
+
+There are some downsides to these solutions: e.g. a DSL may be less straightforward for beginners; and code generation requires extra support from a build tool, which might not be practical.
+
+I propose that a more natural way to describe these endpoints is just a _plain trait definition_. Imagine (or not, [try it out](https://github.com/bishabosha/ops-mirror/blob/main/examples/GreetService.scala)) the following, simple, definition of a service to greet people with a custom message:
 
 ```scala
-@fail[HttpError]
+@failsWith[HttpError]
 trait GreetService derives HttpService:
+
   @get("/greet/{name}")
-  def greet(@path name: String): String
+  def greet(name: String): String
 
   @post("/greet/{name}")
-  def setGreeting(@path name: String, @body greeting: String): Unit
+  def setGreeting(name: String, @body greeting: String): Unit
+
+end GreetService
 ```
 
-It looks highly readable, and should be familiar to a beginner ("oh endpoints are like methods!").
-Here is what a like to define server handlers and create a simple client:
+It looks highly readable, and should be familiar to a beginner. A **method** is 1:1 with an endpoint, with **inputs** and **outputs**. A trait collects several endpoints into a a **service**. Annotations describe the metadata associated with either a whole service, an individual endpoint, or an input of that endpoint.
+
+Here is what a like to define server handlers and create a simple client, sticking to a [Lean Scala](https://odersky.github.io/blog/2024-04-11-post.html) style:
 
 ```scala
-@main def server =
-  val e = HttpService.endpoints[GreetService]
+import scala.language.experimental.namedTuples
 
+val e = HttpService.endpoints[GreetService]
+
+@main def server =
   val greetings = concurrent.TrieMap.empty[String, String]
 
-  ServerBuilder()
-    .addEndpoint:
-      e.greet.handle: name =>
-        Right(s"${greetings.getOrElse(name, "Hello")}, $name")
-    .addEndpoint:
-      e.setGreeting.handle: (name, greeting) =>
-        Right(greetings(name) = greeting)
+  val server = ServerBuilder()
+    .addEndpoints(e):
+      (
+        e.greet.handle: name =>
+          Right(s"${greetings.getOrElse(name, "Hello")}, $name"),
+        e.setGreeting.handle: (name, greeting) =>
+          Right(greetings(name) = greeting)
+      )
     .create(port = 8080)
-```
 
-```scala
 @main def client(who: String, newGreeting: String) =
-  val e = HttpService.endpoints[GreetService]
   val baseUrl = "http://localhost:8080"
 
   val greetRequest = PartialRequest(e.greet, baseUrl)
@@ -100,6 +110,7 @@ But how do we create these data structures from `GreetService`?
 We need to inspect the trait, and its methods, for any metadata useful for describing endpoints. This is the information we want to extract:
 
 > `GreetService` is a trait where:
+>
 > - each method may error with `HttpError`
 > - method `greet` returns `String`,
 >   - with annotation `@get("/greet/{name}")`
@@ -212,6 +223,7 @@ You might notice that all the examples so far have used no so-called "effect" ty
 This is deliberate. The idea being that the endpoint description should only contain the necessary detail to model the inputs/outputs of the service. Other concerns, such as execution model, error handling model, and others should be delegated to interpreters.
 
 e.g. in the HTTP example - the `ServerBuilder` provides an interpreter in direct-style via its `handle` extension method, which expects handlers as such:
+
 - for `greet`, a function of type `String => Either[HttpError, String]`,
 - for `setGreeting`, a function of type `(String, String) => Either[HttpError, Unit]`.
 
