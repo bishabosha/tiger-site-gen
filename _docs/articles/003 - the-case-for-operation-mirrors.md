@@ -4,7 +4,7 @@ title: Just declare your services: the case for operation mirrors
 published: 22-May-2024
 ---
 
-Scala 3's greatest strength is the powerful new metaprogramming system, which doesn't require you to be a genius to get started. At [Scalar 2024](https://scalar-conf.com) I presented a way to use metaprogramming to derive schema descriptions automatically from simple trait definitions. It turns out this is a great building block to create declarative frameworks, such as a simple web server.
+Scala 3's greatest strength is the powerful new metaprogramming system, which doesn't require you to be a genius to get started. At Scalar 2024 [I presented](https://www.youtube.com/watch?v=zYl117VzSGA){target="_blank"} a way to use metaprogramming to derive schema descriptions automatically from simple trait definitions. It turns out this is a great building block to create declarative frameworks, such as a simple web server.
 
 > All the code and demos in this article can be found at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror), and also you can see the slides for my talk ["Mirrors for operations, not data"](https://speakerdeck.com/bishabosha/mirrors-for-operations-not-data-3e9bd880-ef29-4937-ba17-d96a27bafba0).
 
@@ -29,10 +29,10 @@ I propose that a more natural way to describe these endpoints is just a _plain t
 trait GreetService derives HttpService:
 
   @get("/greet/{name}")
-  def greet(name: String): String
+  def greet(@path name: String): String
 
   @post("/greet/{name}")
-  def setGreeting(name: String, @body greeting: String): Unit
+  def setGreeting(@path name: String, @body greeting: String): Unit
 
 end GreetService
 ```
@@ -42,22 +42,22 @@ It looks highly readable, and should be familiar to a beginner. A **method** is 
 Here is what a like to define server handlers and create a simple client, sticking to a [Lean Scala](https://odersky.github.io/blog/2024-04-11-post.html) style:
 
 ```scala
-import scala.language.experimental.namedTuples
-
 val e = HttpService.endpoints[GreetService]
 
 @main def server =
   val greetings = concurrent.TrieMap.empty[String, String]
 
   val server = ServerBuilder()
-    .addEndpoints(e):
-      (
+    .addEndpoint:
         e.greet.handle: name =>
-          Right(s"${greetings.getOrElse(name, "Hello")}, $name"),
+            Right(s"${greetings.getOrElse(name, "Hello")}, $name"))
+    .addEndpoint:
         e.setGreeting.handle: (name, greeting) =>
-          Right(greetings(name) = greeting)
-      )
+            Right(greetings(name) = greeting)
     .create(port = 8080)
+
+  sys.addShutdownHook(server.close())
+end server
 
 @main def client(who: String, newGreeting: String) =
   val baseUrl = "http://localhost:8080"
@@ -69,10 +69,11 @@ val e = HttpService.endpoints[GreetService]
     .prepare(who, newGreeting)
 
   either:
-    val init = greetRequest.send().?
-    setGreetingRequest.send().?
-    val updated = greetRequest.send().?
-    println(s"greeting for $who was: $init, now is: $updated")
+      val init = greetRequest.send().?
+      setGreetingRequest.send().?
+      val updated = greetRequest.send().?
+      println(s"greeting for $who was: $init, now is: $updated")
+end client
 ```
 
 ## A type class for HTTP services
