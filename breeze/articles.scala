@@ -2,33 +2,43 @@ package breeze
 
 import scalatags.Text.all.*
 
-import breeze.page.PageCategory
 import model.ctx
 
 import Breeze.*
 
 def articles(doc: DocPage)(using Context) =
-  breeze.page.wrap(doc, PageCategory.Articles, title = s"Articles | $whoAmI")(
-    div(cls := "container",
-      div(cls := "row",
+  breeze.page.wrap(doc, ctx.site.articles, title = s"Articles | $whoAmI")(
+    div(
+      cls := "container",
+      div(
+        cls := "row",
         sidebar.ofBio(collapsable = false),
-        div(cls := "col-lg-8",
-          div(cls := "jumbotron bg-light py-lg-5 py-3",
+        div(
+          cls := "col-lg-8",
+          div(
+            cls := "jumbotron bg-light py-lg-5 py-3",
             h1(cls := "display-5", "Articles"),
             hr(),
             for doc <- ctx.site.articles yield
               val published = doc.frontMatter.published
               val title = doc.frontMatter.title
               val sample = doc.htmlPreview
-              div(cls := "row",
-                div(cls := "col-lg-12",
-                  h3(a(href := s"/articles/${io.util.sanatise.mdNameToHtml(doc.name)}", title)),
+              div(
+                cls := "row",
+                div(
+                  cls := "col-lg-12",
+                  h3(
+                    a(
+                      href := s"/articles/${io.util.sanatise.mdNameToHtml(doc.name)}",
+                      title
+                    )
+                  ),
                   subtitles.article(doc),
                   p(raw(sample))
                 )
               )
           )
-        ),
+        )
       )
     )
   )

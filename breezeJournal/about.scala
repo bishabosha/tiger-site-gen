@@ -2,7 +2,7 @@ package breezeJournal
 
 import scalatags.Text.all.*
 
-import breeze.page.PageCategory
+// import breeze.page.PageCategory
 import model.ctx
 
 import Breeze.*
@@ -10,13 +10,15 @@ import Breeze.*
 import breeze.{cards, sidebar}
 
 def about(doc: DocPage)(using Context) =
-  breeze.page.wrap(doc, PageCategory.About, title = s"About | $whoAmI")(
-    div(cls := "container",
-      div(cls := "row",
+  breeze.page.wrap(doc, ctx.site.about, title = s"About | $whoAmI")(
+    div(
+      cls := "container",
+      div(
+        cls := "row",
         sidebar.ofBio(hideable = false),
         cards.stride(
-          cards.recentPosts("Articles", ctx.site.articles),
+          cards.recentPosts("Articles", ctx.site.articles)
         )
-      ),
+      )
     )
   )

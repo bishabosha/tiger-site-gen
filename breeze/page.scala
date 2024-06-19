@@ -11,7 +11,7 @@ object page:
   val httpMeta = Seq(
     meta(charset := "utf-8"),
     meta(name := "Content-Type", attrContent := "text/html; charset=utf-8"),
-    meta(name := "viewport", content := "width=device-width, initial-scale=1"),
+    meta(name := "viewport", content := "width=device-width, initial-scale=1")
   )
   val bootstrapCss = link(
     rel := "stylesheet",
@@ -43,45 +43,62 @@ object page:
 
   final case class NavBar(brand: String, links: Seq[NavLink])
 
-  enum PageCategory(val docs: Context ?=> DocCollection):
-    case About extends PageCategory(ctx.site.about)
-    case Articles extends PageCategory(ctx.site.articles)
-
-  private def siteNav(category: PageCategory)(using Context) = NavBar(
+  private def siteNav(col: DocCollection)(using Context) = NavBar(
     brand = s"$whoAmI",
-    links = PageCategory.values
-      .filter(_.docs.willRender)
-      .map(c => NavLink(isActive = c == category, Link(s"/${c.docs.collName}/index.html", c.toString)))
+    links = ctx.extra.nav
+      .filter(_.willRender)
+      .map(c =>
+        NavLink(
+          isActive = c.collName == col.collName,
+          Link(s"/${c.collName}/index.html", c.collName.capitalize)
+        )
+      )
       .toIndexedSeq
   )
 
   private val (year, today) = io.util.md.renderNow()
 
-  def wrap(using Context)(page: DocPage, category: PageCategory, title: String)(content: scalatags.Text.Modifier*) =
+  def wrap(using Context)(page: DocPage, col: DocCollection, title: String)(
+      content: scalatags.Text.Modifier*
+  ) =
     import scalatags.Text.tags2.title as titleTag
 
     val metaDescription = Seq(
       meta(name := "description", attrContent := page.frontMatter.description),
       meta(name := "twitter:card", attrContent := "summary"),
       meta(name := "og:title", attrContent := title),
-      meta(name := "og:description", attrContent := page.frontMatter.description),
+      meta(
+        name := "og:description",
+        attrContent := page.frontMatter.description
+      )
     )
 
     html(
-      head(httpMeta, bootstrapCss, siteStyleCss, fontAwesome, titleTag(title), metaDescription, ctx.extra.extraHead),
-      body(cls := "d-flex flex-column min-vh-100",
-        navbar(siteNav(category)),
+      head(
+        httpMeta,
+        bootstrapCss,
+        siteStyleCss,
+        fontAwesome,
+        titleTag(title),
+        metaDescription,
+        ctx.extra.extraHead
+      ),
+      body(
+        cls := "d-flex flex-column min-vh-100",
+        navbar(siteNav(col)),
         content,
-        footer(cls := "mt-auto",
-          div(cls := "footer-copyright text-center py-3",
+        footer(
+          cls := "mt-auto",
+          div(
+            cls := "footer-copyright text-center py-3",
             small(
               s"© $year $copyright.",
               span(cls := "text-muted", s" Last published $today")
             )
-          ),
+          )
         ),
         bootstrapJs,
         navTocJs,
-        ctx.extra.extraFoot,
+        ctx.extra.extraFoot
       )
     )

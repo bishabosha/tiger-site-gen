@@ -1,6 +1,6 @@
 ---
 title: Adding multi-project builds to Scala CLI
-event: SF Scala Jun 2023
+event: SF Scala Jun 2023, San Francisco USA
 url: https://www.youtube.com/watch?v=XXxxuZPbdbg
 ---
 

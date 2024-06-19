@@ -9,7 +9,7 @@ avatar: /static/img/profile.jpg
 links:
   - GitHub|social|fa-brands fa-github|https://github.com/bishabosha
   - Twitter|social|fa-brands fa-twitter|https://twitter.com/bishabosha
-  - LinkedIn|social|fa-brands fa-linkedin|https://www.linkedin.com/in/james-thompson-3b1ba076/
+  - LinkedIn|social|fa-brands fa-linkedin|https://www.linkedin.com/in/james-richard-thompson/
   - Mastodon|social|fa-brands fa-mastodon|https://fosstodon.org/@jrthompson
   - Resume||fa-solid fa-file|/static/pages/JamesThompsonCV2024.html
 ---

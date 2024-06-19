@@ -1,7 +1,7 @@
 //> using scala "3.4.0"
-//> using dep com.lihaoyi::os-lib::0.10.1
+//> using dep com.lihaoyi::os-lib::0.10.2
 //> using dep com.lihaoyi::scalatags::0.13.1
-//> using dep com.lihaoyi::sourcecode::0.4.1
+//> using dep com.lihaoyi::sourcecode::0.4.2
 //> using dep com.vladsch.flexmark:flexmark-all:0.64.8
 //> using jvm "17"
 

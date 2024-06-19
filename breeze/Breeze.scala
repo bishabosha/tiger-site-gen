@@ -27,16 +27,19 @@ object Breeze extends model.Theme:
     val event: String
     val url: String
     val description: String
+    val isIndexOnly: Boolean
   }
 
-  trait Extra:
+  trait Extra(using Context):
+    def nav: List[DocCollection] = List(ctx.site.about, ctx.site.articles)
     val extraHead: Seq[scalatags.Text.all.Modifier]
     val extraFoot: Seq[scalatags.Text.all.Modifier]
 
-  def extras(using model.Context.InMakeCtx): Extra = new {
+  def extras(using Context, model.Context.InMakeCtx): Extra = new {
     val extraHead = Seq.empty
     val extraFoot = Seq.empty
   }
 
   def whoAmI(using Context): String = ctx.site.about.page.frontMatter.name
-  def copyright(using Context): String = ctx.site.about.page.frontMatter.copyright
+  def copyright(using Context): String =
+    ctx.site.about.page.frontMatter.copyright

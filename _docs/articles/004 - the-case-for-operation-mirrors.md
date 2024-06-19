@@ -1,12 +1,20 @@
 ---
 layout: article
-title: Just declare your services: the case for operation mirrors
-published: 22-May-2024
+title: Just declare your services: Introducing operation mirrors
+published: 13-Jun-2024
 ---
 
-Scala 3's greatest strength is the powerful new metaprogramming system, which doesn't require you to be a genius to get started. At Scalar 2024 [I presented](https://www.youtube.com/watch?v=zYl117VzSGA){target="_blank"} a way to use metaprogramming to derive schema descriptions automatically from simple trait definitions. It turns out this is a great building block to create declarative frameworks, such as a simple web server.
+One of Scala 3's greatest strengths is the new metaprogramming system (including support for automatic type-class derivation).
+Even though it is very is powerful, you don't need to be a genius to get started with it. Read on to learn about [ops-mirror](https://github.com/bishabosha/ops-mirror), a new library I published to help derive type-classes for function interfaces, not just data types.
 
-> All the code and demos in this article can be found at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror), and also you can see the slides for my talk ["Mirrors for operations, not data"](https://speakerdeck.com/bishabosha/mirrors-for-operations-not-data-3e9bd880-ef29-4937-ba17-d96a27bafba0).
+
+
+At Scalar 2024 I presented ["Mirrors for operations, not data"](https://www.youtube.com/watch?v=zYl117VzSGA). The talk shows how to use [type-class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html) to create schemas from simple trait definitions; and then use the schema to define type-safe webservers and clients for the same API. The core utility behind this use case is a new library I published, [ops-mirror](https://github.com/bishabosha/ops-mirror).
+
+
+a way to use metaprogramming to derive schema descriptions automatically from simple trait definitions. It turns out this is a great building block to create declarative frameworks, such as a simple web server.
+
+> All the code and demos in this article can be found at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror), or you can watch the talk ["Mirrors for operations, not data"](https://www.youtube.com/watch?v=zYl117VzSGA).
 
 Recently I spoke at [Scalar 2024](https://scalar-conf.com) conference in Warsaw about [type class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html).
 It's a powerful mechanism, but so far only supports data types. I propose we can extend it to support operations, aka interfaces.
@@ -25,6 +33,8 @@ There are some downsides to these solutions: e.g. a DSL may be less straightforw
 I propose that a more natural way to describe these endpoints is just a _plain trait definition_. Imagine (or not, [try it out](https://github.com/bishabosha/ops-mirror/blob/main/examples/GreetService.scala)) the following, simple, definition of a service to greet people with a custom message:
 
 ```scala
+//> using dep io.github.bishabosha::ops-mirror::0.1.1
+
 @failsWith[HttpError]
 trait GreetService derives HttpService:
 

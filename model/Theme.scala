@@ -15,7 +15,7 @@ trait Theme:
 
   type Extra
 
-  def extras(using Context.InMakeCtx): Extra
+  def extras(using Context, Context.InMakeCtx): Extra
 
   final type DocCollection = model.DocCollection[DocPage]
   final type Docs = model.Docs[DocPage]

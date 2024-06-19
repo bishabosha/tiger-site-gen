@@ -45,7 +45,9 @@ object sanatise:
 
 object paths:
 
-  def generateSite[T <: model.Theme](src: String, out: String, theme: T)(using model.SiteRoot): Unit =
+  def generateSite[T <: model.Theme](src: String, out: String, theme: T)(using
+      model.SiteRoot
+  ): Unit =
     given theme.Context = model.Context.fromTheme(curr / src, theme)
     renderSite(curr / out, theme)
 
@@ -53,29 +55,32 @@ object paths:
     val (roots, files) = os.list(src).partition(os.isDir)
     val optFavicon = files.find(_.last == "favicon.ico")
     val (statics, colls) = roots.partition(_.baseName == "static")
-    val data: Map[String, model.Doc[?] | model.Docs[?]] = colls.map(r =>
-      val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")
-      val name = r.baseName
-      if name.endsWith("s") then
-        val triples = paths.map(p =>
-          val s"$prefix - $suffix.md" = p.last: @unchecked
-          (prefix.toInt, suffix, p)
-        )
-        val (indexes, docs) = triples.partition((_, n, _) => n == "index")
-        assert(indexes.sizeIs <= 1, "more than 1 index file")
-        val ordered = docs
-          .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
-          .map(_.tail)
-        val rendered = ordered
-          .zipWithIndex
-          .map { case ((n, p), i) => md.render(i, n, p) }
-        val indexOpt = indexes.headOption.map { case (_, n, p) => md.render(-1, n, p) }
-        name -> model.Docs(name, indexOpt, rendered)
-      else
-        val path = paths.head
-        val pName = path.baseName
-        name -> model.Doc(name, pName == "index", md.render(-1, pName, paths.head))
-    ).toMap
+    val data: Map[String, model.Doc[?] | model.Docs[?]] = colls
+      .map(r =>
+        val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")
+        val name = r.baseName
+        if name.endsWith("s") then
+          val triples = paths.map(p =>
+            val s"$prefix - $suffix.md" = p.last: @unchecked
+            (prefix.toInt, suffix, p)
+          )
+          val (indexes, docs) = triples.partition((_, n, _) => n == "index")
+          assert(indexes.sizeIs <= 1, "more than 1 index file")
+          val ordered = docs
+            .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
+            .map(_.tail)
+          val rendered = ordered.zipWithIndex
+            .map { case ((n, p), i) => md.render(i, n, p) }
+          val indexOpt =
+            indexes.headOption.map { case (_, n, p) => md.render(-1, n, p) }
+          name -> model.Docs(name, indexOpt, rendered)
+        else
+          val path = paths.head
+          val pName = path.baseName
+          name -> model
+            .Doc(name, pName == "index", md.render(-1, pName, paths.head))
+      )
+      .toMap
     model.Site.read(statics.headOption, optFavicon, data)
 
   def renderSite(dest: os.Path, theme: model.Theme)(using theme.Context): Unit =
@@ -86,15 +91,17 @@ object paths:
     var optRoots = Set.empty[theme.DocCollection]
     for col <- activeCols do
       os.makeDir.all(dest / col.collName)
-      if col.index.frontMatter.isRoot then
-        optRoots += col
-      for doc <- col do
-        val subPage = theme.metadata.layouts(doc.frontMatter.layout)(doc)
-        os.write(
-          dest / col.collName / sanatise.mdNameToHtml(doc.name),
-          scalatags.Text.all.doctype("html")(subPage)
-        )
-      val indexPage = theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
+      if col.index.frontMatter.isRoot then optRoots += col
+      if !col.index.frontMatter.isIndexOnly then
+        for doc <- col do
+          val subPage = theme.metadata.layouts(doc.frontMatter.layout)(doc)
+          os.write(
+            dest / col.collName / sanatise.mdNameToHtml(doc.name),
+            scalatags.Text.all.doctype("html")(subPage)
+          )
+        end for
+      val indexPage =
+        theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
       os.write(
         dest / col.collName / "index.html",
         scalatags.Text.all.doctype("html")(indexPage)
@@ -123,7 +130,7 @@ object paths:
     doctype("html")(
       html(
         head(
-          meta(httpEquiv := "refresh", content := s"0; URL=$redirect"),
+          meta(httpEquiv := "refresh", content := s"0; URL=$redirect")
         )
       )
     )
@@ -145,19 +152,25 @@ object md:
       AdmonitionExtension.create(),
       SuperscriptExtension.create(),
       TablesExtension.create(),
-      StrikethroughExtension.create(),
+      StrikethroughExtension.create()
     )
     options.set(Parser.EXTENSIONS, exts.asJava)
     options.set(AnchorLinkExtension.ANCHORLINKS_WRAP_TEXT, false)
-    options.set(AnchorLinkExtension.ANCHORLINKS_TEXT_SUFFIX, """<i class="fa-solid fa-link"></i>""")
-    options.set(AnchorLinkExtension.ANCHORLINKS_ANCHOR_CLASS, """anchor-link anchor-link__source""")
+    options.set(
+      AnchorLinkExtension.ANCHORLINKS_TEXT_SUFFIX,
+      """<i class="fa-solid fa-link"></i>"""
+    )
+    options.set(
+      AnchorLinkExtension.ANCHORLINKS_ANCHOR_CLASS,
+      """anchor-link anchor-link__source"""
+    )
     options.set(TablesExtension.COLUMN_SPANS, false)
     options.set(TablesExtension.APPEND_MISSING_COLUMNS, true)
     options.set(TablesExtension.DISCARD_EXTRA_COLUMNS, true)
     options.set(TablesExtension.HEADER_SEPARATOR_COLUMN_MATCH, true)
     options.set(TablesExtension.CLASS_NAME, "article-table")
     // uncomment to convert soft-breaks to hard breaks
-    //options.set(HtmlRenderer.SOFT_BREAK, "<br />\n");
+    // options.set(HtmlRenderer.SOFT_BREAK, "<br />\n");
     val parser = Parser.builder(options).build()
     val renderer = HtmlRenderer.builder(options).build()
     (parser, renderer)
@@ -176,11 +189,17 @@ object md:
 
   object ContentSampler:
 
-    def sampleContent(document: Document): (String, Int, List[(String, String, Int)]) =
+    def sampleContent(
+        document: Document
+    ): (String, Int, List[(String, String, Int)]) =
       val sampler = Visitor()
       sampler.visitor.visit(document)
       val sample = sampler.sample
-      (if sample == null then "" else sample, sampler.wordCount, sampler.headings.result())
+      (
+        if sample == null then "" else sample,
+        sampler.wordCount,
+        sampler.headings.result()
+      )
 
     private class Visitor:
       var wordCount = 0
@@ -192,14 +211,19 @@ object md:
       val visitor = NodeVisitor(
         VisitHandler(classOf[Text], visit(_)),
         VisitHandler(classOf[Paragraph], visit(_)),
-        VisitHandler(classOf[Heading], visit(_)),
+        VisitHandler(classOf[Heading], visit(_))
       )
 
-      def addCount(nextText: String) = wordCount += nextText.split("\\s+").length
+      def addCount(nextText: String) =
+        wordCount += nextText.split("\\s+").length
       def read(node: Node) = node.getChars().unescape()
 
       def visit(heading: Heading): Unit =
-        headings += ((heading.getText().unescape(), heading.getAnchorRefId(), heading.getLevel()))
+        headings += ((
+          heading.getText().unescape(),
+          heading.getAnchorRefId(),
+          heading.getLevel()
+        ))
 
       def visit(text: Paragraph): Unit =
         val localSample = sample
@@ -208,7 +232,10 @@ object md:
           val md = parser.parse(nextText)
           val text = new mutable.StringBuilder()
           val pvisitor = NodeVisitor(
-            VisitHandler(classOf[Paragraph], p => p.getChildren().forEach(c => text ++= renderer.render(c))),
+            VisitHandler(
+              classOf[Paragraph],
+              p => p.getChildren().forEach(c => text ++= renderer.render(c))
+            )
           )
           pvisitor.visit(md)
           sample = text.toString
@@ -242,5 +269,5 @@ object md:
       headings = headings,
       htmlPreview = sample,
       htmlContent = html,
-      idx = index,
+      idx = index
     )

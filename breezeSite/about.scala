@@ -2,7 +2,6 @@ package breezeSite
 
 import scalatags.Text.all.*
 
-import breeze.page.PageCategory
 import model.ctx
 
 import Breeze.*
@@ -10,7 +9,7 @@ import Breeze.*
 import breeze.{cards, sidebar}
 
 def about(doc: DocPage)(using Context) =
-  breeze.page.wrap(doc, PageCategory.About, title = s"About | $whoAmI")(
+  breeze.page.wrap(doc, ctx.site.about, title = s"About | $whoAmI")(
     div(
       cls := "container",
       div(
@@ -27,16 +26,17 @@ def about(doc: DocPage)(using Context) =
           ),
           div(
             cls := "row",
-            cards.stride(
-              cards.links("Conference Talks", ctx.site.talks),
-              cards.links("Meetups", ctx.site.meetups)
+            div(
+              cls := "col-lg",
+              cards
+                .links("Conference Talks and Meetups", "talks", ctx.site.talks)
             )
           ),
           div(
             cls := "row",
             div(
               cls := "col-lg",
-              cards.links("Video Tutorials", ctx.site.videos)
+              cards.links("Video Tutorials", "videos", ctx.site.videos)
             )
           )
         )
