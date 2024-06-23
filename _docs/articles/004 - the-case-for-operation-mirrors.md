@@ -1,23 +1,21 @@
 ---
 layout: article
 title: Just declare your services: Introducing operation mirrors
-published: 13-Jun-2024
+published: 24-Jun-2024
 ---
 
-One of Scala 3's greatest strengths is the new metaprogramming system (including support for automatic type-class derivation).
-Even though it is very is powerful, you don't need to be a genius to get started with it. Read on to learn about [ops-mirror](https://github.com/bishabosha/ops-mirror), a new library I published to help derive type-classes for function interfaces, not just data types.
+Scala 3 makes it even easier to write expressive code that feels like it belongs in a dynamic language, but stays aggressively type-safe, improving your productivity. Towards this style, I'm introducing [ops-mirror](https://github.com/bishabosha/ops-mirror), a micro-library for reflection of method signatures, for example to generate schemas for HTTP endpoints from trait definitions.
+
+> As of publishing, version 0.1.2 is available for Scala 3.3 LTS on JVM, JS, and Native.
+> ```scala
+> //> using dep io.github.bishabosha::ops-mirror::0.1.2
+>
+> import mirrorops.OpsMirror
+> ```
 
 
-
-At Scalar 2024 I presented ["Mirrors for operations, not data"](https://www.youtube.com/watch?v=zYl117VzSGA). The talk shows how to use [type-class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html) to create schemas from simple trait definitions; and then use the schema to define type-safe webservers and clients for the same API. The core utility behind this use case is a new library I published, [ops-mirror](https://github.com/bishabosha/ops-mirror).
-
-
-a way to use metaprogramming to derive schema descriptions automatically from simple trait definitions. It turns out this is a great building block to create declarative frameworks, such as a simple web server.
-
-> All the code and demos in this article can be found at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror), or you can watch the talk ["Mirrors for operations, not data"](https://www.youtube.com/watch?v=zYl117VzSGA).
-
-Recently I spoke at [Scalar 2024](https://scalar-conf.com) conference in Warsaw about [type class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html).
-It's a powerful mechanism, but so far only supports data types. I propose we can extend it to support operations, aka interfaces.
+One of Scala 3's greatest strengths is the new metaprogramming system.
+Even though it is very powerful, you don't need to be a genius to get started with it. In my talk ["Mirrors for operations, not data"](https://www.youtube.com/watch?v=zYl117VzSGA), from Scalar 2024, I explained how to get started using the new [automatic type-class derivation](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html) mechanism in Scala 3. I noted a limitation however, which is that the compiler only provides reflection support (via the [Mirror](https://docs.scala-lang.org/scala3/reference/contextual/derivation.html#mirror-1) typeclass) for sum/product types. I believe that we can extend this reflection support to interface types, which is provided by the [ops-mirror](https://github.com/bishabosha/ops-mirror) micro-library. It seems to be a natural extension - so far inpiring other libraries to be released such as [smithy4s-deriving](https://github.com/neandertech/smithy4s-deriving).
 
 ## A motivating example
 
@@ -30,11 +28,11 @@ Other solutions use code generation from another source language, such as [Smith
 
 There are some downsides to these solutions: e.g. a DSL may be less straightforward for beginners; and code generation requires extra support from a build tool, which might not be practical.
 
-I propose that a more natural way to describe these endpoints is just a _plain trait definition_. Imagine (or not, [try it out](https://github.com/bishabosha/ops-mirror/blob/main/examples/GreetService.scala)) the following, simple, definition of a service to greet people with a custom message:
+As a hopefully simpler solution, I propose to avoid all the ceremony and bring back _plain traits + annotations_, and with the help of ops-mirror generate endpoints from this source of truth.
+
+So here is a simple definition of a service to greet people with a custom message ([try it out](https://github.com/bishabosha/ops-mirror/blob/main/examples/GreetService.scala)):
 
 ```scala
-//> using dep io.github.bishabosha::ops-mirror::0.1.1
-
 @failsWith[HttpError]
 trait GreetService derives HttpService:
 
@@ -49,7 +47,7 @@ end GreetService
 
 It looks highly readable, and should be familiar to a beginner. A **method** is 1:1 with an endpoint, with **inputs** and **outputs**. A trait collects several endpoints into a a **service**. Annotations describe the metadata associated with either a whole service, an individual endpoint, or an input of that endpoint.
 
-Here is what a like to define server handlers and create a simple client, sticking to a [Lean Scala](https://odersky.github.io/blog/2024-04-11-post.html) style:
+Here is what a like to define server handlers and create a simple client, sticking to a [Lean Scala](https://odersky.github.io/blog/2024-04-11-post.html) style (again [try it out](https://github.com/bishabosha/ops-mirror/blob/main/examples/GreetService.scala)):
 
 ```scala
 val e = HttpService.endpoints[GreetService]
@@ -86,39 +84,33 @@ end server
 end client
 ```
 
-## A type class for HTTP services
+> It should be noted that the code above, while works, is optimised for demo-purposes, and is not production-ready. I would recommend for example to instead generate [tapir](https://tapir.softwaremill.com/en/latest/) endpoints (_help wanted!_), and let that do the heavy lifting for you.
 
-The `HttpService` type class is going to be a holder for the pure data model:
+## The need for ops-mirror
+
+Now you have seen the end-result, naturally you may ask how do we get to this point?
+
+In the example above `HttpService` is a typeclass that provides a `Route` schema for each method of `GreetService`.
 
 ```scala
 trait HttpService[T]:
   val routes: Map[String, Route]
 ```
 
-What is a `Route`? it holds metadata for a route, such as the URI template, and a description of the parts of the request.
+Each `Route` schema describes the metadata of an endpoint, such as the HTTP method, path, and the source of each parameter.
 
-We also have endpoints, which reify the `routes` map as static types that can be statically selected:
-
-```scala
-val e: Endpoints {
-  val greet: Endpoint[(String *: EmptyTuple), HttpError, String];
-  val setGreeting: Endpoint[(String, String), HttpError, Unit]
-} = HttpService.endpoints[GreetService]
-```
-
-`Endpoint` itself is an opaque type wrapper of `Route`, i.e. it only adds static type information:
+in the companion of `HttpService` we have the `derived` method as follows:
 
 ```scala
-opaque type Endpoint[I <: Tuple, E, O] <: Route = Route
+import mirrorops.OpsMirror
+
+object HttpService:
+  inline def derived[T](using OpsMirror.Of[T]): HttpService[T] = ???
 ```
 
-I won't go into details, but for the purpose of this article it is enough to state that both `Route` and `Endpoint` together contain a reification of all the metadata necessary for both `ServerBuilder` and `PartialRequest` to build upon.
+With this signature, for any trait type `T`, a value of type `OpsMirror.Of[T]` will be synthesized, providing a data structure that reflects the metadata and signature of each method of `T`.
 
-## Proposal for a new kind of Mirror
-
-But how do we create these data structures from `GreetService`?
-
-We need to inspect the trait, and its methods, for any metadata useful for describing endpoints. This is the information we want to extract:
+This is the information we want from `GreetService` in order to generate `routes`:
 
 > `GreetService` is a trait where:
 >
@@ -134,11 +126,7 @@ We need to inspect the trait, and its methods, for any metadata useful for descr
 >   - with param `greeting` of type `String`
 >     - with annotation `@body`
 
-I hope you can see that this information is enough to describe each endpoint.
-
-Extracting this information is possible using the built-in reflection API's of Scala 3, but it is tedious and error-prone. So I propose to provide this automatically in a data structure (Call it an operation mirror).
-
-Here is how it would look for `GreetService`:
+The `OpsMirror` provides this information via type members:
 
 ```scala
 val Mirror_GreetService: OpsMirror {
@@ -175,37 +163,42 @@ val Mirror_GreetService: OpsMirror {
 } = summon[OpsMirror.Of[GreetService]]
 ```
 
-i.e. a single value, with type refinements that encode all the necessary details about `GreetService` that we described above.
+Following the techniques shown in the [Scala 3 documentation](https://docs.scala-lang.org/scala3/reference/contextual/derivation-macro.html), you can use quotes and splices to extract whichever information you need. The implementation for `HttpService.derived` can be found [here](https://github.com/bishabosha/ops-mirror/blob/f65246115e54a514892123d6d951d41800d4f9da/examples/serverlib/ServerMacros.scala#L47-L92).
 
-!!! info "You may notice some strange syntax"
-`Meta @foo`: it is not possible for a type to be a standalone annotation, so the throwaway type `Meta` acts as a target for the annotation `@foo`.
+> Annotations are not themselves types, so to encode them at the type-level, the `Meta` type is used as a target placeholder, which helps to extract the annotation later.
 
-## Deriving the HttpService
+## Type-safe endpoints using ops-mirror
 
-Coming back to the original thesis, the goal was to use the type class derivation mechanism to compute `HttpService`, (and the underlying `Route` metadata) for `GreetService` exactly once.
-
-Following the documentation for [type class derivation with macros](https://docs.scala-lang.org/scala3/reference/contextual/derivation-macro.html), we will need to implement the `derived` function in the companion object, and here I would propose to use `OpsMirror` as a contextual argument:
+The `HttpService` type class is type-erased, but to implement server logic, we need to provide functions with the correct types. This is where `Endpoint` comes in:
 
 ```scala
-object HttpService:
-  inline def derived[T](using OpsMirror.Of[T]): HttpService[T]
+trait HttpService[T]:
+  // the routes map has no per-route type information.
+  val routes: Map[String, Route]
 ```
 
-being an `inline` method, you can extract all the type refinements such as `MirroredOperations` at compile time, and use them to derive code as described in the linked documentation.
-
-Then to get the endpoints, we can reuse the base `HttpService` that has already been derived, and also requesting again the `OpsMirror` to access the static types:
+`Endpoints` wraps the `HttpService` type with [structural refinements](https://docs.scala-lang.org/scala3/reference/changed-features/structural-types.html) to give a more type-safe API:
 
 ```scala
-object HttpService:
-  ...
-  transparent inline def endpoints[T](using HttpService[T], OpsMirror.Of[T]): Endpoints
+val e: Endpoints[GreetService] {
+  val greet: Endpoint[(String *: EmptyTuple), HttpError, String];
+  val setGreeting: Endpoint[(String, String), HttpError, Unit]
+} = HttpService.endpoints[GreetService]
 ```
 
-Notice that we use `transparent inline`, which will allow us to refine the result at call-site, as shown above.
+The `HttpService.endpoints` method again uses the `OpsMirror` to extract the necessary information.
 
-To see the code that does this, [look at ServerMacros.scala](https://github.com/bishabosha/ops-mirror/blob/main/examples/serverlib/ServerMacros.scala).
+`Endpoint` itself is an opaque type wrapper of `Route`, i.e. it only adds static type information:
 
-## Other examples
+```scala
+opaque type Endpoint[I <: Tuple, E, O] <: Route = Route
+```
+
+`I` is a tuple of argument types to the endpoint, `E` is possible error type of the endpoint, and `O` is the result type of the endpoint.
+
+I won't go into details, but for the purpose of this article it is enough to state that both `Route` and `Endpoint` together contain a reification of all the metadata necessary for both `ServerBuilder` and `PartialRequest` to build upon.
+
+## Other uses for ops-mirror
 
 I think that the operation mirror is a general enough concept to take seriously. For example, it is also suitable for describing most RPC services, such as Language Server Protocol:
 
@@ -240,16 +233,16 @@ e.g. in the HTTP example - the `ServerBuilder` provides an interpreter in direct
 
 If instead you prefer a purely functional style, then perhaps you would use an alternative server builder, that is specialized to an effect type.
 
+> Another choice is to drop effect-polymorphism, and instead extract a concrete effect type from the result of each method. This is the approach of [smithy4s-deriving](https://github.com/neandertech/smithy4s-deriving). Arguably this is more in alignment with the user's expectation - but makes interpretation less flexible.
+
 ## A Call to Action
 
-At Scalar conference after the talk there was a lot of interest in this concept.
+At Scalar 2024 after my talk there was a lot of interest in this concept.
 
 If you are interested in developing the idea for operation mirrors, I invite you to participate at [bishabosha/ops-mirror](https://github.com/bishabosha/ops-mirror) where we can develop more examples that push the boundaries of what is possible, discover the optimal API representation, and identify any shortcomings.
 
-My aim overall would be to publish a small prototype, then propose possibly for inclusion in the language itself.
+One big decision is how to represent the metadata, should annotations be kept as-is, or perhaps converted to a more simple type-level representation?
 
-My view is that we should stay opinionated. e.g. the built-in `scala.deriving.Mirror` type-classes only work for a small subset of data structures. This makes them predicatable and overall a simpler programming model.
-
-So correspondingly I think a small subset of trait "shaped" should be supported, rather than a kitchen sink.
+My view is that we should stay opinionated. e.g. the built-in `scala.deriving.Mirror` type-classes only work for a small subset of data structures. This makes them predicatable and overall a simpler programming model. So correspondingly I think a small subset of trait "shapes" should be supported, rather than a kitchen sink.
 
 Let's find out together.
