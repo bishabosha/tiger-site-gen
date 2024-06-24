@@ -50,7 +50,7 @@ object page:
       .map(c =>
         NavLink(
           isActive = c.collName == col.collName,
-          Link(s"/${c.collName}/index.html", c.collName.capitalize)
+          Link(s"/${c.collName}/", c.collName.capitalize)
         )
       )
       .toIndexedSeq

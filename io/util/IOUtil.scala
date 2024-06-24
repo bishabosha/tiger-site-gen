@@ -111,7 +111,7 @@ object paths:
     for rootCol <- optRoots.headOption do
       os.write(
         dest / "index.html",
-        io.util.paths.rootPage(redirect = s"${rootCol.collName}/index.html")
+        io.util.paths.rootPage(redirect = s"/${rootCol.collName}/")
       )
     for static <- ctx.site.optStatic do
       os.copy(
