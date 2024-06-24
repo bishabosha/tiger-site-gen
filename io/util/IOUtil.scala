@@ -230,15 +230,17 @@ object md:
         val nextText = read(text)
         if localSample == null then
           val md = parser.parse(nextText)
-          val text = new mutable.StringBuilder()
+          val innerHTML = new java.lang.StringBuilder()
           val pvisitor = NodeVisitor(
             VisitHandler(
               classOf[Paragraph],
-              p => p.getChildren().forEach(c => text ++= renderer.render(c))
+              p =>
+                p.getChildren()
+                  .forEach(c => innerHTML.append(renderer.render(c)))
             )
           )
           pvisitor.visit(md)
-          sample = text.toString
+          sample = innerHTML.toString()
         addCount(nextText)
 
       def visit(text: Text): Unit =

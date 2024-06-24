@@ -66,6 +66,12 @@ object page:
     val metaDescription = Seq(
       meta(name := "description", attrContent := page.frontMatter.description),
       meta(name := "twitter:card", attrContent := "summary"),
+      meta(name := "twitter:title", attrContent := title),
+      meta(name := "twitter:site", attrContent := "@bishabosha"),
+      meta(
+        name := "twitter:description",
+        attrContent := page.frontMatter.description
+      ),
       meta(name := "og:title", attrContent := title),
       meta(
         name := "og:description",

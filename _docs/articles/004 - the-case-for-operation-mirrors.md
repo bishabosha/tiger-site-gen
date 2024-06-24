@@ -1,6 +1,7 @@
 ---
 layout: article
 title: Just declare your services: Introducing operation mirrors
+description: ops-mirror is a new micro-library that helps reflect traits at compile time, for use with type-class derivation.
 published: 24-Jun-2024
 ---
 
