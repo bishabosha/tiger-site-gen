@@ -27,6 +27,7 @@ object Breeze extends model.Theme:
     val event: String
     val url: String
     val description: String
+    val ordered: String
     val isIndexOnly: Boolean
   }
 

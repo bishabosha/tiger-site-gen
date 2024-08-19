@@ -1,8 +1,6 @@
 package model
 
-import scala.collection.mutable
-
-class FrontMatter(data: mutable.LinkedHashMap[String, List[String]])
+class FrontMatter(data: Map[String, List[String]])
     extends Selectable:
 
   lazy val isRoot: Boolean = data.contains("isRoot")

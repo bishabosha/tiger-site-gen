@@ -1,6 +1,7 @@
 package breezeSite
 
 import breeze.sidebar
+import breeze.utils
 import scalatags.Text.all.*
 
 import model.ctx
@@ -8,6 +9,13 @@ import model.ctx
 import Breeze.*
 
 def talks(doc: DocPage)(using Context) =
+  val siteTalks = ctx.site.talks
+  val orderedTalks =
+    siteTalks.toIterable.toSeq.sortBy(page =>
+      utils.Ordered
+        .read(page.frontMatter.ordered)
+        .getOrElse(sys.error(s"Missing order for ${page.name}"))
+    )
   breeze.page.wrap(
     doc,
     ctx.site.talks,
@@ -24,7 +32,7 @@ def talks(doc: DocPage)(using Context) =
             cls := "jumbotron bg-light py-lg-5 py-3",
             h1(cls := "display-5", "Conference Talks and Meetups"),
             hr(),
-            for link <- ctx.site.talks
+            for link <- orderedTalks
             yield div(
               cls := "row",
               div(

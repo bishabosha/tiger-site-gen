@@ -14,13 +14,14 @@ object Breeze extends model.Theme:
 
   type Site = parent.Site & {
     val talks: Docs
-    // val meetups: Docs
     val videos: Docs
+    val projects: Docs
   }
 
-  export parent.Extra
-  def extras(using Context, model.Context.InMakeCtx): Extra =
-    new breezeSite.Extra {}
+  override type Extra = parent.Extra & breezeSite.Extra
+  override def extras(using
+      Context,
+      model.Context.InMakeCtx
+  ): breezeSite.Extra = new {}
 
-  type FrontMatter = parent.FrontMatter
-  export parent.whoAmI
+  export parent.{FrontMatter, whoAmI}

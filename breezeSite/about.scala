@@ -28,6 +28,13 @@ def about(doc: DocPage)(using Context) =
             cls := "row",
             div(
               cls := "col-lg",
+              cardExtensions.projects("Projects", ctx.site.projects)
+            )
+          ),
+          div(
+            cls := "row",
+            div(
+              cls := "col-lg",
               cards
                 .links("Conference Talks and Meetups", "talks", ctx.site.talks)
             )

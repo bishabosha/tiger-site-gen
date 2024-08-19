@@ -5,9 +5,9 @@ import com.vladsch.flexmark.html.HtmlRenderer
 import com.vladsch.flexmark.parser.Parser
 import com.vladsch.flexmark.util.data.MutableDataSet
 
+import scala.compiletime.asMatchable
+
 import scala.jdk.CollectionConverters.given
-import com.vladsch.flexmark.ext.yaml.front.matter.YamlFrontMatterExtension
-import com.vladsch.flexmark.ext.yaml.front.matter.AbstractYamlFrontMatterVisitor
 import com.vladsch.flexmark.ext.attributes.AttributesExtension
 
 import com.vladsch.flexmark.ext.gitlab.GitLabExtension
@@ -146,7 +146,6 @@ object md:
     val options = MutableDataSet()
     val exts = List(
       AttributesExtension.create(),
-      YamlFrontMatterExtension.create(),
       GitLabExtension.create(),
       AnchorLinkExtension.create(),
       AdmonitionExtension.create(),
@@ -249,17 +248,50 @@ object md:
   end ContentSampler
 
   def render(index: Int, name: String, path: os.Path): model.DocPage =
-    val document = parser.parse(os.read(path))
-    val data =
-      val fmVisitor = AbstractYamlFrontMatterVisitor()
-      fmVisitor.visit(document)
-      val entries =
-        fmVisitor
-          .getData()
-          .asScala
-          .to(scala.collection.mutable.LinkedHashMap)
-          .map((k, vs) => k -> vs.asScala.toList)
-      model.FrontMatter(entries)
+    import org.virtuslab.yaml.*
+    val rawText = os.read(path)
+    val (rawYaml, rawDoc) =
+      rawText.split("---", 3) match
+        case Array("", yaml, doc) => (yaml, doc)
+        case Array(yaml, doc)     => (yaml, doc)
+        case _                    => ("", rawText)
+    val document = parser.parse(rawDoc)
+    val yaml = rawYaml.as[Any]
+    // TODO: ugly rewrapping as List of strings - todo: rework representation of front matter.
+    // changed to virtuslab scala-yaml due to a superior parser.
+    val data: model.FrontMatter = yaml match
+      case Left(error) =>
+        throw error
+      case Right(data) =>
+        data.asMatchable match
+          case m: Map[k, vs] =>
+            val allStrKeys = m.keys.forall({
+              case _: String => true
+              case _         => false
+            })
+            val allListableVals = m.values.forall({
+              case vs: List[t] =>
+                vs.forall({
+                  case _: String  => true
+                  case _: Boolean => true
+                  case _          => false
+                })
+              case _: String  => true
+              case None       => true
+              case _: Boolean => true
+              case _          => false
+            })
+            if allStrKeys && allListableVals then
+              model.FrontMatter(m.view.map { case (k, vs) =>
+                k.asInstanceOf[String] -> (vs.match {
+                  case vs1: List[t] => vs1.map(_.toString())
+                  case v: String    => v :: Nil
+                  case None         => Nil
+                  case v: Boolean   => v.toString() :: Nil
+                })
+              }.toMap)
+            else throw new Exception(s"Invalid front matter $m")
+          case _ => throw new Exception(s"Invalid front matter $data")
 
     val html = renderer.render(document)
     val (sample, wordCount, headings) = ContentSampler.sampleContent(document)
