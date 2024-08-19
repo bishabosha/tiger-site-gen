@@ -27,9 +27,9 @@ object page:
     tpe := "text/javascript"
   )
 
-  val siteStyleCss = link(
+  def siteStyleCss(using Context) = link(
     rel := "stylesheet",
-    href := "/static/css/style.css"
+    href := io.util.paths.resolveStaticAsset("/static/css/style.css")
   )
   val fontAwesome = link(
     rel := "stylesheet",

@@ -35,6 +35,12 @@ import scala.collection.mutable
 object sanatise:
   private val regex = raw"[!?&*^$$#@,]".r
 
+  def md5Hashed(path: os.Path): String =
+    val bytes = os.read.bytes(path)
+    val md = java.security.MessageDigest.getInstance("MD5")
+    val digest = md.digest(bytes)
+    digest.map("%02x".format(_)).mkString
+
   def mdNameToHtml(name: String) =
     regex.replaceAllIn(name.replace(" ", "-"), "").toLowerCase + ".html"
 
@@ -44,6 +50,24 @@ object sanatise:
     s"$time minute read"
 
 object paths:
+
+  def hashPath(path: os.Path): os.Path =
+    val hashedSuffix = sanatise.md5Hashed(path)
+    val hashedName = s"${path.baseName}_$hashedSuffix.${path.ext}"
+    (path / os.up / hashedName)
+
+  def resolveStaticAsset(relURL: String)(using model.Context): String =
+    relURL match
+      case s"/static/$rest" =>
+        ctx.site.optStatic match
+          case Some(static) =>
+            val path = os.Path(rest, static)
+            if os.exists(path) then
+              val hashedPath = hashPath(path).relativeTo(static).toString
+              s"/static/$hashedPath"
+            else throw Exception(s"Static asset not found: $path")
+          case None => throw Exception("No static directory found")
+      case _ => throw Exception(s"Invalid static asset path: $relURL")
 
   def generateSite[T <: model.Theme](src: String, out: String, theme: T)(using
       model.SiteRoot
@@ -90,6 +114,7 @@ object paths:
     }
     var optRoots = Set.empty[theme.DocCollection]
     for col <- activeCols do
+      given theme.DocCollection = col
       os.makeDir.all(dest / col.collName)
       if col.index.frontMatter.isRoot then optRoots += col
       if !col.index.frontMatter.isIndexOnly then
@@ -114,10 +139,19 @@ object paths:
         io.util.paths.rootPage(redirect = s"/${rootCol.collName}/")
       )
     for static <- ctx.site.optStatic do
-      os.copy(
-        static,
-        dest / "static"
-      )
+      os.makeDir(dest / "static")
+      os.walk.stream(static).foreach { p =>
+        val rel = p.relativeTo(static)
+        val destStatic = dest / "static"
+        val destPath = destStatic / rel
+        if os.isDir(p) then os.makeDir(destPath)
+        else {
+          if p.ext == "css" then
+            val hashedDest = destStatic / hashPath(p).relativeTo(static)
+            os.copy(p, hashedDest)
+          else os.copy(p, destPath)
+        }
+      }
     for favicon <- ctx.site.optFavicon do
       os.copy(
         favicon,
@@ -139,8 +173,9 @@ object md:
 
   private val dateParser = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
   private val dateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy");
-  private val shortDateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+  private val shortDateFormatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy");
   private val yearFormatter = DateTimeFormatter.ofPattern("yyyy");
+  private val monthYearFormatter = DateTimeFormatter.ofPattern("MMM/yyyy");
 
   private val (parser, renderer) =
     val options = MutableDataSet()
@@ -187,6 +222,9 @@ object md:
 
   def renderShortDate(date: String): Option[String] =
     readDate(date).map(_.format(shortDateFormatter))
+
+  def renderMonthYear(date: String): Option[String] =
+    readDate(date).map(_.format(monthYearFormatter))
 
   object ContentSampler:
 

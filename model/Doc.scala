@@ -31,11 +31,13 @@ class Docs[D <: DocPage](
     optIndex: Option[D],
     data: IndexedSeq[D]
 ) extends DocCollection[D]:
-  export data.{apply as page, size, map, take}
+  export data.{apply as page, size, map}
 
   def willRender: Boolean = optIndex.isDefined
 
   def index: D = optIndex.get
+
+  def take(n: Int): Docs[D] = Docs(collName, optIndex, data.take(n))
 
   def prevNext(doc: D): (Option[D], Option[D]) =
     val prev = if doc.idx > 0 then Some(page(doc.idx - 1)) else None

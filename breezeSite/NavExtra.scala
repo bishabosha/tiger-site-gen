@@ -7,4 +7,4 @@ import model.ctx
 trait NavExtra(using Context) extends breeze.Breeze.Extra:
 
   override def nav: List[DocCollection] =
-    List(ctx.site.about, ctx.site.articles, ctx.site.talks)
+    List(ctx.site.about, ctx.site.articles, ctx.site.projects, ctx.site.talks)

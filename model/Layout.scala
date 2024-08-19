@@ -11,14 +11,19 @@ class Layouts extends Selectable:
   def selectDynamic(name: String): Any =
     reflect.Selectable.reflectiveSelectable(this).selectDynamic(name)
 
-  def apply[C <: model.Context, D <: DocPage](name: String)(doc: D)(using
-      C
+  def apply[C <: model.Context, D <: DocPage, DC <: DocCollection[D]](
+      name: String
+  )(doc: D)(using
+      C,
+      DC
   ): ConcreteHtmlTag[String] =
     val layout =
       try selectDynamic(name).asInstanceOf[Layout[C, D]]
       catch
         case err =>
-          throw new Exception(s"Layout not found: `$name` for doc $doc")
+          throw new Exception(
+            s"Layout not found: `$name` for doc ${summon[DC].collName}.${doc.name}"
+          )
     layout(doc)
 
   def &(additions: Layouts): this.type & additions.type = new Layouts {

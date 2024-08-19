@@ -20,6 +20,7 @@ object Breeze extends model.Theme:
   type FrontMatter = model.FrontMatter {
     val title: String
     val published: String
+    val startDate: String
     val avatar: String
     val links: List[String]
     val name: String

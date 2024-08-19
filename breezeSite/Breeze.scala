@@ -11,6 +11,8 @@ object Breeze extends model.Theme:
     val layouts = parent.metadata.layouts & new:
       val about: Layout = breezeSite.about
       val talks: Layout = breezeSite.talks
+      val projects: Layout = breezeSite.projects
+      val project: Layout = breezeSite.project
 
   type Site = parent.Site & {
     val talks: Docs
