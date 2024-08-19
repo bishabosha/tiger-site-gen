@@ -2,10 +2,10 @@
 isRoot:
 layout: about
 title: About
-name: Jamie Talking about Code
+name: bishabosha/
 copyright: Jamie Thompson
 description: Homepage of Jamie Thompson (@bishabosha)
-avatar: /static/img/profile.jpg
+avatar: /static/img/jamie_thompson_profile.png
 links:
   - GitHub|social|fa-brands fa-github|https://github.com/bishabosha
   - Twitter|social|fa-brands fa-twitter|https://twitter.com/bishabosha
@@ -14,7 +14,7 @@ links:
   - Resume||fa-solid fa-file|/static/pages/generalJamesThompsonresume2024.html
 ---
 
-Freelancer, previously hacking compilers at the [Scala Center](https://scala.epfl.ch){target="_blank"}.
+Freelancing, previously hacking compilers at the [Scala Center](https://scala.epfl.ch){target="_blank"}.
 
 I love to share ideas about programming, whether it is though speaking,
 producing video tutorials, or engaging in the learning process to deliver the best materials for newcomers.
