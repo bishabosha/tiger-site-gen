@@ -178,13 +178,15 @@ object md:
     val now = LocalDate.now
     yearFormatter.format(now) -> shortDateFormatter.format(now)
 
-  def renderDate(date: String): Option[String] =
-    try Some(LocalDate.parse(date, dateParser).format(dateFormatter))
+  def readDate(date: String): Option[LocalDate] =
+    try Some(LocalDate.parse(date, dateParser))
     catch case NonFatal(_) => None
 
+  def renderDate(date: String): Option[String] =
+    readDate(date).map(_.format(dateFormatter))
+
   def renderShortDate(date: String): Option[String] =
-    try Some(LocalDate.parse(date, dateParser).format(shortDateFormatter))
-    catch case NonFatal(_) => None
+    readDate(date).map(_.format(shortDateFormatter))
 
   object ContentSampler:
 

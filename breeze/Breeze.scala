@@ -24,11 +24,11 @@ object Breeze extends model.Theme:
     val links: List[String]
     val name: String
     val copyright: String
-    val event: String
+    val subtitle: String
     val url: String
     val description: String
-    val ordered: String
     val isIndexOnly: Boolean
+    val ordered: String // a helper to order items
   }
 
   trait Extra(using Context):

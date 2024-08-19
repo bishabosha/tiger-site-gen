@@ -1,6 +1,6 @@
 ---
 title: Immutable Data - Your Next Superpower
-event: Let's Talk About Scala 3
+subtitle: Let's Talk About Scala 3
 url: https://www.youtube.com/watch?v=0cjpBVNNSf0
 ---
 

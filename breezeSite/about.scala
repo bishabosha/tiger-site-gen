@@ -28,7 +28,7 @@ def about(doc: DocPage)(using Context) =
             cls := "row",
             div(
               cls := "col-lg",
-              cardExtensions.projects("Projects", ctx.site.projects)
+              cardExtensions.projects("Commercial Projects", ctx.site.projects)
             )
           ),
           div(

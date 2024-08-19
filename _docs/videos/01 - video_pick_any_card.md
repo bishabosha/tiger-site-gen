@@ -1,6 +1,6 @@
 ---
 title: Pick any Card - Write Better Data Structures with Scala
-event: Let's Talk About Scala 3
+subtitle: Let's Talk About Scala 3
 url: https://www.youtube.com/watch?v=RZFfk-64vfk
 ---
 

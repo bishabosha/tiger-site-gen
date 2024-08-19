@@ -49,7 +49,7 @@ def talks(doc: DocPage)(using Context) =
                   ),
                   p(
                     small(
-                      em(cls := "text-muted", link.frontMatter.event),
+                      em(cls := "text-muted", link.frontMatter.subtitle),
                       (if link.htmlPreview.nonEmpty then
                          Seq(": ": Frag, raw(link.htmlPreview))
                        else Seq.empty[Frag])

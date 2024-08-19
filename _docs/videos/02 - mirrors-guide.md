@@ -1,6 +1,6 @@
 ---
 title: How Does the Scala Compiler Give You a Mirror?
-event: Scala Compiler Academy
+subtitle: Scala Compiler Academy
 url: https://www.youtube.com/watch?v=ImDpw2B9AG4
 ---
 
