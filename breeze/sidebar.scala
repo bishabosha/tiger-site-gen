@@ -8,33 +8,46 @@ import Breeze.*
 
 object sidebar:
 
-  def ofBio(hideable: Boolean = true, collapsable: Boolean = true)(using Context): scalatags.Text.Modifier =
+  def ofBio(hideable: Boolean = true, collapsable: Boolean = true)(using
+      Context
+  ): scalatags.Text.Modifier =
     wrap(
-      innerBio(top = false, hideable, collapsable),
+      innerBio(top = false, hideable, collapsable)
     )
 
-  def wrap(elems: scalatags.Text.Modifier*)(using Context): scalatags.Text.Modifier =
-    div(cls := "col-lg-4",
-      elems
-    )
+  def wrap(elems: scalatags.Text.Modifier*)(using
+      Context
+  ): scalatags.Text.Modifier =
+    div(cls := "col-lg-4", elems)
 
-  def innerBio(top: Boolean, hideable: Boolean = true, collapsable: Boolean = true)(using Context): scalatags.Text.Modifier =
-    div(cls := s"bio-box jumbotron sidebar shadow py-lg-4 py-3 ${if top then "bio-box__top" else ""}",
-      bio(ctx.site.about.page, hideable, collapsable),
+  def innerBio(
+      top: Boolean,
+      hideable: Boolean = true,
+      collapsable: Boolean = true
+  )(using Context): scalatags.Text.Modifier =
+    div(
+      cls := s"bio-box jumbotron sidebar shadow py-lg-4 py-3 ${
+          if top then "bio-box__top" else ""
+        }",
+      bio(ctx.site.about.page, hideable, collapsable)
     )
 
   def toc(doc: DocPage)(using Context): scalatags.Text.Modifier =
-    div(cls := s"sticky-top top-aligned jumbotron sidebar shadow py-lg-4 py-3",
-      nav(cls := "toc-nav",
-        ol(cls := "list-unstyled",
-          li(cls := s"toc-level-1",
-            a(href := s"#${io.util.sanatise.mdNameToHtml(doc.frontMatter.title)}", doc.frontMatter.title)
-          ),
-          (for (title, anchor, level) <- doc.headings yield
-            li(cls := s"toc-level-$level",
-              a(href := s"#$anchor", title)
+    div(
+      cls := s"sticky-top top-aligned jumbotron sidebar shadow py-lg-4 py-3",
+      nav(
+        cls := "toc-nav",
+        ol(
+          cls := "list-unstyled",
+          li(
+            cls := s"toc-level-1",
+            a(
+              href := s"#${io.util.sanatise.mdNameToHtml(doc.frontMatter.title)}",
+              doc.frontMatter.title
             )
-          )
-        ),
+          ),
+          (for (title, anchor, level) <- doc.headings
+          yield li(cls := s"toc-level-$level", a(href := s"#$anchor", title)))
+        )
       )
     )

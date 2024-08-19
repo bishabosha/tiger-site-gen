@@ -1,7 +1,6 @@
 package model
 
-class FrontMatter(data: Map[String, List[String]])
-    extends Selectable:
+class FrontMatter(data: Map[String, List[String]]) extends Selectable:
 
   lazy val isRoot: Boolean = data.contains("isRoot")
   lazy val isIndexOnly: Boolean =

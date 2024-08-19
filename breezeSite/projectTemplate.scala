@@ -5,7 +5,6 @@ import breeze.sidebar
 import scalatags.Text.all.*
 import scalatags.Text.tags2.article as tArticle
 
-// import breeze.page.PageCategory
 import model.ctx
 
 import Breeze.*
@@ -87,6 +86,17 @@ def project(doc: DocPage)(using Context) =
               ),
               hr(),
               projectNav,
+              p(
+                a(
+                  href := doc.frontMatter.url,
+                  target := "_blank",
+                  small(
+                    i(cls := "fa-solid fa-arrow-up-right-from-square")
+                  ),
+                  " ",
+                  "Project URL"
+                )
+              ),
               p(i(b("Summary: "), doc.frontMatter.description)),
               div(raw(doc.htmlContent)),
               projectNav
