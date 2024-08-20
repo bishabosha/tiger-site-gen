@@ -10,7 +10,7 @@ def navbar(from: NavBar) =
     cls := "navbar navbar-expand-md navbar-light fixed-top bg-light",
     div(
       cls := "container-fluid",
-      a(cls := "navbar-brand", href := "/", from.brand),
+      a(cls := "navbar-brand navbar-slash", href := "/", from.brand),
       button(
         cls := "navbar-toggler",
         tpe := "button",

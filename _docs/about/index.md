@@ -2,7 +2,7 @@
 isRoot:
 layout: about
 title: About
-name: bishabosha/
+name: bishabosha
 copyright: Jamie Thompson
 description: Homepage of Jamie Thompson (@bishabosha)
 avatar: /static/img/jamie_thompson_profile.png

@@ -4,6 +4,8 @@ trait Theme:
   thisTheme =>
 
   final type Layout = model.Layout[Context, DocPage]
+  object Layout:
+    def apply(layout: Layout): layout.type = layout
 
   val metadata: Metadata
   trait Metadata extends Selectable:

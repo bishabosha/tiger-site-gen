@@ -8,7 +8,7 @@ import model.ctx
 
 import Breeze.*
 
-def article(doc: DocPage)(using Context) =
+val article = Layout: doc =>
   val (prev, next) =
     ctx.site.articles.prevNext(doc).swap // articles is in reverse order
   val articleNav = (
@@ -88,3 +88,4 @@ def article(doc: DocPage)(using Context) =
       )
     )
   )
+end article

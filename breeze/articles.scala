@@ -6,7 +6,7 @@ import model.ctx
 
 import Breeze.*
 
-def articles(doc: DocPage)(using Context) =
+val articles = Layout: doc =>
   breeze.page.wrap(doc, ctx.site.articles, title = s"Articles | $whoAmI")(
     div(
       cls := "container",
@@ -42,3 +42,4 @@ def articles(doc: DocPage)(using Context) =
       )
     )
   )
+end articles

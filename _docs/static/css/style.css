@@ -28,6 +28,10 @@ article table.article-table {
   }
 }
 
+.navbar-slash::after {
+  content: "/";
+}
+
 .img-avatar {
   max-width: 120px;
   max-height: 120px;

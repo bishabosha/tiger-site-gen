@@ -8,7 +8,7 @@ import model.ctx
 
 import Breeze.*
 
-def talks(doc: DocPage)(using Context) =
+val talks = Layout: doc =>
   val siteTalks = ctx.site.talks
   val orderedTalks =
     siteTalks.toIterable.toSeq.sortBy(page =>

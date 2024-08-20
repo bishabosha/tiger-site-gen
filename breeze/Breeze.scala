@@ -7,8 +7,8 @@ object Breeze extends model.Theme:
   val metadata = new {
     val name = "Breeze"
     val layouts = new {
-      val article: Layout = breeze.article
-      val articles: Layout = breeze.articles
+      val article = breeze.article
+      val articles = breeze.articles
     }
   }
 
@@ -29,6 +29,7 @@ object Breeze extends model.Theme:
     val url: String
     val description: String
     val isIndexOnly: Boolean
+    val isInProgress: Boolean
     val ordered: String // a helper to order items
   }
 

@@ -8,7 +8,7 @@ import Breeze.*
 
 import breeze.{cards, sidebar}
 
-def about(doc: DocPage)(using Context) =
+val about = Layout: doc =>
   breeze.page.wrap(doc, ctx.site.about, title = s"About | $whoAmI")(
     div(
       cls := "container",

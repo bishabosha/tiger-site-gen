@@ -9,7 +9,7 @@ import model.ctx
 
 import Breeze.*
 
-def project(doc: DocPage)(using Context) =
+val project = Layout: doc =>
   val (prev, next) =
     ctx.site.projects.prevNext(doc).swap // projects are in reverse order
   val projectNav = (
@@ -86,18 +86,23 @@ def project(doc: DocPage)(using Context) =
               ),
               hr(),
               projectNav,
-              p(
-                a(
-                  href := doc.frontMatter.url,
-                  target := "_blank",
-                  small(
-                    i(cls := "fa-solid fa-arrow-up-right-from-square")
+              blockquote(
+                p(
+                  a(
+                    href := doc.frontMatter.url,
+                    target := "_blank",
+                    small(
+                      i(cls := "fa-solid fa-arrow-up-right-from-square")
+                    ),
+                    " ",
+                    "Project URL"
                   ),
-                  " ",
-                  "Project URL"
-                )
+                  Option.when(doc.frontMatter.isInProgress)(
+                    b(" this project is still in progress...")
+                  )
+                ),
+                p(i(b("Summary: "), doc.frontMatter.description)),
               ),
-              p(i(b("Summary: "), doc.frontMatter.description)),
               div(raw(doc.htmlContent)),
               projectNav
             )
@@ -106,3 +111,4 @@ def project(doc: DocPage)(using Context) =
       )
     )
   )
+end project

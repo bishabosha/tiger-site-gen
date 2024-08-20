@@ -8,7 +8,7 @@ import model.ctx
 
 import Breeze.*
 
-def projects(doc: DocPage)(using Context) =
+val projects = Layout: doc =>
   breeze.page.wrap(
     doc,
     ctx.site.projects,
@@ -48,6 +48,9 @@ def projects(doc: DocPage)(using Context) =
                   cls := "mb-1",
                   i(b("Summary: "), project.frontMatter.description)
                 ),
+                Option.when(project.frontMatter.isInProgress)(
+                  p(i(b("This project is still in progress...")))
+                ),
                 a(
                   href := s"/projects/${io.util.sanatise.mdNameToHtml(project.name)}",
                   cls := "stretched-link",
@@ -60,3 +63,4 @@ def projects(doc: DocPage)(using Context) =
       )
     )
   )
+end projects
