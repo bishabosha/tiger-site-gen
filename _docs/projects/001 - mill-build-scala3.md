@@ -25,8 +25,10 @@ This isn't a standard migration effort however, as Mill customises the language 
 - Bytecode analyzers to detect changes in the build.
 
 ## Current Status
-As of August 20th 2024, the project is in progress, but most macros are ported, meaning that we can compile all of core Mill, and even compile some builds.
-No Scala 3 specific syntax is supported yet, and override inferrence is not yet implemented.
+As of August 21st 2024, the project is in progress, but most macros are ported, meaning that we can compile all of core Mill, and even compile some builds.
+Override inferrence is now implemented (See [mill-moduledefs PR](https://github.com/com-lihaoyi/mill-moduledefs/pull/14)).
+
+The next step would be to port the cross-module macros, which should pass all existing integration tests.
 
 Here is a gif of compiling a Mill project where the build.sc file is compiled with Scala 3.5.0:
 
@@ -182,16 +184,28 @@ Trying to implement the caller macro \- it seems not possible to implement corre
 - Then ZincWorkerImpl was having issues resolving `scala-library` from the compiler classpath when building the `mill-build` task \- which is correct as the resolution of the `Lib.scalaRuntimeIvyDeps` deps was excluding `scala-library` \- which i discovered by printing the deps before resolution. This exclusion comes from `MillBuildRootModule.resolveDepsExclusions` as it is part of the classpath of mill itself \- so i made an exception to excluding the scala-library for the mill root build \- perhaps there is a better and localised solution?
 - Next i discovered in running example test that the generated script file discover macro needed explicit TokenReader imports so added that.
 - Now i can actually run many integration tests out of the box \- e.g. `example.tasks[1-task-graph].local`. \- i am still relying on my locally published mainargs however \- so should quickly submit some PR for that to be released.
+- With some integration tests passing locally I opened a [PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)
 - Some features which are necessary to pass more integration tests are
   - `mill-moduledefs` compiler plugin to infer override keywords, and insert annotations that record scaladoc comments. (although we can access the scaladoc of a method via macros? \- it seems java reflection resolves this info in the task but maybe we could redesign)
   - `mill-runner-linenumbers` compiler plugin to fix line numbers of trees (is this even allowed in dotty?)
-- Went back to mainargs to prepare my changes for a PR \- while adding restoring unit tests for vararg handling, i noted that the parsing at runtime was actually incorrect \- so what was needed is to copy the Scala 2 implementation \- convert the parameter type from `T*` to `Leftover[T]` to create the `ArgSig`. Then at the callsite you still need a vararg value, but the argument will need to be converted from `Leftover[T]` back to `T*`. I will add unit tests for the path dependent type handling of default args, Classparser for classes without `@main`, and the overloaded apply method in companion for classparser.
+- Got encouragement to open a mainargs PR to add my fixes - so then prepared my changes for a PR \- while adding restoring unit tests for vararg handling, i noted that the parsing at runtime was actually incorrect \- so what was needed is to copy the Scala 2 implementation \- convert the parameter type from `T*` to `Leftover[T]` to create the `ArgSig`. Then at the callsite you still need a vararg value, but the argument will need to be converted from `Leftover[T]` back to `T*`. I will add unit tests for the path dependent type handling of default args, Classparser for classes without `@main`, and the overloaded apply method in companion for classparser.
 
 ### 2024-aug-14
 
-- Spent the day adding unit tests to mainargs to prepare for a pull request, opening it at the end of the day.
+- Spent the day adding unit tests to mainargs to prepare for a pull request, [opening it](https://github.com/com-lihaoyi/mainargs/pull/148) at the end of the day.
 - Also forked the mill-moduledefs repo, fixed the build.sc to set up cross building both library and compiler plugin for scala 2.13 and 3.5.0.
 
 ### 2024-aug-16
 
-- Mainargs repo integrated my PR, releasing in version 0.7.2. I updated my Mill PR to include the new dependency and GitHub actions CI now records several integration tests passing, such as `example.tasks[6-workers].local`
+- [Mainargs PR](https://github.com/com-lihaoyi/mainargs/pull/148) was merged, released in version 0.7.2. I updated my [Mill PR](https://github.com/com-lihaoyi/mill/pull/3369) to include the new dependency and GitHub actions CI now records several integration tests passing, such as `example.tasks[6-workers].local`
+
+### 2024-aug-20
+
+- Implemented the `EnableScaladocAnnotation` phase in the mill-moduledefs compiler plugin. It’s greatly simplified from scala 2 as dotty makes it easy to access documentation for symbols, and Its easier to create annotations. I had to make some tweaks \- adjust `runsAfter` to be `”posttyper”` rather than `”parser”` (standard plugin must be after typer). Also I had to adjust `build.sc` again to hardcode the artifact name due to the outer module now being a cross module.
+
+### 2024-aug-21
+
+- Implemented the `AutoOverride` phase in mill-moduledefs, now the plugin is finished \- opened a [PR](https://github.com/com-lihaoyi/mill-moduledefs/pull/14) after some cleanups.
+- Fixed the `millProjectModule` to have `_3` suffix by default \- now all of example.basic integration tests are passing except `4-builtin-commands` \- for some reason the `showUpdates` command is failing \- upon investigation \- it seems that it is overloaded, and the `Discover` macro picks the wrong one (i.e. the deprecated one with no default arguments) \- will need to fix this.
+- Went with the fix of filtering out deprecated methods in the Discover macro, which fixed the test. Now all `example.basic` tests are passing locally. Next for integration tests would be the `Cross` macro.
+- Next I discovered that my patch to build scripts to include the empty package prefix was wrong \- multi build roots now mean that there can be nested packages in the prefix \- so I adjusted the code generation there \- now passing all of `example.misc` tests.
