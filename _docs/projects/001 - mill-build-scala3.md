@@ -25,10 +25,25 @@ This isn't a standard migration effort however, as Mill customises the language 
 - Bytecode analyzers to detect changes in the build.
 
 ## Current Status
-As of August 21st 2024, the project is in progress, but most macros are ported, meaning that we can compile all of core Mill, and even compile some builds.
-Override inferrence is now implemented (See [mill-moduledefs PR](https://github.com/com-lihaoyi/mill-moduledefs/pull/14)).
+As of September 6th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All macros, and override inferrence are ported, meaning that we can compile all of core Mill, and even compile many integration test builds.
 
-The next step would be to port the cross-module macros, which should pass all existing integration tests.
+Done:
+- ✅ Discover macro
+- ✅ Applicative macro
+- ✅ Caller macro
+- ✅ Cross.Factory macro
+- ✅ EnclosingClass macro
+- ✅ Task macros
+- ✅ Cacher macro
+- ✅ Moduledefs compiler plugin (override inferrence)
+- ✅ All core Mill modules compile with Scala 3.5.0
+
+In progress:
+- 🚧 Support new Scala 3 syntax in build.sc files
+- 🚧 Check that bytecode analyzers work with Scala 3
+- 🚧 Check linenumber patching works with Scala 3 build files
+- 🚧 Fix all library dependencies
+- 🚧 Cleanup compiler warnings for outdated syntax.
 
 Here is a gif of compiling a Mill project where the build.sc file is compiled with Scala 3.5.0:
 
@@ -209,3 +224,27 @@ Trying to implement the caller macro \- it seems not possible to implement corre
 - Fixed the `millProjectModule` to have `_3` suffix by default \- now all of example.basic integration tests are passing except `4-builtin-commands` \- for some reason the `showUpdates` command is failing \- upon investigation \- it seems that it is overloaded, and the `Discover` macro picks the wrong one (i.e. the deprecated one with no default arguments) \- will need to fix this.
 - Went with the fix of filtering out deprecated methods in the Discover macro, which fixed the test. Now all `example.basic` tests are passing locally. Next for integration tests would be the `Cross` macro.
 - Next I discovered that my patch to build scripts to include the empty package prefix was wrong \- multi build roots now mean that there can be nested packages in the prefix \- so I adjusted the code generation there \- now passing all of `example.misc` tests.
+
+### 2024-aug-22
+
+- [mill-moduledefs PR](https://github.com/com-lihaoyi/mill-moduledefs/pull/14) was merged, changes released in 0.11.0-M1. I rebased my Mill PR, which revealed another type inference issue (solved with an explicit type).
+
+### 2024-aug-23
+
+- Began work on `Cross.Factory` macro. I realised I could not proceed without using the experimental methods `Symbol.newClass` and `ClassDef.apply`. Moreover, these methods are not adequate because they do not allow to customise the primary constructor, which was necessary to add the Context parameter. I knew I would have to rely upon compiler internals \- so I decided to implement a Shim interface in the `mill-moduledefs` library, with an implementation provided by the `scalac-mill-moduledefs-plugin` library. I tried this and realised that the plugin library isn’t on the classpath when loading macros, so this didn’t work.
+- I asked the Discord channel for advice and Haoyi said it would be permissible to use compiler internals even in the `main.define` module.
+
+### 2024-aug-27
+
+- I implemented the Shims inside `main.define` module and finished the `Cross.Factory` macro
+
+### 2024-sep-04
+
+- Cleaned the code and pushed my changes to implement the `Cross.Factory` macro.
+
+### 2024-sep-06
+
+- Investigated and fixed two problems related to the `Discover` macro:
+  - A. not scanning correctly the type argument of a cross module
+  - The scala 2 method of an immediately invoked closure (to split bytecode into manageable size) was optimised away, so the large-project integration test was failing \- changing this to an explicit def avoids the optimisation, so the test works again.
+- At this point \- it would seem most test failures are now due to misconfiguration of classpath dependencies. I need to investigate the `linenumbers` compiler plugin, before I can attempt to support new scala 3 syntax.
