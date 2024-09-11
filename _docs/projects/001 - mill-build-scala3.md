@@ -25,7 +25,10 @@ This isn't a standard migration effort however, as Mill customises the language 
 - Bytecode analyzers to detect changes in the build.
 
 ## Current Status
-As of September 6th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All macros, and override inferrence are ported, meaning that we can compile all of core Mill, and even compile many integration test builds.
+As of September 11th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All macros, and override inferrence are ported, meaning that we can compile all of core Mill, and even compile many integration test builds.
+
+In progress:
+- 🛠️ Check that bytecode analyzers work with Scala 3
 
 Done:
 - ✅ Discover macro
@@ -37,13 +40,13 @@ Done:
 - ✅ Cacher macro
 - ✅ Moduledefs compiler plugin (override inferrence)
 - ✅ All core Mill modules compile with Scala 3.5.0
+- ✅ Fix Zinc reporter patch linenumbers of build scripts
 
-In progress:
+Still to do:
 - 🚧 Support new Scala 3 syntax in build.sc files
-- 🚧 Check that bytecode analyzers work with Scala 3
-- 🚧 Check linenumber patching works with Scala 3 build files
 - 🚧 Fix all library dependencies
 - 🚧 Cleanup compiler warnings for outdated syntax.
+- 🚧 Fix BSP reporter linenumbers for build scripts
 
 Here is a gif of compiling a Mill project where the build.sc file is compiled with Scala 3.5.0:
 
@@ -248,3 +251,24 @@ Trying to implement the caller macro \- it seems not possible to implement corre
   - A. not scanning correctly the type argument of a cross module
   - The scala 2 method of an immediately invoked closure (to split bytecode into manageable size) was optimised away, so the large-project integration test was failing \- changing this to an explicit def avoids the optimisation, so the test works again.
 - At this point \- it would seem most test failures are now due to misconfiguration of classpath dependencies. I need to investigate the `linenumbers` compiler plugin, before I can attempt to support new scala 3 syntax.
+
+### 2024-sep-09
+
+- Decided to try porting `linenumbers` compiler plugin, or find an alternative.
+- Dotty will not allow a plugin to mutate source positions before type checking. Therefore we should modify positions via the reporter.
+  - There are two reporters: one in the BSP module, and one in the zinc worker. We need to share where possible the logic to fix positions.
+- I copied some logic from the `LineNumberPlugin` to the `ZincWorkerImpl` (identify build files) \- still need to compute the updated positions. There is a bit of help already via the `ManagedLoggedReporter` which accepts a function argument to remap positions.
+
+### 2024-sep-10
+
+- Worked on rendering the correct positions for the reporter in `ZincWorkerImpl`, and also replicating the style of the console error reporter from dotty. (Still remains to share/copy the logic in the BSP module’s reporter)
+
+### 2024-sep-11
+
+- Fixed remaining `integration.failure` tests that check compiler error messages (note: line number, column, and “kind” of error were unchanged, but other elements of messages were compiler specific)
+- Moved `integration.failure[things-outside-top-level-module]` to `integration.feature` to account for the fact that top-level definitions are generally allowed in Scala 3 (after approval from Haoyi).
+- Moving on, it seems that the CodeSig checker is incorrect (`integration.invalidation[codesig-hello]` fails)
+- Fixed compilation issues in the unit tests for codesig `main.codesig.test`. \- Now I can identify that at least 1 method hash test fails, and three call graph tests.
+- I analysed the byte code of the failing method hash test, and I see that the failing method fails due to changing the line where `sourcecode.Line` is summoned. So my assumption is that something changed between scala 2 and 3\. I then compared bytecode outputs of the programs when compiled by Scala 2 or 3\. In scala 2 the macro generates `new Line(n)` but in Scala 3 it is `Line.apply(n)`. I then went to the PR for adding CodeSig, and i see a footnote that the “new Line” pattern is special cased \- so that will need to be fixed (either in sourcecode, or in CodeSig)
+- Fixing the special casing did help with the methodhash test, but the callgraph tests are still failing. In particular \- for `basic.18-scala-anon-class-lambda`,`complicated.8-linked-list-scala`,`realistic.4-actors`, `realistic.5-parser`,
+- The problems with `8-linked-list-scala` and `4-actors` were caused by changes in inference semantics for private fields, and for overridden methods (which i fixed by updating the code of the test, rather than Codesig implementation). The `5-parser` test will be much harder to validate as the internals of fastparse’s macro changed \- I might just have to copy the new result and identify any  regression when fixing other tests.
