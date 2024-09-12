@@ -13,7 +13,7 @@ isInProgress: true
 The [Mill build tool](https://mill-build.org) lets users write build pipelines in the Scala programming language.
 It provides a DSL that makes it simple for users to build a graph of tasks, and dependencies between them, and Mill provides a command line interface to invoke these tasks.
 
-As of August 2024, Mill build definitions are locked to the latest Scala 2.13 version.
+Before starting the project in August 2024, Mill build definitions were locked to the latest Scala 2.13 version.
 This prevents users and plugin authors from benefitting from the latest additions in Scala 3, which first launched in 2021.
 
 The goal of this project is to make it possible to use the latest Scala 3 version (as of writing Scala 3.5.0) to define Mill builds.
@@ -44,6 +44,7 @@ Done:
 
 Still to do:
 - 🚧 Support new Scala 3 syntax in build.sc files
+- 🚧 Port acyclic plugin to Scala 3
 - 🚧 Fix all library dependencies
 - 🚧 Cleanup compiler warnings for outdated syntax.
 - 🚧 Fix BSP reporter linenumbers for build scripts
