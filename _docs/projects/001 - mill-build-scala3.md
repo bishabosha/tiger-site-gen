@@ -25,12 +25,13 @@ This isn't a standard migration effort however, as Mill customises the language 
 - Bytecode analyzers to detect changes in the build.
 
 ## Current Status
-As of September 11th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All macros, and override inferrence are ported, meaning that we can compile all of core Mill, and even compile many integration test builds.
+As of September 15th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All macros, and override inferrence are ported, meaning that we can compile all of core Mill, and even compile many integration test builds.
 
 In progress:
-- 🛠️ Check that bytecode analyzers work with Scala 3
+- 🛠️ Fix all library dependencies
 
 Done:
+- ✅ Check that bytecode analyzers work with Scala 3
 - ✅ Discover macro
 - ✅ Applicative macro
 - ✅ Caller macro
@@ -44,8 +45,7 @@ Done:
 
 Still to do:
 - 🚧 Support new Scala 3 syntax in build.sc files
-- 🚧 Port acyclic plugin to Scala 3
-- 🚧 Fix all library dependencies
+- 🚧 Port acyclic plugin to Scala 3 (optional)
 - 🚧 Cleanup compiler warnings for outdated syntax.
 - 🚧 Fix BSP reporter linenumbers for build scripts
 
@@ -273,3 +273,26 @@ Trying to implement the caller macro \- it seems not possible to implement corre
 - I analysed the byte code of the failing method hash test, and I see that the failing method fails due to changing the line where `sourcecode.Line` is summoned. So my assumption is that something changed between scala 2 and 3\. I then compared bytecode outputs of the programs when compiled by Scala 2 or 3\. In scala 2 the macro generates `new Line(n)` but in Scala 3 it is `Line.apply(n)`. I then went to the PR for adding CodeSig, and i see a footnote that the “new Line” pattern is special cased \- so that will need to be fixed (either in sourcecode, or in CodeSig)
 - Fixing the special casing did help with the methodhash test, but the callgraph tests are still failing. In particular \- for `basic.18-scala-anon-class-lambda`,`complicated.8-linked-list-scala`,`realistic.4-actors`, `realistic.5-parser`,
 - The problems with `8-linked-list-scala` and `4-actors` were caused by changes in inference semantics for private fields, and for overridden methods (which i fixed by updating the code of the test, rather than Codesig implementation). The `5-parser` test will be much harder to validate as the internals of fastparse’s macro changed \- I might just have to copy the new result and identify any  regression when fixing other tests.
+
+### 2024-sep-12
+
+- I determined that the problem with `18-scala-anon-class-lambda` is that its bytecode was dependent on how scala 3 does specialisation, so i replaced it and `17-scala-lambda` with a similar SAM that isn’t specialised.
+- Then i changed `5-parser` as i assumed, and it was only additions, no changes of other methods, so i believe it is safe. So now all `main.codesig.test` unit tests were passing \- not explaining the problem in the integration tests.
+- Then I updated dependencies for scalatags and scalaj-http, to enable invalidation tests to run. By enabling some verbose logging i saw that for `[codesig-hello]` the class was recompiled after changing the implementation. So then I decided to compare the bytecode of compiling the build.mill file in scala 2 vs 3\. It seems scala 3 has a different naming convention for lambda functions, which I will investigate as the cause of not tracking the changes.
+
+### 2024-sep-13
+
+- Investigating the causes for `[codesig-hello]` to fail, I then run the same test on the `main` branch (i.e. with Scala 2 implementation) \- with debugging turned on, i can compare the outputs of the `methodCodeHashSignatures.dest` in the failing part (i.e. changing the body of `foo` had no effect). I saw that in `prettyCallGraph.json` that for some reason there is no call recorded to the no-arg lambda implementation of foo (which gets passed to Cacher), when there was in Scala 2 implementation. Eventually i checked the ignoreCalls filter in `MillBuildBootstrapModule` and it was clear that the lambda function was ignored because it was treated as a “simple target” because it has no-args. This is a consequence of the lambda encoding of scala 3, which uses instance methods, not static ones. So i taught the filter to look for lambda methods and it passes the test. Next was failing `[codesig-scalamodule]`. Originally i could see output was including extra warnings due to indentation changes caused by inserting newlines as part of the test. So i corrected the indentation. The test still failed due to the old version of `sourcecode` being on the classpath when compiling the build.mill file. I fixed this with an explicit dependency on sourcecode in the main.define module \- I should check which module first depends on it. Now all codesig tests were passing.
+
+### 2024-sep-14
+
+- To fix `integration.invalidation[multi-level-editing].local`, i noticed that the meta-build dependency on scalatags was bringing in a conflicting scala 2 version of sourcecode, preventing the build.mill file from compiling. I instead changed to a scala 3 version in the metabuild, and updated the scalatags dependency
+- I then re-enabled publishing of test deps for the playlib and scoverage contrib modules, fixing a few more tests
+- I toyed around with fixing `integration.feature[plugin-classpath].local`, but this seems harder to fix. Essentially the plugin brings in a conflicting old dependency of mill (i.e. with scala 2 binary version). Either i have to exclude the dependency and hope nothing breaks, or build the metabuild with a suitable scala 2 version. I parked this for now.
+
+### 2024-sep-15
+
+- To fix `integration.ide[gen-idea].local`, I had to fix some xml generation code which relied upon implicit conversions that no longer work in Scala 3\. I also had to update some checkfiles to account for the updated versions.
+- I enabled all contrib test module dependencies, fixing necessary compile errors.
+- Next, i fixed the `integration.feature[init].local` test by updating the classpath of the Giter8 module in scalalib. I noticed that a dependency resolution error was not being reported so i ensure that it does.
+- I also removed the deadcode linenumbers module.
