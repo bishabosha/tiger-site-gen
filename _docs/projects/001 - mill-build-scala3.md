@@ -25,10 +25,12 @@ This isn't a standard migration effort however, as Mill customises the language 
 - Bytecode analyzers to detect changes in the build.
 
 ## Current Status
-As of September 25th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All present tests are passing in the CI, meaning that only new additions are needed to be worked on.
+As of September 27th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All present tests are passing in the CI, and support is added for Scala 3 syntax in build files.
+
+The only remaining task is general cleanup.
 
 In progress:
-- 🛠️ Support new Scala 3 syntax in build.sc files
+- 🛠️ Cleanup compiler warnings for outdated syntax.
 
 Done:
 - ✅ Check that bytecode analyzers work with Scala 3
@@ -43,12 +45,11 @@ Done:
 - ✅ All core Mill modules compile with Scala 3.5.0
 - ✅ Fix Zinc reporter patch linenumbers of build scripts
 - ✅ Fix all library dependencies
+- ✅ Identify any possible hidden bugs discovered by testing Scala 3 code.
+- ✅ Support new Scala 3 syntax in build.sc files
 
 Still to do:
 - 🚧 Port acyclic plugin to Scala 3 (optional, someone else may do this)
-- 🚧 Cleanup compiler warnings for outdated syntax.
-- 🚧 Fix BSP reporter linenumbers for build scripts
-- 🚧 Identify any possible hidden bugs discovered by testing Scala 3 code.
 
 Here is a gif of compiling a Mill project where the build.sc file is compiled with Scala 3.5.0:
 
@@ -354,3 +355,29 @@ Trying to implement the caller macro \- it seems not possible to implement corre
 - I then discovered that actually the standard definitions did not need to be initialised before parsing, so this saved another initial load time.
 - Implement import parsing \- i had to fix a mistake in script splitting, because in dotty comma-separated imports are treated as separate statements. However they are not able to be parsed standalone from text, so I had to pack them all together as one statement
 - Implemented top-level object scanning (compatible with scala 2), however i needed to extract more information to be compatible with Scala 3 \- a possible end marker (for renaming `` `package` `` to `package_`), and also the problem with path-dependent types in the discover macro also needed to be applied to when the user provides an explicit top level object. This means i had to extract a suitable position to splice in code within the user code (i.e. within an object), so i extracted the position of the initial statement
+
+### 2024-sep-26
+
+- Back to top-level object scanning, I realised that splicing at the top of user code would require more hacking with positions in the reporter, so I changed to extract the position of the final statement instead.
+- Then I rebased against main, and refactored my scala 3 parsing code to remove leftovers from implementing.
+- When running the `ci/test-mill-bootstrap.sh` test, it crashed when parsing the build with the new parser \- this was due to not escaping EmptyTree from the outline object parser (if it turns out that it causes more pain then needed, we can revert to the regular parser) \- i fixed the broken `atSpan` method.
+- Pushed the scala 3 parser and syntax test to the main PR
+- Next, cleanup and refactoring the new `runner.worker` module
+- Add `runner.worker.testDep` to `dist0`, making it available to integration test `local` modules
+- Recomputed the `ci/mill-bootstrap.patch` file
+- Noticed in the CI an error \- mill files should allow expressions at the top-level \- so i adjusted the parser to treat block statements as top-level statements.
+- I also noticed a crash caused by stray EmptyTree’s being returned in the parser, so escaped those
+
+### 2024-sep-27
+
+- Noticed another parsing error in the CI \- need to filter out EmptyTree returned by scanning ModuleDef bodies
+- Fixed another minor issue (include backticks in package names)
+- Then i noticed that parsing mill statements with blockStatSeq prevents access modifiers, so i changed to templateStatSeq, (and skipping self-defs)
+- Added some stronger checking of spans on trees to ensure they exist in the source code.
+- Fixed parsing of backticked object names
+- Fixed the column number of parser error messages emitted by dotty.
+- Fixed the `ZincWorkerImpl` reporter to account for user-written code that can appear after spliced `__innerMillDiscover` definitions.
+- Escaped more `EmptyTrees`
+- Added a prelude to parser errors `s”${file} failed to parse:\n”`
+- CI on PR is now green [🎉](https://emojipedia.org/party-popper)
+- Validated that the BSP reporter forwards messages from the Zinc reporter, so no adjustment of positions was needed.
