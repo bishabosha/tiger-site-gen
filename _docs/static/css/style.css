@@ -120,12 +120,30 @@ blockquote {
 .anchor-link {
   font-size: 0.7em;
   margin-right: 10px;
+}
+
+.anchor-link__source {
   scroll-margin-top: 4.5rem;
+}
+
+.toc-nav {
+  max-height: min(60vh, 100vh - 145px);
+  overflow-y: scroll;
+}
+
+.toc-nav::-webkit-scrollbar {
+  width: 5px;
+}
+.toc-nav::-webkit-scrollbar-thumb {
+  background-color: #aaa;
+  border-radius: 5px;
 }
 
 .toc-nav li.active {
   font-weight: bold;
   text-decoration: underline;
+  scroll-margin-top: 4.5rem;
+  scroll-margin-bottom: 4.5rem;
 }
 
 .toc-level-2 {

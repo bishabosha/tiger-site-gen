@@ -1,14 +1,13 @@
 package breeze
 
 import scalatags.Text.all.*
-import scalatags.Text.tags2.article as tArticle
+import scalatags.Text.tags2.article
 
-// import breeze.page.PageCategory
 import model.ctx
 
 import Breeze.*
 
-val article = Layout: doc =>
+val articleLayout = Layout: doc =>
   val (prev, next) =
     ctx.site.articles.prevNext(doc).swap // articles is in reverse order
   val articleNav = (
@@ -62,7 +61,7 @@ val article = Layout: doc =>
           cls := "col-lg-8",
           div(
             cls := "jumbotron bg-light py-lg-5 py-3",
-            tArticle(
+            article(
               h1(
                 id := io.util.sanatise.mdNameToHtml(doc.frontMatter.title),
                 cls := "display-5 anchor-link__source",
@@ -88,4 +87,4 @@ val article = Layout: doc =>
       )
     )
   )
-end article
+end articleLayout

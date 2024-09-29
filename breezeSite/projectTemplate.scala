@@ -3,7 +3,7 @@ package breezeSite
 import breeze.sidebar
 
 import scalatags.Text.all.*
-import scalatags.Text.tags2.article as tArticle
+import scalatags.Text.tags2.article
 
 import model.ctx
 
@@ -63,7 +63,7 @@ val project = Layout: doc =>
           cls := "col-lg-8",
           div(
             cls := "jumbotron bg-light py-lg-5 py-3",
-            tArticle(
+            article(
               h1(
                 id := io.util.sanatise.mdNameToHtml(doc.frontMatter.title),
                 cls := "display-5 anchor-link__source",
@@ -101,7 +101,7 @@ val project = Layout: doc =>
                     b(" this project is still in progress...")
                   )
                 ),
-                p(i(b("Summary: "), doc.frontMatter.description)),
+                p(i(b("Summary: "), doc.frontMatter.description))
               ),
               div(raw(doc.htmlContent)),
               projectNav

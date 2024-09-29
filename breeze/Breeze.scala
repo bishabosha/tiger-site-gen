@@ -7,7 +7,7 @@ object Breeze extends model.Theme:
   val metadata = new {
     val name = "Breeze"
     val layouts = new {
-      val article = breeze.article
+      val article = breeze.articleLayout
       val articles = breeze.articles
     }
   }

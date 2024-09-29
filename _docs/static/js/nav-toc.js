@@ -5,9 +5,23 @@ window.addEventListener("DOMContentLoaded", () => {
       const id = entry.target.getAttribute("id");
 
       const selector = `nav li a[href="#${id}"]`;
-      const parent = document.querySelector(selector).parentElement;
+      const link = document.querySelector(selector);
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        const elem = document.querySelector(`[id="${id}"]`);
+        if (elem) {
+          elem.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+
+      const parent = link.parentElement;
       if (entry.intersectionRatio > 0) {
         parent.classList.add("active");
+        parent.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "start",
+        });
       } else {
         parent.classList.remove("active");
       }

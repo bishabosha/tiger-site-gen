@@ -42,7 +42,7 @@ object sanatise:
     digest.map("%02x".format(_)).mkString
 
   def mdNameToHtml(name: String) =
-    regex.replaceAllIn(name.replace(" ", "-"), "").toLowerCase + ".html"
+    regex.replaceAllIn(name.replaceAll("[ .]", "-"), "").toLowerCase + ".html"
 
   def readTime(wordCount: Int): String =
     val raw = wordCount / 200.0 // a "comfortable" speed for reading out loud.
@@ -146,7 +146,7 @@ object paths:
         val destPath = destStatic / rel
         if os.isDir(p) then os.makeDir(destPath)
         else {
-          if p.ext == "css" then
+          if p.ext == "css" || p.ext == "js" then
             val hashedDest = destStatic / hashPath(p).relativeTo(static)
             os.copy(p, hashedDest)
           else os.copy(p, destPath)

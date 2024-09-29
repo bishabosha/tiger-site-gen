@@ -1,7 +1,6 @@
 package breeze
 
 import scalatags.Text.all.*
-import scalatags.Text.all.content as attrContent
 
 import model.ctx
 import Breeze.*
@@ -10,7 +9,7 @@ object page:
 
   val httpMeta = Seq(
     meta(charset := "utf-8"),
-    meta(name := "Content-Type", attrContent := "text/html; charset=utf-8"),
+    meta(name := "Content-Type", content := "text/html; charset=utf-8"),
     meta(name := "viewport", content := "width=device-width, initial-scale=1")
   )
   val bootstrapCss = link(
@@ -22,8 +21,8 @@ object page:
     integrity := "sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM",
     crossorigin := "anonymous"
   )
-  val navTocJs = script(
-    src := "/static/js/nav-toc.js",
+  def navTocJs(using Context) = script(
+    src := io.util.paths.resolveStaticAsset("/static/js/nav-toc.js"),
     tpe := "text/javascript"
   )
 
@@ -59,23 +58,23 @@ object page:
   private val (year, today) = io.util.md.renderNow()
 
   def wrap(using Context)(page: DocPage, col: DocCollection, title: String)(
-      content: scalatags.Text.Modifier*
+      pageContent: scalatags.Text.Modifier*
   ) =
     import scalatags.Text.tags2.title as titleTag
 
     val metaDescription = Seq(
-      meta(name := "description", attrContent := page.frontMatter.description),
-      meta(name := "twitter:card", attrContent := "summary"),
-      meta(name := "twitter:title", attrContent := title),
-      meta(name := "twitter:site", attrContent := "@bishabosha"),
+      meta(name := "description", content := page.frontMatter.description),
+      meta(name := "twitter:card", content := "summary"),
+      meta(name := "twitter:title", content := title),
+      meta(name := "twitter:site", content := "@bishabosha"),
       meta(
         name := "twitter:description",
-        attrContent := page.frontMatter.description
+        content := page.frontMatter.description
       ),
-      meta(name := "og:title", attrContent := title),
+      meta(name := "og:title", content := title),
       meta(
         name := "og:description",
-        attrContent := page.frontMatter.description
+        content := page.frontMatter.description
       )
     )
 
@@ -92,7 +91,7 @@ object page:
       body(
         cls := "d-flex flex-column min-vh-100",
         navbar(siteNav(col)),
-        content,
+        pageContent,
         footer(
           cls := "mt-auto",
           div(
