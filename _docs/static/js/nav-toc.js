@@ -1,5 +1,7 @@
 // from https://codepen.io/bramus/pen/ExaEqMJ
 window.addEventListener("DOMContentLoaded", () => {
+  const shouldScroll = () => (window.innerWidth >= 992 ? true : false);
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       const id = entry.target.getAttribute("id");
@@ -17,11 +19,13 @@ window.addEventListener("DOMContentLoaded", () => {
       const parent = link.parentElement;
       if (entry.intersectionRatio > 0) {
         parent.classList.add("active");
-        parent.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "start",
-        });
+        if (shouldScroll()) {
+          parent.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "start",
+          });
+        }
       } else {
         parent.classList.remove("active");
       }

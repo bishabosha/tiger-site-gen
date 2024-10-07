@@ -131,6 +131,12 @@ blockquote {
   overflow-y: scroll;
 }
 
+@media (max-width: 992px) {
+  .toc-nav {
+    max-height: 250px;
+  }
+}
+
 .toc-nav::-webkit-scrollbar {
   width: 5px;
 }
