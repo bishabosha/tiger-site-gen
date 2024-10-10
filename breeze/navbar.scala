@@ -25,7 +25,7 @@ def navbar(from: NavBar) =
         cls := "collapse navbar-collapse",
         id := "navbarSupportedContent",
         ul(
-          cls := "navbar-nav me-auto mb-2 mb-lg-0",
+          cls := "navbar-nav me-auto",
           (for NavLink(active, link) <- from.links yield
             val linkCls = if active then "nav-link active" else "nav-link"
             val isCurrent =

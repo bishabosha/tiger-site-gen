@@ -3,7 +3,7 @@ title: Port Mill build.sc files to Scala 3
 description: Enhance the Mill build tool (github.com/com-lihaoyi/mill) by enabling users to write build.sc files with Scala 3 syntax and libraries.
 layout: project
 url: https://github.com/com-lihaoyi/mill/pull/3369
-avatar: /static/img/mill-logo-white.svg
+avatar: https://mill-build.org/_/logo-white.svg
 startDate: 05-Aug-2024
 isInProgress: true
 ---
@@ -25,12 +25,10 @@ This isn't a standard migration effort however, as Mill customises the language 
 - Bytecode analyzers to detect changes in the build.
 
 ## Current Status
-As of September 27th 2024, the project is in progress ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)). All present tests are passing in the CI, and support is added for Scala 3 syntax in build files.
+As of October 10th 2024, the project is in final stages ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)).
 
-The only remaining task is general cleanup.
-
-In progress:
-- 🛠️ Cleanup compiler warnings for outdated syntax.
+All present tests are passing in the CI, and support is added for Scala 3 syntax in build files.
+Rebasing is done to keep up with latest changes before Mill 0.12.0 releases.
 
 Done:
 - ✅ Check that bytecode analyzers work with Scala 3
@@ -381,3 +379,18 @@ Trying to implement the caller macro \- it seems not possible to implement corre
 - Added a prelude to parser errors `s”${file} failed to parse:\n”`
 - CI on PR is now green [🎉](https://emojipedia.org/party-popper)
 - Validated that the BSP reporter forwards messages from the Zinc reporter, so no adjustment of positions was needed.
+
+### 2024-oct-10
+
+- Rebased the `scala3-build-sc` against `com-lihaoyi:main`.
+- Added `case` modifier to objects in `KotlinJSModule` - this was new code, but without the modifier, we would need to generate Mirror objects as we did previously.
+- Adapt the `Applicative` macro.
+  Caller `this` trees are no longer always an `Applicative.Applyer`, so resolving `traverseCtx` is no longer static.
+  I made two reimplementations, first, resolve the method via quoted reflection API, and check the types manually.
+  This avoids boilerplate at call site, but maybe less elegant.
+  The second implementation passes a lambda that will construct the call to the right `traverseCtx` method, when provided with argument Exprs.
+  This second option requires more boilerplate at the call-site, but is more resilient to API changes.
+- fixed various type and syntax errors introduced by newer code added in the base branch.
+- Re-introduced the `millDiscover` method in `RootModule.SubFolder`, in the scala 3 code gen we need to explicitly generate discover in child modules, and merge in the main module.
+  If it is possible to substitute the correct prefix in `mainargs` library, e.g. for custom types, we can revert this change.
+- After pushing to CI, there is a new test failure that tests output of inspect command for Modules - new code which might behave differently in Scala 3.

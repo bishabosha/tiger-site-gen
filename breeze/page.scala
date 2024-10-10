@@ -25,6 +25,10 @@ object page:
     src := io.util.paths.resolveStaticAsset("/static/js/nav-toc.js"),
     tpe := "text/javascript"
   )
+  def sidebarMobileJs(using Context) = script(
+    src := io.util.paths.resolveStaticAsset("/static/js/sidebar-mobile.js"),
+    tpe := "text/javascript"
+  )
 
   def siteStyleCss(using Context) = link(
     rel := "stylesheet",
@@ -104,6 +108,7 @@ object page:
         ),
         bootstrapJs,
         navTocJs,
+        sidebarMobileJs,
         ctx.extra.extraFoot
       )
     )

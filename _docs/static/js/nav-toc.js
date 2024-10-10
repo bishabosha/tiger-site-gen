@@ -1,6 +1,7 @@
 // from https://codepen.io/bramus/pen/ExaEqMJ
 window.addEventListener("DOMContentLoaded", () => {
-  const shouldScroll = () => (window.innerWidth >= 992 ? true : false);
+  const toggler = document.getElementById("sidebar-toggler");
+  const sidebar = document.getElementById("sidebar-anchor");
 
   const activeIds = new Set();
   const exited = new Set();
@@ -16,6 +17,9 @@ window.addEventListener("DOMContentLoaded", () => {
       const link = select(id);
       link.addEventListener("click", function (e) {
         e.preventDefault();
+        if (toggler && sidebar && sidebar.classList.contains("expanded")) {
+          toggler.click();
+        }
         entry.target.scrollIntoView({ behavior: "smooth", block: "start" });
       });
 
@@ -23,13 +27,11 @@ window.addEventListener("DOMContentLoaded", () => {
       if (entry.intersectionRatio > 0) {
         parent.classList.add("active");
         activeIds.add(id);
-        if (shouldScroll()) {
-          parent.scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-            inline: "start",
-          });
-        }
+        parent.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "start",
+        });
       } else {
         exited.add(id);
       }

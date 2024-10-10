@@ -34,7 +34,13 @@ object sidebar:
 
   def toc(doc: DocPage)(using Context): scalatags.Text.Modifier =
     div(
-      cls := s"sticky-top top-aligned jumbotron sidebar shadow py-lg-4 py-3",
+      id := "sidebar-anchor",
+      cls := s"sticky-top top-aligned jumbotron sidebar sidebar__mobile shadow py-lg-4 py-3",
+      div(
+        id := "sidebar-toggler",
+        cls := "sidebar_toggle",
+        i(cls := "fa-regular fa-square-caret-right")
+      ),
       nav(
         cls := "toc-nav",
         ol(

@@ -5,7 +5,7 @@ body {
 
 @supports (position: sticky) {
   .sticky-top.top-aligned {
-    top: 4.5rem !important;
+    top: 4rem;
   }
 }
 
@@ -36,6 +36,17 @@ article table.article-table {
   max-width: 120px;
   max-height: 120px;
   border-radius: 100%;
+}
+
+@media (max-width: 1200px) {
+  .img-avatar {
+    max-width: 100px;
+    max-height: 100px;
+  }
+
+  .bio-name {
+    font-size: 1.5em !important;
+  }
 }
 
 .img-icon {
@@ -132,9 +143,37 @@ blockquote {
 }
 
 @media (max-width: 992px) {
-  .toc-nav {
-    max-height: 250px;
+  .sidebar__mobile {
+    position: fixed;
+    top: 3.5rem;
+    left: -100vw;
+    z-index: 1000;
+    width: min(75vw, 400px);
   }
+
+  .sidebar__mobile.expanded {
+    left: 0;
+  }
+
+  .sidebar_toggle {
+    display: block !important;
+    position: fixed;
+    right: 15px;
+    top: 3.5rem !important;
+    font-size: 2.7em;
+    color: #555;
+
+    background-color: none;
+  }
+
+  .bio-box__top {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+  }
+}
+
+.sidebar_toggle {
+  display: none;
 }
 
 .toc-nav::-webkit-scrollbar {
