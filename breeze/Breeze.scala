@@ -1,15 +1,16 @@
 package breeze
 
 import model.ctx
+import model.Layouts
 
 object Breeze extends model.Theme:
 
   val metadata = new {
     val name = "Breeze"
-    val layouts = new {
-      val article = breeze.articleLayout
-      val articles = breeze.articles
-    }
+    val layouts = Layouts(
+      article = breeze.articleLayout,
+      articles = breeze.articles
+    )
   }
 
   type Site = model.Site {

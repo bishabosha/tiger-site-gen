@@ -1,5 +1,5 @@
 // Main
-//> using scala "3.5.1"
+//> using scala "3.6.1"
 //> using jvm "17"
 
 //> using dependency "com.lihaoyi::os-lib::0.11.1"

@@ -1,6 +1,6 @@
 package model
 
-trait Theme:
+trait Theme extends Selectable:
   thisTheme =>
 
   final type Layout = model.Layout[Context, DocPage]
