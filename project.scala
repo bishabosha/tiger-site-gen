@@ -1,6 +1,5 @@
 // Main
-//> using scala "3.6.1"
-//> using jvm "17"
+//> using scala "3.6.2-RC1"
 
 //> using dependency "com.lihaoyi::os-lib::0.11.3"
 //> using dependency "com.lihaoyi::scalatags::0.13.1"

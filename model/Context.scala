@@ -7,7 +7,7 @@ final class Context(
     val site: model.Site,
     val theme: Theme
 ):
-  val extra: Any =
+  val extra: theme.Extra =
     theme.extras(using this.asInstanceOf[theme.Context], InMakeCtx)
 
 object Context:

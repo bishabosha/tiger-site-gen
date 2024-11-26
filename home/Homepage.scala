@@ -1,0 +1,30 @@
+package home
+
+import model.Theme
+import model.ctx
+import model.Context.InMakeCtx
+
+object Homepage extends Theme:
+  val metadata = new:
+    val name = "Homepage"
+    val layouts = new:
+      val home = homeLayout
+
+  type Site = model.Site {
+    val about: Doc
+  }
+
+  type FrontMatter = model.FrontMatter {
+    val avatar: String
+    val links: List[String]
+    val name: String
+    val copyright: String
+  }
+
+  trait Extra
+
+  def extras(using Context, InMakeCtx): Extra = new {}
+
+  def whoAmI(using Context): String = ctx.site.about.page.frontMatter.name
+  def copyright(using Context): String =
+    ctx.site.about.page.frontMatter.copyright
