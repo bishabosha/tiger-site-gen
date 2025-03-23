@@ -10,7 +10,12 @@ class FrontMatter(data: Map[String, List[String]]) extends Selectable:
 
   def selectDynamic(name: String): Any = name match
     case s"is$_" =>
-      data.get(name).flatMap(_.headOption).map(_.toBoolean).getOrElse(false)
+      data
+        .get(name)
+        .flatMap(ls =>
+          if ls.isEmpty then Some(true) else ls.head.toBooleanOption
+        )
+        .getOrElse(false)
     case s"${_}s" => data.get(name).getOrElse(Nil)
     case _        => data.get(name).flatMap(_.headOption).getOrElse("")
 

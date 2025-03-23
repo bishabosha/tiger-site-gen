@@ -97,8 +97,10 @@ val project = Layout: doc =>
                     " ",
                     "Project URL"
                   ),
-                  Option.when(doc.frontMatter.isInProgress)(
-                    b(" this project is still in progress...")
+                  b(
+                    if doc.frontMatter.isInProgress then
+                      " this project is still in progress..."
+                    else " this project is completed."
                   )
                 ),
                 p(i(b("Summary: "), doc.frontMatter.description))

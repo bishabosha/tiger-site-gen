@@ -21,6 +21,7 @@ object Breeze extends model.Theme:
     val title: String
     val published: String
     val startDate: String
+    val endDate: String
     val avatar: String
     val links: List[String]
     val name: String

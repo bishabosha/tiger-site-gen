@@ -20,7 +20,14 @@ object subtitleExtensions:
             "Start: ",
             io.util.md
               .renderMonthYear(doc.frontMatter.startDate)
-              .getOrElse("unknown start date")
+              .getOrElse("unknown start date"),
+            io.util.md
+              .renderMonthYear(doc.frontMatter.endDate)
+              .map: ed =>
+                (
+                  s", End: $ed"
+                )
+              .getOrElse("")
           )
         )
       ),
