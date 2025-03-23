@@ -41,7 +41,15 @@ val projects = Layout: doc =>
                     project.frontMatter.title
                   ),
                   small(
-                    s"Start: ${io.util.md.renderMonthYear(project.frontMatter.startDate).get}"
+                    span(
+                      s"Start: ${io.util.md.renderMonthYear(project.frontMatter.startDate).get}"
+                    ),
+                    io.util.md
+                      .renderMonthYear(project.frontMatter.endDate)
+                      .map: ed =>
+                        span(
+                          s", End: $ed"
+                        )
                   )
                 ),
                 p(

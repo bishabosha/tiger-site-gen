@@ -1,11 +1,12 @@
 ---
+layout: project
 title: Port Mill build.sc files to Scala 3
 description: Enhance the Mill build tool (github.com/com-lihaoyi/mill) by enabling users to write build.sc files with Scala 3 syntax and libraries.
-layout: project
 url: https://github.com/com-lihaoyi/mill/pull/3369
 avatar: https://mill-build.org/_/logo-white.svg
 startDate: 05-Aug-2024
-isInProgress: true
+endDate: 19-Oct-2024
+isInProgress: false
 ---
 
 ## About the Project
@@ -25,10 +26,7 @@ This isn't a standard migration effort however, as Mill customises the language 
 - Bytecode analyzers to detect changes in the build.
 
 ## Current Status
-As of October 10th 2024, the project is in final stages ([with a PR to Mill](https://github.com/com-lihaoyi/mill/pull/3369)).
-
-All present tests are passing in the CI, and support is added for Scala 3 syntax in build files.
-Rebasing is done to keep up with latest changes before Mill 0.12.0 releases.
+My work and open [Pull Request](https://github.com/com-lihaoyi/mill/pull/3369) was transferred to the Mill project maintainers on November 1st 2025, where the PR remained open while the 0.12.0 Mill release was co-ordinated. The PR was merged On February 1st 2025, concluding the project.
 
 Done:
 - ✅ Check that bytecode analyzers work with Scala 3
@@ -46,8 +44,8 @@ Done:
 - ✅ Identify any possible hidden bugs discovered by testing Scala 3 code.
 - ✅ Support new Scala 3 syntax in build.sc files
 
-Still to do:
-- 🚧 Port acyclic plugin to Scala 3 (optional, someone else may do this)
+Further work left open:
+- 🚧 Port acyclic plugin to Scala 3
 
 Here is a gif of compiling a Mill project where the build.sc file is compiled with Scala 3.5.0:
 

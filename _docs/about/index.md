@@ -1,6 +1,6 @@
 ---
-isRoot:
 layout: about
+isRoot:
 title: About
 name: bishabosha
 copyright: Jamie Thompson
