@@ -1,6 +1,6 @@
 ---
 title: Discover TASTy Query
-subtitle: ScalaIO 2022, Paris France
+subtitle: ScalaIO Nov 2022, Paris France
 url: https://youtu.be/mSU1FfOZ_QA?si=SsRCK7sc2GD4m0E6
 ordered: "date:04-Nov-2022"
 ---

@@ -2,11 +2,12 @@ package model
 
 class FrontMatter(data: Map[String, List[String]]) extends Selectable:
 
-  lazy val isRoot: Boolean = data.contains("isRoot")
+  lazy val isRoot: Boolean =
+    selectDynamic("isRoot").asInstanceOf[Boolean]
   lazy val isIndexOnly: Boolean =
     selectDynamic("isIndexOnly").asInstanceOf[Boolean]
   lazy val layout: String =
-    data.get("layout").flatMap(_.headOption).getOrElse("")
+    selectDynamic("layout").asInstanceOf[String]
 
   def selectDynamic(name: String): Any = name match
     case s"is$_" =>
