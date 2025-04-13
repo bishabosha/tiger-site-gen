@@ -1,6 +1,6 @@
 ---
 title: Contributing to Scala
-subtitle: ScalaWAW Dec 2022
+subtitle: ScalaWAW Dec 2022, Warsaw Poland
 url: https://www.youtube.com/watch?v=_UfQSQFTkIY
 ordered: "date:07-Dec-2022"
 ---
