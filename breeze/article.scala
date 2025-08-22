@@ -79,7 +79,7 @@ val articleLayout = Layout: doc =>
               ),
               hr(),
               articleNav,
-              div(raw(doc.htmlContent)),
+              div(raw(io.util.md.renderDoc(doc.rawContent))),
               articleNav
             )
           )

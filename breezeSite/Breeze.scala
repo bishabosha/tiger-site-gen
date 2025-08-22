@@ -13,11 +13,13 @@ object Breeze extends model.Theme:
       val talks = breezeSite.talks
       val projects = breezeSite.projects
       val project = breezeSite.project
+      val raw = breezeSite.rawTemplate
 
   type Site = parent.Site & {
     val talks: Docs
     val videos: Docs
     val projects: Docs
+    val `match-type-simulator`: Doc
   }
 
   override type Extra = parent.Extra & breezeSite.Extra

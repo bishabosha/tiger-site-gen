@@ -21,6 +21,29 @@ val about = Layout: doc =>
             cls := "row",
             div(
               cls := "col-lg",
+              cards.wrap(
+                "Special Links",
+                ul(
+                  li(
+                    a(
+                      href := s"/match-type-simulator/",
+                      "Match types simulator (Scala Days 2025)"
+                    )
+                  ),
+                  li(
+                    a(
+                      href := "https://github.com/bishabosha/scaladays-2025",
+                      "GitHub repo for demos (Scala Days 2025)"
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          div(
+            cls := "row",
+            div(
+              cls := "col-lg",
               cards.recentPosts("Articles", ctx.site.articles)
             )
           ),

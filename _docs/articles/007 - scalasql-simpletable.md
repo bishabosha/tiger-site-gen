@@ -101,6 +101,8 @@ So that's it? The code is more boring now? No more cool higher-kinded data? Yes 
 
 So what else has changed? Within queries the `City` class is no longer used. Instead a new `Record` class handles wrapping the fields of `City`. For example hover on `c` in the `sortBy(c => ...)` operation within an IDE, and observe that it has the type `Record[City, Expr]`. Similarly, if you use an IDE to look for completions on `c`, you would see fields `id: Expr[Int]`, `name: Expr[String]`, etc.
 
+> Where do these fields come from? `Record[C, T]` is a type safe [structural type](https://www.scala-lang.org/api/3.7.0/docs/docs/reference/other-new-features/named-tuples.html#computed-field-names-1). It has a `Fields` member type that is a named tuple, determining the structural fields that are visible. `Fields` is derived from the `C` type parameter with `NamedTuple.From[C]`, making it 1:1 with the class definition and doesnt need macros to create.
+
 For the most part, ScalaSql works mostly through type inference, so users migrating to `SimpleTable` shouldn't need to write these record types explicitly.
 
 Overall I think it is an easier experience to be the consumer of a well-known type that happens to have a higher kinded argument, than to define one yourself. (i.e. it soon becomes a mnemonic that `Record[City, Expr]` means a record with the fields of `City` wrapped in `Expr`).

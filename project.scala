@@ -1,7 +1,7 @@
 // Main
-//> using scala "3.7.0"
+//> using scala "3.7.2"
 
-//> using dependency "com.lihaoyi::os-lib::0.11.4"
+//> using dependency "com.lihaoyi::os-lib::0.11.5"
 //> using dependency "com.lihaoyi::scalatags::0.13.1"
 //> using dependency "com.lihaoyi::sourcecode::0.4.2"
 //> using dependency "com.vladsch.flexmark:flexmark-all:0.64.8"

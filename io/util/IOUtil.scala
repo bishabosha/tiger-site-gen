@@ -31,6 +31,7 @@ import com.vladsch.flexmark.ast.Heading
 import model.curr
 import model.ctx
 import scala.collection.mutable
+import model.Context
 
 object sanatise:
   private val regex = raw"[!?&*^$$#@,]".r
@@ -81,7 +82,10 @@ object paths:
     val (statics, colls) = roots.partition(_.baseName == "static")
     val data: Map[String, model.Doc[?] | model.Docs[?]] = colls
       .map(r =>
-        val paths = os.list(r).filter(os.isFile).filter(_.ext == "md")
+        val paths =
+          os.list(r)
+            .filter(os.isFile)
+            .filter(p => p.ext == "md" || p.ext == "html")
         val name = r.baseName
         if name.endsWith("s") then
           val triples = paths.map(p =>
@@ -287,6 +291,14 @@ object md:
     end Visitor
   end ContentSampler
 
+  def renderDoc(document: String)(using Context): String =
+    renderer.render(parser.parse(renderRaw(document)))
+  def renderRaw(document: String)(using Context): String =
+    Templates.interpolate(document)
+
+  def parseDryRun(document: String): Document =
+    parser.parse(Templates.interpolateDefault(document))
+
   def render(index: Int, name: String, path: os.Path): model.DocPage =
     import org.virtuslab.yaml.*
     val rawText = os.read(path)
@@ -295,7 +307,7 @@ object md:
         case Array("", yaml, doc) => (yaml, doc)
         case Array(yaml, doc)     => (yaml, doc)
         case _                    => ("", rawText)
-    val document = parser.parse(rawDoc)
+    val documentNoSplices = parseDryRun(rawDoc)
     val yaml = rawYaml.as[Any]
     // TODO: ugly rewrapping as List of strings - todo: rework representation of front matter.
     // changed to virtuslab scala-yaml due to a superior parser.
@@ -333,8 +345,8 @@ object md:
             else throw new Exception(s"Invalid front matter $m")
           case _ => throw new Exception(s"Invalid front matter $data")
 
-    val html = renderer.render(document)
-    val (sample, wordCount, headings) = ContentSampler.sampleContent(document)
+    val (sample, wordCount, headings) =
+      ContentSampler.sampleContent(documentNoSplices)
 
     model.DocPage(
       name = name,
@@ -342,6 +354,6 @@ object md:
       wordCount = wordCount,
       headings = headings,
       htmlPreview = sample,
-      htmlContent = html,
+      rawContent = rawDoc,
       idx = index
     )

@@ -105,7 +105,7 @@ val project = Layout: doc =>
                 ),
                 p(i(b("Summary: "), doc.frontMatter.description))
               ),
-              div(raw(doc.htmlContent)),
+              div(raw(io.util.md.renderDoc(doc.rawContent))),
               projectNav
             )
           )

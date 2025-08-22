@@ -1,12 +1,14 @@
 package model
 
+import com.vladsch.flexmark.util.ast.Document
+
 final case class DocPage(
     name: String,
     frontMatter: FrontMatter,
     wordCount: Int,
     headings: List[(String, String, Int)],
     htmlPreview: String,
-    htmlContent: String,
+    rawContent: String,
     private[model] val idx: Int
 )
 

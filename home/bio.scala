@@ -56,7 +56,7 @@ def bio(me: DocPage, hideable: Boolean, collapsable: Boolean)(using Context) =
       div(
         (if !collapsable then cls := "bio-body"
          else Seq(cls := "bio-body bio-expand", tabindex := "0")),
-        raw(me.htmlContent)
+        raw(io.util.md.renderDoc(me.rawContent))
       )
     )
   )
