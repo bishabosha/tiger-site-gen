@@ -5,16 +5,16 @@ description: What are Scala 3 match types for and how do they work.
 published: 26-Aug-2025
 ---
 
-Scala 3 introduced [**match types**](https://www.scala-lang.org/api/3.7.2/docs/new-types/match-types.html), a powerful feature enabling to perform computations with types at compile time. This post explores the motivation behind match types, how they work, and how you can use them effectively in your own projects. Along the way, I’ll show examples from my [ScalaDays 2025 demo repo](https://github.com/bishabosha/scaladays-2025).
+Scala 3 introduced [match types](https://www.scala-lang.org/api/3.7.2/docs/new-types/match-types.html), a powerful feature enabling to perform computations with types at compile time. This post explores the motivation behind match types, how they work, and how you can use them effectively in your own projects.
 
----
+> This post mirrors my talk from ScalaDays 2025. Explore code examples in the [demo repo](https://github.com/bishabosha/scaladays-2025).
 
 ## Expressive vs Safe (Pick Two)
 
 There’s a long-running debate in programming language design: can a language be both **expressive** and **safe**?
 
-- **Expressive** means you can write concise, flexible code that feels natural.
-- **Safe** means the compiler prevents whole classes of errors before your program even runs.
+- **Expressive** being a vague term but meaning that code reads naturally and feels intuitive to write.
+- **Safe** meaning that the language tries to prevent certain errors before program even runs.
 
 Traditionally, you had to pick one:
 
@@ -66,7 +66,7 @@ http.get("/hello/:name").in:
 
 Here, the `params` object is **type-safe**. The compiler knows that `params` has a `name: String` field, because the route pattern `"/hello/:name"` is parsed at the type level. If you mistype `params.nam`, the compiler will catch it.
 
-👉 In the [demo repo](https://github.com/bishabosha/scaladays-2025/tree/main/src/main/scala/http), you can see how this works:
+👉 In the [demo repo](https://github.com/bishabosha/scaladays-2025/blob/main/sinatra/sinatra-demo.scala), you can see how this works:
 - The route string is captured as a **singleton type**.
 - A **match type** (`ParamsOf`) parses the string and extracts parameter names.
 - The result is a **structural type** like `(name: String)`.
