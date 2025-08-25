@@ -162,7 +162,7 @@ If you squint your eyes, you might think this is not so far from Java 21 perhaps
 
 First of all, there is no build-tool or IDE support for Pizza (understandable).
 
-### generic methods.
+### generic methods
 
 The type parameters in Pizza can be defined on both methods and classes.
 

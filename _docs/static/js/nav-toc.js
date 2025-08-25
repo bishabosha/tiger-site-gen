@@ -15,6 +15,12 @@ window.addEventListener("DOMContentLoaded", () => {
     entries.forEach((entry) => {
       const id = entry.target.getAttribute("id");
       const link = select(id);
+
+      // Skip if no matching navigation link found
+      if (!link) {
+        return;
+      }
+
       link.addEventListener("click", function (e) {
         e.preventDefault();
         if (toggler && sidebar && sidebar.classList.contains("expanded")) {
@@ -43,6 +49,10 @@ window.addEventListener("DOMContentLoaded", () => {
       exited.forEach((id) => {
         activeIds.delete(id);
         const link = select(id);
+        // Skip if no matching navigation link found
+        if (!link) {
+          return;
+        }
         const parent = link.parentElement;
         parent.classList.remove("active");
       });

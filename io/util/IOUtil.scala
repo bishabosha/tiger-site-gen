@@ -34,7 +34,7 @@ import scala.collection.mutable
 import model.Context
 
 object sanatise:
-  private val regex = raw"[!?&*^$$#@,]".r
+  private val regex = raw"[:/()!?&*^$$#@,']".r
 
   def md5Hashed(path: os.Path): String =
     val bytes = os.read.bytes(path)
@@ -43,7 +43,9 @@ object sanatise:
     digest.map("%02x".format(_)).mkString
 
   def mdNameToHtml(name: String) =
-    regex.replaceAllIn(name.replaceAll("[ .]", "-"), "").toLowerCase + ".html"
+    mdNameToAnchor(name) + ".html"
+  def mdNameToAnchor(name: String) =
+    regex.replaceAllIn(name.replaceAll("[ .]", "-"), "").toLowerCase
 
   def readTime(wordCount: Int): String =
     val raw = wordCount / 200.0 // a "comfortable" speed for reading out loud.
@@ -192,8 +194,10 @@ object md:
       TablesExtension.create(),
       StrikethroughExtension.create()
     )
+    options.set(HtmlRenderer.GENERATE_HEADER_ID, true)
     options.set(Parser.EXTENSIONS, exts.asJava)
     options.set(AnchorLinkExtension.ANCHORLINKS_WRAP_TEXT, false)
+    options.set(AnchorLinkExtension.ANCHORLINKS_SET_ID, true)
     options.set(
       AnchorLinkExtension.ANCHORLINKS_TEXT_SUFFIX,
       """<i class="fa-solid fa-link"></i>"""
@@ -262,11 +266,10 @@ object md:
       def read(node: Node) = node.getChars().unescape()
 
       def visit(heading: Heading): Unit =
-        headings += ((
-          heading.getText().unescape(),
-          heading.getAnchorRefId(),
-          heading.getLevel()
-        ))
+        val title = heading.getText().unescape()
+        val anchor = sanatise.mdNameToAnchor(title)
+        println(s"dbg-header: $title => $anchor")
+        headings += ((title, anchor, heading.getLevel()))
 
       def visit(text: Paragraph): Unit =
         val localSample = sample
