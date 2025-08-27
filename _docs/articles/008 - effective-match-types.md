@@ -2,14 +2,17 @@
 layout: article
 title: "Effective Match Types in Scala 3"
 description: What are Scala 3 match types for and how do they work.
-published: 26-Aug-2025
+published: 28-Aug-2025
 ---
 
 Scala 3 introduced [match types](https://www.scala-lang.org/api/3.7.2/docs/new-types/match-types.html), a powerful feature enabling to perform computations with types at compile time. This post explores the motivation behind match types, how they work, and how you can use them effectively in your own projects.
 
-> This post mirrors my talk from ScalaDays 2025. Explore code examples in the [demo repo](https://github.com/bishabosha/scaladays-2025).
+> This post mirrors my talk from ScalaDays 2025. Explore code examples in the [demo repo](https://github.com/bishabosha/scaladays-2025). Also try out the [interactive demo](/match-type-simulator/).
 
 ## Expressive vs Safe (Pick Two)
+
+{{match-sim-embed S "?embed=true&tab=match-types&example=Last+Tuple+Element"}}
+{{match-sim-embed 500px "?embed=true&tab=match-types&example=Element+Type&showDependentMethod=true&hideTimeline=true"}}
 
 There’s a long-running debate in programming language design: can a language be both **expressive** and **safe**?
 

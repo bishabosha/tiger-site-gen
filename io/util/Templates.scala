@@ -25,6 +25,10 @@ object Templates:
 
   private def interpret(expr: String)(using Context): String = expr match
     case s"url $str" => io.util.paths.resolveStaticAsset(str)
+    case s"""match-sim-embed $size "$query"""" =>
+      val height = if size == "S" then "375px" else size
+      s"""<iframe src="/match-type-simulator/$query" width="100%" height="$height"></iframe>"""
 
   private def interpretDefault(expr: String): String = expr match
-    case s"url $_" => "http://example.com"
+    case s"url $_"                             => "http://example.com"
+    case s"""match-sim-embed $size "$query"""" => """<div></div>"""
