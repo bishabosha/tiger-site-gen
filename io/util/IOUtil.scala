@@ -32,6 +32,12 @@ import model.curr
 import model.ctx
 import scala.collection.mutable
 import model.Context
+import io.util.md.readDate
+
+case class Cache(files: Map[String, String])
+object Cache:
+  import upickle.default.*
+  given ReadWriter[Cache] = macroRW
 
 object sanatise:
   private val regex = raw"[:/()!?&*^$$#@,']".r
@@ -72,11 +78,55 @@ object paths:
           case None => throw Exception("No static directory found")
       case _ => throw Exception(s"Invalid static asset path: $relURL")
 
+  def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(
+      using model.SiteRoot
+  ): Unit =
+    generateSite(src, out, theme)
+    println(s"watching for changes in ${curr / src}")
+    val watcher = os.watch.watch(
+      Seq(curr / src),
+      changeSet =>
+        println(s"Change detected in ${changeSet.mkString(", ")}")
+        generateSite(src, out, theme)
+    )
+    Thread.sleep(Long.MaxValue)
+    sys.addShutdownHook(watcher.close())
+
   def generateSite[T <: model.Theme](src: String, out: String, theme: T)(using
       model.SiteRoot
   ): Unit =
+    val dest = curr / out
+    val cachePath = dest / ".cache"
+    val cache =
+      if os.exists(cachePath) then
+        try upickle.default.read[Cache](os.read(cachePath))
+        catch case NonFatal(_) => Cache(Map.empty)
+      else Cache(Map.empty)
+
+    val allFiles = os.walk(curr / src).filter(os.isFile)
+
+    val (changed, unchanged) = allFiles.partition(p =>
+      val path = p.relativeTo(curr).toString
+      val hash = sanatise.md5Hashed(p)
+      cache.files.get(path).map(_ != hash).getOrElse(true)
+    )
+
+    val deleted =
+      cache.files.keySet.map(p => os.Path(p, curr)).filterNot(p => os.exists(p))
+
     given theme.Context = model.Context.fromTheme(curr / src, theme)
-    renderSite(curr / out, theme)
+    renderSite(
+      dest,
+      theme,
+      changed.toSet,
+      deleted.map(_.relativeTo(curr).toString)
+    )
+    val newCache = Cache(
+      (changed ++ unchanged)
+        .map(p => p.relativeTo(curr).toString -> sanatise.md5Hashed(p))
+        .toMap
+    )
+    os.write.over(cachePath, upickle.default.write(newCache))
 
   def buildSiteDb[S <: model.Site](src: os.Path)(using model.SiteRoot): S =
     val (roots, files) = os.list(src).partition(os.isDir)
@@ -113,8 +163,20 @@ object paths:
       .toMap
     model.Site.read(statics.headOption, optFavicon, data)
 
-  def renderSite(dest: os.Path, theme: model.Theme)(using theme.Context): Unit =
-    os.remove.all(dest)
+  def renderSite(
+      dest: os.Path,
+      theme: model.Theme,
+      changed: Set[os.Path],
+      deleted: Set[String]
+  )(using theme.Context, model.SiteRoot): Unit = {
+    deleted.foreach { p =>
+      val path = os.Path(p, curr)
+      if path.ext == "md" then
+        val collection = path.segments.toSeq.dropRight(1).last
+        val htmlFile = sanatise.mdNameToHtml(path.baseName)
+        os.remove(dest / collection / htmlFile)
+    }
+
     val activeCols = ctx.site.allDocs.collect {
       case col: theme.DocCollection @unchecked if col.willRender => col
     }
@@ -125,45 +187,48 @@ object paths:
       if col.index.frontMatter.isRoot then optRoots += col
       if !col.index.frontMatter.isIndexOnly then
         for doc <- col do
-          val subPage = theme.metadata.layouts(doc.frontMatter.layout)(doc)
-          os.write(
-            dest / col.collName / sanatise.mdNameToHtml(doc.name),
-            scalatags.Text.all.doctype("html")(subPage)
-          )
+          if changed.contains(doc.path) then
+            val subPage = theme.metadata.layouts(doc.frontMatter.layout)(doc)
+            os.write.over(
+              dest / col.collName / sanatise.mdNameToHtml(doc.name),
+              scalatags.Text.all.doctype("html")(subPage)
+            )
         end for
-      val indexPage =
-        theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
-      os.write(
-        dest / col.collName / "index.html",
-        scalatags.Text.all.doctype("html")(indexPage)
-      )
+      if changed.contains(col.index.path) then
+        val indexPage =
+          theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
+        os.write.over(
+          dest / col.collName / "index.html",
+          scalatags.Text.all.doctype("html")(indexPage)
+        )
     end for
     assert(optRoots.sizeIs <= 1, "more than one root")
     for rootCol <- optRoots.headOption do
-      os.write(
+      os.write.over(
         dest / "index.html",
         io.util.paths.rootPage(redirect = s"/${rootCol.collName}/")
       )
     for static <- ctx.site.optStatic do
-      os.makeDir(dest / "static")
+      os.makeDir.all(dest / "static")
       os.walk.stream(static).foreach { p =>
         val rel = p.relativeTo(static)
         val destStatic = dest / "static"
         val destPath = destStatic / rel
-        if os.isDir(p) then os.makeDir(destPath)
+        if os.isDir(p) then os.makeDir.all(destPath)
         else {
           if p.ext == "css" || p.ext == "js" then
             val hashedDest = destStatic / hashPath(p).relativeTo(static)
-            os.copy(p, hashedDest)
-          else os.copy(p, destPath)
+            os.copy.over(p, hashedDest)
+          else os.copy.over(p, destPath)
         }
+
       }
     for favicon <- ctx.site.optFavicon do
-      os.copy(
+      os.copy.over(
         favicon,
         dest / "favicon.ico"
       )
-  end renderSite
+  }
 
   def rootPage(redirect: String): scalatags.Text.all.doctype =
     import scalatags.Text.all.*
@@ -268,7 +333,6 @@ object md:
       def visit(heading: Heading): Unit =
         val title = heading.getText().unescape()
         val anchor = sanatise.mdNameToAnchor(title)
-        println(s"dbg-header: $title => $anchor")
         headings += ((title, anchor, heading.getLevel()))
 
       def visit(text: Paragraph): Unit =
@@ -353,6 +417,7 @@ object md:
 
     model.DocPage(
       name = name,
+      path = path,
       frontMatter = data,
       wordCount = wordCount,
       headings = headings,

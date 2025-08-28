@@ -4,6 +4,7 @@ import com.vladsch.flexmark.util.ast.Document
 
 final case class DocPage(
     name: String,
+    path: os.Path,
     frontMatter: FrontMatter,
     wordCount: Int,
     headings: List[(String, String, Int)],
