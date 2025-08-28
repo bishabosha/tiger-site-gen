@@ -58,7 +58,7 @@ val articleLayout = Layout: doc =>
           sidebar.toc(doc)
         ),
         div(
-          cls := "col-lg-8",
+          cls := "col-lg-8 main-content",
           div(
             cls := "jumbotron bg-light py-lg-5 py-3",
             article(

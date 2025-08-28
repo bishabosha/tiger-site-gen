@@ -30,6 +30,11 @@ object page:
     tpe := "text/javascript"
   )
 
+  def tocCollapseJs(using Context) = script(
+    src := io.util.paths.resolveStaticAsset("/static/js/toc-collapse.js"),
+    tpe := "text/javascript"
+  )
+
   def siteStyleCss(using Context) = link(
     rel := "stylesheet",
     href := io.util.paths.resolveStaticAsset("/static/css/style.css")
@@ -94,6 +99,11 @@ object page:
       ),
       body(
         cls := "d-flex flex-column min-vh-100",
+        div(
+          id := "sidebar-expander",
+          cls := "sidebar_expander",
+          i(cls := "fa-regular fa-square-caret-right")
+        ),
         navbar(siteNav(col)),
         pageContent,
         footer(
@@ -109,6 +119,7 @@ object page:
         bootstrapJs,
         navTocJs,
         sidebarMobileJs,
+        tocCollapseJs,
         ctx.extra.extraFoot
       )
     )

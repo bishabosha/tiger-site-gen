@@ -9,7 +9,7 @@ Scala 3 introduced [match types](https://www.scala-lang.org/api/3.7.2/docs/new-t
 
 > This post mirrors my talk from ScalaDays 2025. Explore code examples in the [demo repo](https://github.com/bishabosha/scaladays-2025). Also try out the [interactive demo](/match-type-simulator/).
 
-## Expressive vs Safe (Pick Two!)
+## Expressive vs Safe (Pick Two)
 
 {{match-sim-embed S "?embed=true&tab=match-types&example=Last+Tuple+Element"}}
 {{match-sim-embed 500px "?embed=true&tab=match-types&example=Element+Type&showDependentMethod=true&hideTimeline=true"}}

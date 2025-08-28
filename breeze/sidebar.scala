@@ -41,6 +41,11 @@ object sidebar:
         cls := "sidebar_toggle",
         i(cls := "fa-regular fa-square-caret-right")
       ),
+      div(
+        id := "toc-toggler",
+        cls := "toc_toggle",
+        i(cls := "fa-regular fa-square-caret-down")
+      ),
       nav(
         cls := "toc-nav",
         ol(
