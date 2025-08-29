@@ -28,7 +28,9 @@ object Templates:
     case s"""match-sim-embed $size "$query"""" =>
       val height = if size == "S" then "400px" else size
       s"""<iframe src="/match-type-simulator/$query" width="100%" height="$height"></iframe>"""
+    case s"""icon $cls""" => s"""<i class="fa-regular $cls"></i>"""
 
   private def interpretDefault(expr: String): String = expr match
     case s"url $_"                             => "http://example.com"
     case s"""match-sim-embed $size "$query"""" => """<div></div>"""
+    case s"""icon $cls""" => s"""<i class="fa-regular $cls"></i>"""

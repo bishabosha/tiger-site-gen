@@ -5,42 +5,38 @@ description: What are Scala 3 match types for and how do they work.
 published: 28-Aug-2025
 ---
 
-Scala 3 introduced [match types](https://www.scala-lang.org/api/3.7.2/docs/new-types/match-types.html), a powerful feature enabling to perform computations with types at compile time. This post explores the motivation behind match types, how they work, and how you can use them effectively in your own projects.
+Scala 3 introduced [match types](https://www.scala-lang.org/api/3.7.2/docs/new-types/match-types.html), a powerful feature enabling to perform computations with types at compile time. How do they work, and what kinds of programs can you write with them?
 
 > This post mirrors my talk from ScalaDays 2025. Explore code examples in the [demo repo](https://github.com/bishabosha/scaladays-2025). Also try out the [interactive demo](/match-type-simulator/).
 
 ## Expressive vs Safe (Pick Two)
 
-{{match-sim-embed S "?embed=true&tab=match-types&example=Last+Tuple+Element"}}
-{{match-sim-embed 500px "?embed=true&tab=match-types&example=Element+Type&showDependentMethod=true&hideTimeline=true"}}
-
-There’s a long-running debate in programming language design: can a language be both **expressive** and **safe**?
+There's a long-running debate in programming language design: can a language be both **expressive** and **safe**?
 
 - **Expressive** being a vague term but meaning that code reads naturally and feels intuitive to write.
 - **Safe** meaning that the language tries to prevent certain errors before program even runs.
 
-Traditionally, you had to pick one:
-
-- **Static types = safety**: stronger contracts, compile-time invariants, safer refactoring, less defensive programming.
-- **Dynamic types = expressiveness**: less ceremony, APIs that feel lightweight, but with the risk of runtime errors.
-
-This tension shows up everywhere. For example:
-
-- The U.S. government’s [2024 ONCD report](https://bidenwhitehouse.archives.gov/oncd/briefing-room/2024/02/26/press-release-technical-report/) recommended “rewrite it in Rust” to achieve memory safety.
-- Jane Street’s 2008 paper *Caml Trading – Experiences with Functional Programming on Wall Street* popularized the maxim *“make illegal states unrepresentable”* ([Minsky & Weeks, 2008](https://doi.org/10.1017/S095679680800676X)).
-- Alexis King’s 2019 blog post [*Parse, don’t validate*](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/) argued for pushing validation into the type system.
+The subject of runtime safety is a hot topic, for example:
+- The U.S. government's [2024 ONCD report](https://bidenwhitehouse.archives.gov/oncd/briefing-room/2024/02/26/press-release-technical-report/) points out the real-world cost of memory safety bugs, and recommends to adopt a memory-safe programming language such as Rust.
+- Jane Street's 2008 paper *Caml trading – experiences with functional programming on Wall Street* popularized the phrase *"make illegal states unrepresentable"* ([Minsky & Weeks, 2008](https://doi.org/10.1017/S095679680800676X)).
+- Alexis King's 2019 blog post [*Parse, don't validate*](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/) argued for pushing validation into the type system.
 
 The common theme: **prevent runtime errors by lifting more information into types**.
 
-But critics of static typing often complain about verbosity, or “fighting the typechecker.” Meanwhile, dynamic languages like Ruby or Elixir feel wonderfully expressive, but fragile.
+But critics of static typing often complain about verbosity, or "fighting the typechecker." Meanwhile, dynamic languages like Ruby or Elixir feel wonderfully expressive, but fragile.
 
 So where does Scala fit?
 
 ---
 
+> Match type simulator is **better viewed wide** (click on {{icon fa-square-caret-down}} in sidebar to collapse it)
+
+{{match-sim-embed S "?embed=true&tab=match-types&example=Last+Tuple+Element"}}
+{{match-sim-embed 500px "?embed=true&tab=match-types&example=Element+Type&showDependentMethod=true&hideTimeline=true"}}
+
 ## Scala is Expressive and Safe
 
-Scala’s type system is unusually powerful. It lets us write APIs that *feel* dynamic, but are still statically checked.
+Scala's type system is unusually powerful. It lets us write APIs that *feel* dynamic, but are still statically checked.
 
 **Match types** are one of the key tools that make this possible. They let us compute types from values, so we can design APIs that are both expressive and safe.
 
@@ -48,7 +44,7 @@ Scala’s type system is unusually powerful. It lets us write APIs that *feel* d
 
 ## Example 1: Type-Safe Routing
 
-Let’s compare a simple HTTP route in Ruby’s Sinatra with a Scala version.
+Let's compare a simple HTTP route in Ruby's Sinatra with a Scala version.
 
 **Ruby (dynamic):**
 
@@ -58,7 +54,7 @@ get '/hello/:name' do
 end
 ```
 
-This is expressive, but not safe. The `params` dictionary is dynamic — if you mistype `"name"`, you’ll only find out at runtime.
+This is expressive, but not safe. The `params` dictionary is dynamic — if you mistype `"name"`, you'll only find out at runtime.
 
 **Scala (with match types):**
 
@@ -90,7 +86,7 @@ type Elem[X] = X match
 
 Here, `Elem[String]` reduces to `Char`, and `Elem[Array[Int]]` reduces to `Int`.
 
-They’re a way of **pattern matching on types** and producing new types. This makes them a natural fit for generic programming, type-level parsing, and enforcing invariants.
+They're a way of **pattern matching on types** and producing new types. This makes them a natural fit for generic programming, type-level parsing, and enforcing invariants.
 
 ---
 
@@ -108,7 +104,7 @@ val s: "sca" + "la" = "scala"
 val sub: Substring["scala", 3, 5] = "la"
 ```
 
-These are efficient, compiler-supported match types for numbers, strings, booleans, and tuples. They’re the building blocks for more advanced type-level programming.
+These are efficient, compiler-supported match types for numbers, strings, booleans, and tuples. They're the building blocks for more advanced type-level programming.
 
 ---
 
@@ -156,7 +152,7 @@ The type of `rational.unapply` is:
 Option[(String, Option[String])]
 ```
 
-That’s inferred **statically** from the regex pattern. The compiler knows that the second group is optional, so you can’t accidentally forget to handle it.
+That's inferred **statically** from the regex pattern. The compiler knows that the second group is optional, so you can't accidentally forget to handle it.
 
 ---
 
@@ -215,7 +211,7 @@ The type of the resulting DataFrame is:
 DataFrame[(lowerCase: String, freq: Int)]
 ```
 
-That means the compiler knows exactly which columns exist after each transformation. No more runtime “column not found” errors.
+That means the compiler knows exactly which columns exist after each transformation. No more runtime "column not found" errors.
 
 ---
 
@@ -223,9 +219,9 @@ That means the compiler knows exactly which columns exist after each transformat
 
 Match types are powerful, but they come with some caveats:
 
-1. **Dependent typing mode**: If your function’s return type isn’t directly a match type, the compiler may keep it abstract. Make sure your return type is shaped correctly.
-2. **Unchecked patterns**: Due to type erasure, some runtime matches won’t work. Use `inline match` to resolve them at compile time.
-3. **Compiler stack space**: Large recursive match types (e.g. on 200-element tuples) can blow the compiler’s stack. You may need to tune `-Xss`.
+1. **Dependent typing mode**: If your function's return type isn't directly a match type, the compiler may keep it abstract. Make sure your return type is shaped correctly.
+2. **Unchecked patterns**: Due to type erasure, some runtime matches won't work. Use `inline match` to resolve them at compile time.
+3. **Compiler stack space**: Large recursive match types (e.g. on 200-element tuples) can blow the compiler's stack. You may need to tune `-Xss`.
 
 The [repo](https://github.com/bishabosha/scaladays-2025) has examples of these pitfalls and how to work around them.
 

@@ -81,24 +81,39 @@ object paths:
   def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(
       using model.SiteRoot
   ): Unit =
-    generateSite(src, out, theme)
+    generateSite(src, out, theme, ignoreCache = true)
     println(s"watching for changes in root ${curr / src}")
     val watcher = os.watch.watch(
       Seq(curr / src),
       changeSet =>
         println(s"Changes detected in root ${curr / src}")
-        generateSite(src, out, theme)
+        var ignoreCache = false
+        if changeSet.exists(p =>
+            (p.ext == "js" || p.ext == "css") && p
+              .relativeTo(curr / src)
+              .segments
+              .contains("static")
+          )
+        then
+          println(s"found static asset. wiping cache")
+          ignoreCache = true
+        generateSite(src, out, theme, ignoreCache)
     )
     Thread.sleep(Long.MaxValue)
     sys.addShutdownHook(watcher.close())
 
-  def generateSite[T <: model.Theme](src: String, out: String, theme: T)(using
+  def generateSite[T <: model.Theme](
+      src: String,
+      out: String,
+      theme: T,
+      ignoreCache: Boolean
+  )(using
       model.SiteRoot
   ): Unit =
     val dest = curr / out
     val cachePath = dest / ".cache"
     val cache =
-      if os.exists(cachePath) then
+      if !ignoreCache then
         try upickle.default.read[Cache](os.read(cachePath))
         catch case NonFatal(_) => Cache(Map.empty)
       else Cache(Map.empty)
