@@ -211,9 +211,17 @@ blockquote {
   display: none;
 }
 
-.row.sidebar-collapsed .col-lg-8 {
-  flex: 0 0 100%;
-  max-width: 100%;
+@media (min-width: 992px) {
+  .row.sidebar-collapsed .col-lg-8 {
+    flex: 0 0 90%;
+    max-width: 90%;
+  }
+}
+@media (min-width: 1200px) {
+  .row.sidebar-collapsed .col-lg-8 {
+    flex: 0 0 80%;
+    max-width: 80%;
+  }
 }
 
 .toc_toggle {

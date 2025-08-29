@@ -82,11 +82,11 @@ object paths:
       using model.SiteRoot
   ): Unit =
     generateSite(src, out, theme)
-    println(s"watching for changes in ${curr / src}")
+    println(s"watching for changes in root ${curr / src}")
     val watcher = os.watch.watch(
       Seq(curr / src),
       changeSet =>
-        println(s"Change detected in ${changeSet.mkString(", ")}")
+        println(s"Changes detected in root ${curr / src}")
         generateSite(src, out, theme)
     )
     Thread.sleep(Long.MaxValue)
@@ -113,6 +113,11 @@ object paths:
 
     val deleted =
       cache.files.keySet.map(p => os.Path(p, curr)).filterNot(p => os.exists(p))
+
+    if changed.nonEmpty then
+      println(s"Changed: ${changed.mkString("\n  ", "\n  ", "")}")
+    if deleted.nonEmpty then
+      println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
 
     given theme.Context = model.Context.fromTheme(curr / src, theme)
     renderSite(
