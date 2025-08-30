@@ -1,6 +1,7 @@
 package io.util
 
 import model.Context
+import java.time.Instant
 
 object Templates:
   private def interpolateWith(template: String, f: String => String): String =
@@ -23,11 +24,13 @@ object Templates:
   def interpolateDefault(template: String): String =
     interpolateWith(template, interpretDefault)
 
+  def stamp = java.lang.Long.toHexString(Instant.now().toEpochMilli())
+
   private def interpret(expr: String)(using Context): String = expr match
     case s"url $str" => io.util.paths.resolveStaticAsset(str)
     case s"""match-sim-embed $size "$query"""" =>
       val height = if size == "S" then "400px" else size
-      s"""<iframe src="/match-type-simulator/$query" width="100%" height="$height"></iframe>"""
+      s"""<iframe src="/match-type-simulator/$query&stamp=$stamp" width="100%" height="$height"></iframe>"""
     case s"""icon $cls""" => s"""<i class="fa-regular $cls"></i>"""
 
   private def interpretDefault(expr: String): String = expr match
