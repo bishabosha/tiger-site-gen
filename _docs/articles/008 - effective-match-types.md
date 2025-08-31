@@ -11,17 +11,19 @@ Scala 3 introduced [match types](https://www.scala-lang.org/api/3.7.2/docs/new-t
 
 ## What are Match Types?
 
-To assist with my presentation at ScalaDays 2025, I developed a [match type simulator](/match-type-simulator/) to explain the rules of match types in a visual way. I will use it in the rest of this post also:
+A match type allows you to compare a type to various patterns and produce a result type based on the matching pattern.
 
-The most basic form of a match type is `T match { case P[x] => U }`, which can appear on the right-hand side of a type alias, a type lambda, or even standalone.
-By form, they look very similar to a pattern match on values,
-except the pattern scrutinee is a type, and each case pattern and body are types.
+Here is the syntax: `T match { case P[x] => U }`, where `T` is the scrutinee type, `P[x]` is a pattern with a type parameter `x`, and `U` is the result type.
 
-Let's begin with the identity match type:
+You can use a match type on the right-hand side of a type alias, or type lambda, making them like a function at the type level.
+
+Let's begin with the identity match type: `type Id[T] = T match { case T => T }`:
 
 {{match-sim-embed 275px "?embed=true&tab=match-types&example=Identity"}}
 
 Try to run the simulation with various Scala types as arguments (e.g. `String`, `List[Int]`, etc.)
+
+> To assist with my presentation at ScalaDays 2025, I developed a [match type simulator](/match-type-simulator/) to explain the rules of match types in a visual way, which you see above.
 
 Observe that whatever argument you pass to the match type, the result type is the same as the argument type, which makes sense as the only pattern `case T => T` is to match directly on the scrutinee itself.
 
