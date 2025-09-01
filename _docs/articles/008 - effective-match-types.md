@@ -35,6 +35,8 @@ There are a lot more examples in my [slides](https://speakerdeck.com/bishabosha/
 
 ### Type-Safe Routing
 
+If you didn't already know, literal values in Scala such as strings, numbers and booleans have an equivalent literal type. So for example: a literal string value representing a HTTP route can be lifted to a type, and computed on by match type to compute a typed dictionary of parameters.
+
 ```scala
 http get "/hello/:name" in:
   s"Hello ${params.name}!"
@@ -44,7 +46,7 @@ http get "/posts/?:title&:author" in:
 
 > Check out the full example in the [demo repo](https://github.com/bishabosha/scaladays-2025/blob/main/sinatra/sinatra-demo.scala).
 
-The above example uses a match type to parse the route string and extract a structural type for `params`, e.g. `(name: String)`, or `(title: Seq[String], author: Seq[String])`. This increases type safety because parameters can not be misspelled.
+So above behind the scenes there is a match type that converts `"/hello/:name"` to the structural type `(name: String)`, and `"/posts/?:title&:author"` to `(title: Seq[String], author: Seq[String])`. The structural type is then used as the type of `params`, providing type safety because retrieved parameters can not be misspelled.
 
 ### Refined types
 
@@ -55,7 +57,7 @@ val fail: String Refined MaxChars[8] = "123456789" // error
 
 > Check out the full example in the [demo repo](https://github.com/bishabosha/scaladays-2025/blob/main/refined-types/refined-demo.scala).
 
-The `Refined` type provides an implicit conversion for literal types, if it can prove that a match type predicate such as `AtLeast[0]` reduces to the the literal type `true` when applied to the singleton type of the argument. This is useful for example to require constant strings that have a length limit.
+The `Refined` type provides an implicit conversion for literal values, if it can prove that a match type predicate such as `AtLeast[0]` reduces to the the literal type `true` when applied to the literal type of the argument (e.g. `1`). This is useful for example to require constant strings that have a length limit.
 
 ### Lenses for Form Data
 
@@ -79,7 +81,7 @@ def cityField = p(
 > Check out the full example in the [demo repo](https://github.com/bishabosha/scaladays-2025/blob/main/laminar-form/demo.scala).
 
 For use with [Laminar](https://laminar.dev),
-the `VarLenses` class reads the structure of any case class, and provides a typed pair of `view` and `updater` for each field. This is useful because multiple reactive fields can be controlled from a single place.
+the `VarLenses` class reads the structure of any case class (using `NamedTuple.From` to convert to a structural type), and then a match type converts the type of each field to a pair of `view` and `updater`. This is useful because multiple reactive fields can be controlled from a single place.
 
 ---
 
