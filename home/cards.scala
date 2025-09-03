@@ -32,5 +32,5 @@ object cards:
 
   def bio()(using Context): scalatags.Text.Modifier =
     simple(
-      home.bio(ctx.site.about.page, hideable = false, collapsable = false)
+      home.bio(ctx.site.about.index, hideable = false, collapsable = false)
     )

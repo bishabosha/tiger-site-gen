@@ -25,6 +25,6 @@ object Homepage extends Theme:
 
   def extras(using Context, InMakeCtx): Extra = new {}
 
-  def whoAmI(using Context): String = ctx.site.about.page.frontMatter.name
+  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
-    ctx.site.about.page.frontMatter.copyright
+    ctx.site.about.index.frontMatter.copyright

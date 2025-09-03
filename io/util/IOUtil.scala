@@ -34,10 +34,15 @@ import scala.collection.mutable
 import model.Context
 import io.util.md.readDate
 
-case class Cache(files: Map[String, String])
+import upickle.default.*
+
+case class Cache(files: Map[String, String], deps: Map[String, Set[String]])
+    derives ReadWriter
 object Cache:
-  import upickle.default.*
-  given ReadWriter[Cache] = macroRW
+  def empty: Cache = Cache(Map.empty, Map.empty)
+  def readFrom(path: os.Path): Cache =
+    try upickle.default.read[Cache](os.read(path))
+    catch case NonFatal(_) => empty
 
 object sanatise:
   private val regex = raw"[:/()!?&*^$$#@,']".r
@@ -71,6 +76,8 @@ object paths:
         ctx.site.optStatic match
           case Some(static) =>
             val path = os.Path(rest, static)
+            // Record dependency on this static asset for the current page render, if enabled
+            Templates.recordDependency(path)
             if os.exists(path) then
               val hashedPath = hashPath(path).relativeTo(static).toString
               s"/static/$hashedPath"
@@ -81,23 +88,15 @@ object paths:
   def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(
       using model.SiteRoot
   ): Unit =
-    generateSite(src, out, theme, ignoreCache = true)
+    // Use cache in watch mode; dependency tracking ensures selective re-render
+    generateSite(src, out, theme, ignoreCache = false)
     println(s"watching for changes in root ${curr / src}")
     val watcher = os.watch.watch(
       Seq(curr / src),
       changeSet =>
         println(s"Changes detected in root ${curr / src}")
-        var ignoreCache = false
-        if changeSet.exists(p =>
-            (p.ext == "js" || p.ext == "css") && p
-              .relativeTo(curr / src)
-              .segments
-              .contains("static")
-          )
-        then
-          println(s"found static asset. wiping cache")
-          ignoreCache = true
-        generateSite(src, out, theme, ignoreCache)
+        // Always use cache; let dependency tracking re-render affected pages
+        generateSite(src, out, theme, ignoreCache = false)
     )
     Thread.sleep(Long.MaxValue)
     sys.addShutdownHook(watcher.close())
@@ -113,10 +112,8 @@ object paths:
     val dest = curr / out
     val cachePath = dest / ".cache"
     val cache =
-      if !ignoreCache then
-        try upickle.default.read[Cache](os.read(cachePath))
-        catch case NonFatal(_) => Cache(Map.empty)
-      else Cache(Map.empty)
+      if !ignoreCache then Cache.readFrom(cachePath)
+      else Cache.empty
 
     val allFiles = os.walk(curr / src).filter(os.isFile)
 
@@ -134,17 +131,42 @@ object paths:
     if deleted.nonEmpty then
       println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
 
+    // Determine which doc pages depend on any changed inputs (docs or static assets)
+    val changedAbsPaths: Set[String] = changed.map(_.toString).toSet
+
+    val dependentDocs: Set[os.Path] =
+      cache.deps.collect {
+        case (docPath, deps) if deps.exists(changedAbsPaths.contains) =>
+          os.Path(docPath, curr)
+      }.toSet
+
+    if dependentDocs.nonEmpty then
+      println(s"Dependent Docs: ${dependentDocs.mkString("\n  ", "\n  ", "")}")
+
+    val changedWithDeps: Set[os.Path] = changed.toSet ++ dependentDocs
+
     given theme.Context = model.Context.fromTheme(curr / src, theme)
-    renderSite(
+    // Render and collect dependencies for pages that were re-rendered
+    val depsFromRender: Map[String, Set[String]] = renderSite(
       dest,
       theme,
-      changed.toSet,
+      changedWithDeps,
       deleted.map(_.relativeTo(curr).toString)
     )
+
+    // Merge dependency maps: keep previous except for deleted or re-rendered pages
+    val replacedKeys: Set[String] = depsFromRender.keySet
+    val deletedKeys: Set[String] =
+      deleted.map(_.relativeTo(curr).toString).toSet
+    val prevDepsKept: Map[String, Set[String]] =
+      cache.deps -- deletedKeys -- replacedKeys
+    val mergedDeps: Map[String, Set[String]] = prevDepsKept ++ depsFromRender
+
     val newCache = Cache(
-      (changed ++ unchanged)
+      files = (changed ++ unchanged)
         .map(p => p.relativeTo(curr).toString -> sanatise.md5Hashed(p))
-        .toMap
+        .toMap,
+      deps = mergedDeps
     )
     os.write.over(cachePath, upickle.default.write(newCache))
 
@@ -178,7 +200,7 @@ object paths:
           val path = paths.head
           val pName = path.baseName
           name -> model
-            .Doc(name, pName == "index", md.render(-1, pName, paths.head))
+            .Doc(name, md.render(-1, pName, paths.head))
       )
       .toMap
     model.Site.read(statics.headOption, optFavicon, data)
@@ -188,7 +210,9 @@ object paths:
       theme: model.Theme,
       changed: Set[os.Path],
       deleted: Set[String]
-  )(using theme.Context, model.SiteRoot): Unit = {
+  )(using theme.Context, model.SiteRoot): Map[String, Set[String]] = {
+    val deps = mutable.Map[String, Set[String]]()
+
     deleted.foreach { p =>
       val path = os.Path(p, curr)
       if path.ext == "md" then
@@ -208,19 +232,24 @@ object paths:
       if !col.index.frontMatter.isIndexOnly then
         for doc <- col do
           if changed.contains(doc.path) then
-            val subPage = theme.metadata.layouts(doc.frontMatter.layout)(doc)
+            val (subPage, usedDeps) = Templates.withDependencyCollection {
+              theme.metadata.layouts(doc.frontMatter.layout)(doc)
+            }
             os.write.over(
               dest / col.collName / sanatise.mdNameToHtml(doc.name),
               scalatags.Text.all.doctype("html")(subPage)
             )
+            deps += (doc.path.relativeTo(curr).toString -> usedDeps)
         end for
       if changed.contains(col.index.path) then
-        val indexPage =
+        val (indexPage, usedDeps) = Templates.withDependencyCollection {
           theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
+        }
         os.write.over(
           dest / col.collName / "index.html",
           scalatags.Text.all.doctype("html")(indexPage)
         )
+        deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
     end for
     assert(optRoots.sizeIs <= 1, "more than one root")
     for rootCol <- optRoots.headOption do
@@ -248,6 +277,8 @@ object paths:
         favicon,
         dest / "favicon.ico"
       )
+
+    deps.toMap
   }
 
   def rootPage(redirect: String): scalatags.Text.all.doctype =
