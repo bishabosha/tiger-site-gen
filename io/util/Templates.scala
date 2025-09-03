@@ -5,7 +5,7 @@ import java.time.Instant
 import scala.collection.mutable
 
 object Templates:
-  // Thread-local collector to accumulate static dependencies during a single page render
+  // Thread-local collector to accumulate dependencies during a single page render
   private val depCollector = new java.lang.ThreadLocal[mutable.Set[String]]()
 
   def withDependencyCollection[A](body: => A)(using Context): (A, Set[String]) =
@@ -16,11 +16,23 @@ object Templates:
       (res, set.toSet)
     finally depCollector.remove()
 
-  def recordStaticDependency(path: os.Path)(using ctx: Context): Unit =
+  private def add(path: os.Path): Unit =
     val current = depCollector.get()
     if current != null then
-      // Store paths relative to the project root to match cache keys
-      current += path.relativeTo(ctx.siteRoot.root).toString
+      // Use absolute path strings to avoid needing contextual givens here
+      current += path.toString
+
+  // Static assets (e.g., /static/js/*.js, /static/css/*.css)
+  def recordStaticDependency(path: os.Path): Unit = add(path)
+
+  // Single doc dependency
+  def recordDocDependency(path: os.Path): Unit = add(path)
+
+  // Multiple docs dependency
+  def recordDocsDependency(paths: Iterable[os.Path]): Unit =
+    val current = depCollector.get()
+    if current != null then
+      paths.foreach(p => current += p.toString)
 
   private def interpolateWith(template: String, f: String => String): String =
     val regex = """\{\{([^}]+)\}\}""".r

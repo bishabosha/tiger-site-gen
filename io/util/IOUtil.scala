@@ -95,23 +95,15 @@ object paths:
   def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(
       using model.SiteRoot
   ): Unit =
-    generateSite(src, out, theme, ignoreCache = true)
+    // Use cache in watch mode; dependency tracking ensures selective re-render
+    generateSite(src, out, theme, ignoreCache = false)
     println(s"watching for changes in root ${curr / src}")
     val watcher = os.watch.watch(
       Seq(curr / src),
       changeSet =>
         println(s"Changes detected in root ${curr / src}")
-        var ignoreCache = false
-        if changeSet.exists(p =>
-            (p.ext == "js" || p.ext == "css") && p
-              .relativeTo(curr / src)
-              .segments
-              .contains("static")
-          )
-        then
-          println(s"found static asset. wiping cache")
-          ignoreCache = true
-        generateSite(src, out, theme, ignoreCache)
+        // Always use cache; let dependency tracking re-render affected pages
+        generateSite(src, out, theme, ignoreCache = false)
     )
     Thread.sleep(Long.MaxValue)
     sys.addShutdownHook(watcher.close())
@@ -147,16 +139,12 @@ object paths:
     if deleted.nonEmpty then
       println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
 
-    // Determine which doc pages depend on changed static assets
-    val staticChangedRel: Set[String] =
-      changed
-        .filter(p => p.relativeTo(curr / src).segments.contains("static"))
-        .map(_.relativeTo(curr).toString)
-        .toSet
+    // Determine which doc pages depend on any changed inputs (docs or static assets)
+    val changedAbsPaths: Set[String] = changed.map(_.toString).toSet
 
     val dependentDocs: Set[os.Path] =
       cache.deps.collect {
-        case (docPath, deps) if deps.exists(staticChangedRel.contains) =>
+        case (docPath, deps) if deps.exists(changedAbsPaths.contains) =>
           os.Path(docPath, curr)
       }.toSet
 
