@@ -34,22 +34,15 @@ import scala.collection.mutable
 import model.Context
 import io.util.md.readDate
 
+import upickle.default.*
+
 case class Cache(files: Map[String, String], deps: Map[String, Set[String]])
+    derives ReadWriter
 object Cache:
-  import upickle.default.*
-  given ReadWriter[Cache] = macroRW
-  private case class CacheV1(files: Map[String, String])
-  private given ReadWriter[CacheV1] = macroRW
   def empty: Cache = Cache(Map.empty, Map.empty)
   def readFrom(path: os.Path): Cache =
     try upickle.default.read[Cache](os.read(path))
-    catch
-      case NonFatal(_) =>
-        try
-          val old = upickle.default.read[CacheV1](os.read(path))
-          Cache(files = old.files, deps = Map.empty)
-        catch
-          case NonFatal(_) => empty
+    catch case NonFatal(_) => empty
 
 object sanatise:
   private val regex = raw"[:/()!?&*^$$#@,']".r
@@ -84,7 +77,7 @@ object paths:
           case Some(static) =>
             val path = os.Path(rest, static)
             // Record dependency on this static asset for the current page render, if enabled
-            Templates.recordStaticDependency(path)
+            Templates.recordDependency(path)
             if os.exists(path) then
               val hashedPath = hashPath(path).relativeTo(static).toString
               s"/static/$hashedPath"
@@ -119,8 +112,7 @@ object paths:
     val dest = curr / out
     val cachePath = dest / ".cache"
     val cache =
-      if !ignoreCache then
-        Cache.readFrom(cachePath)
+      if !ignoreCache then Cache.readFrom(cachePath)
       else Cache.empty
 
     val allFiles = os.walk(curr / src).filter(os.isFile)
@@ -148,6 +140,9 @@ object paths:
           os.Path(docPath, curr)
       }.toSet
 
+    if dependentDocs.nonEmpty then
+      println(s"Dependent Docs: ${dependentDocs.mkString("\n  ", "\n  ", "")}")
+
     val changedWithDeps: Set[os.Path] = changed.toSet ++ dependentDocs
 
     given theme.Context = model.Context.fromTheme(curr / src, theme)
@@ -161,7 +156,8 @@ object paths:
 
     // Merge dependency maps: keep previous except for deleted or re-rendered pages
     val replacedKeys: Set[String] = depsFromRender.keySet
-    val deletedKeys: Set[String] = deleted.map(_.relativeTo(curr).toString).toSet
+    val deletedKeys: Set[String] =
+      deleted.map(_.relativeTo(curr).toString).toSet
     val prevDepsKept: Map[String, Set[String]] =
       cache.deps -- deletedKeys -- replacedKeys
     val mergedDeps: Map[String, Set[String]] = prevDepsKept ++ depsFromRender
@@ -204,7 +200,7 @@ object paths:
           val path = paths.head
           val pName = path.baseName
           name -> model
-            .Doc(name, pName == "index", md.render(-1, pName, paths.head))
+            .Doc(name, md.render(-1, pName, paths.head))
       )
       .toMap
     model.Site.read(statics.headOption, optFavicon, data)

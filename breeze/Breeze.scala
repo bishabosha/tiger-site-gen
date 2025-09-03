@@ -44,6 +44,6 @@ object Breeze extends model.Theme:
     val extraFoot = Seq.empty
   }
 
-  def whoAmI(using Context): String = ctx.site.about.page.frontMatter.name
+  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
-    ctx.site.about.page.frontMatter.copyright
+    ctx.site.about.index.frontMatter.copyright

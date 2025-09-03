@@ -22,14 +22,11 @@ object Templates:
       // Use absolute path strings to avoid needing contextual givens here
       current += path.toString
 
-  // Static assets (e.g., /static/js/*.js, /static/css/*.css)
-  def recordStaticDependency(path: os.Path): Unit = add(path)
+  // Single path dependency
+  def recordDependency(path: os.Path): Unit = add(path)
 
-  // Single doc dependency
-  def recordDocDependency(path: os.Path): Unit = add(path)
-
-  // Multiple docs dependency
-  def recordDocsDependency(paths: Iterable[os.Path]): Unit =
+  // Multiple path dependency
+  def recordMultiDependency(paths: Iterable[os.Path]): Unit =
     val current = depCollector.get()
     if current != null then
       paths.foreach(p => current += p.toString)

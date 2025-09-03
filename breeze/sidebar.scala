@@ -29,7 +29,7 @@ object sidebar:
       cls := s"bio-box jumbotron sidebar shadow py-lg-4 py-3 ${
           if top then "bio-box__top" else ""
         }",
-      bio(ctx.site.about.page, hideable, collapsable)
+      bio(ctx.site.about.index, hideable, collapsable)
     )
 
   def toc(doc: DocPage)(using Context): scalatags.Text.Modifier =
