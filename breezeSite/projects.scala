@@ -24,6 +24,15 @@ val projects = Layout: doc =>
           div(
             cls := "jumbotron bg-light py-lg-5 py-3",
             h1(cls := "mb-4", "Commercial Projects"),
+            p("An incomplete list of projects I have worked on for clients."),
+            p(
+              "Please contact me at ",
+              a(
+                href := "mailto:jamie.thompson@bath.edu",
+                "jamie.thompson@bath.edu"
+              ),
+              " to discuss potential collaborations."
+            ),
             div(
               cls := "list-group",
               for project <- ctx.site.projects
