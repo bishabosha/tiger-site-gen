@@ -16,7 +16,13 @@ links:
   - Mastodon|social|fa-brands fa-mastodon|https://fosstodon.org/@jrthompson
 ---
 
-I am a software engineer with 6 years experience in compiler engineering and programming language design.
+I am a software engineer with 7 years experience in compiler engineering and programming language design. Currently at [Mibex Software](https://www.mibexsoftware.com/) as a Senior Software Engineer.
+
+**Freelancing**
+
+Contact me at [jamie.thompson@bath.edu](mailto:jamie.thompson@bath.edu) for freelance opportunities. I have written reports for selected completed projects [here](https://bishabosha.github.io/projects).
+
+**Background**
 
 I spent 5 years at the [Scala Center](https://scala.epfl.ch){target="_blank"} in the core Scala 3 compiler team, where I worked on compiler performance, metaprogramming, and the incremental compiler. Additionally I performed other critical work for Scala developer tooling, such as integration with IDEs and build tools. You can view more of my open source work on [GitHub](https://github.com/bishabosha), or read more about [projects](https://bishabosha.github.io/projects).
 
