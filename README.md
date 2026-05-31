@@ -1,6 +1,6 @@
-# Tiger blog renderer
+# Tiger site generator
 
-Blog renderer written in Scala (used for [bishabosha.github.io](https://bishabosha.github.io/) and [jamie-thompson-dev.github.io](https://jamie-thompson-dev.github.io/))
+Static site generator written in Scala (used for [bishabosha.github.io](https://bishabosha.github.io/) and [jamie-thompson-dev.github.io](https://jamie-thompson-dev.github.io/))
 
 The code is not really organised as a library yet.
 
