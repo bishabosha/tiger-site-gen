@@ -1,7 +1,7 @@
 package breeze
 
 import model.ctx
-import io.util.TemplateFunction
+import model.TemplateFunction
 
 object Breeze extends model.Theme:
 
@@ -13,7 +13,7 @@ object Breeze extends model.Theme:
     }
   }
 
-  override val templates = new io.util.TemplateFunctions:
+  override val templates = new model.TemplateFunctions:
     val url = TemplateFunction(
       io.util.paths.resolveStaticAsset,
       _ => "http://example.com"

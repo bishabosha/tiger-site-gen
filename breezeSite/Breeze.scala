@@ -3,7 +3,7 @@ package breezeSite
 import model.ctx
 
 import breeze.Breeze as parent
-import io.util.TemplateFunction
+import model.TemplateFunction
 
 object Breeze extends model.Theme:
 
@@ -16,7 +16,7 @@ object Breeze extends model.Theme:
       val project = breezeSite.project
       val raw = breezeSite.rawTemplate
 
-  override val templates = parent.templates & new io.util.TemplateFunctions:
+  override val templates = parent.templates & new model.TemplateFunctions:
     val `match-sim-embed` = TemplateFunction(
       args => args match
         case s"""$size "$query"""" =>

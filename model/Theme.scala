@@ -1,7 +1,7 @@
 package model
 
 object Theme:
-  type BuiltinFrontMatter = model.Dictionary {
+  type BuiltinFrontMatter = Dictionary {
     val isRoot: Boolean; val layout: String
   }
 
@@ -15,9 +15,9 @@ trait Theme:
   val metadata: Metadata
   trait Metadata extends Selectable:
     val name: String
-    val layouts: model.Layouts
+    val layouts: Layouts
 
-  val templates: io.util.TemplateFunctions = new io.util.TemplateFunctions
+  val templates: TemplateFunctions = TemplateFunctions.Empty
 
   type Site <: model.Site
   type FrontMatter <: Theme.BuiltinFrontMatter
