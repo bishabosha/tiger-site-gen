@@ -182,7 +182,7 @@ object paths:
     val (roots, files) = os.list(src).partition(os.isDir)
     val optFavicon = files.find(_.last == "favicon.ico")
     val (statics, colls) = roots.partition(_.baseName == "static")
-    val data: Map[String, model.Doc[?] | model.Docs[?]] = colls
+    val data: Map[String, model.DocCollection[?, ?]] = colls
       .map(r =>
         val paths =
           os.list(r)
@@ -232,11 +232,11 @@ object paths:
     }
 
     val activeCols = ctx.site.allDocs.collect {
-      case col: theme.DocCollection @unchecked if col.willRender => col
+      case col if col.willRender => col
     }
-    var optRoots = Set.empty[theme.DocCollection]
+    var optRoots = Set.empty[theme.BaseDocCollection]
     for col <- activeCols do
-      given theme.DocCollection = col
+      given theme.BaseDocCollection = col
       os.makeDir.all(dest / col.collName)
       if col.index.frontMatter.isRoot then optRoots += col
       for doc <- col do

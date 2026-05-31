@@ -28,10 +28,10 @@ object Breeze extends model.Theme:
     )
 
   type Site = parent.Site & {
-    val talks: Docs
-    val videos: Docs
-    val projects: Docs
-    val `match-type-simulator`: Doc
+    val talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk]
+    val videos: DocsOf[FrontMatter.Videos, FrontMatter.Video]
+    val projects: DocsOf[FrontMatter.Projects, FrontMatter.Project]
+    val `match-type-simulator`: DocOf[FrontMatter.Raw]
   }
 
   override type Extra = parent.Extra & breezeSite.Extra
@@ -40,4 +40,22 @@ object Breeze extends model.Theme:
       model.Context.InMakeCtx
   ): breezeSite.Extra = new {}
 
-  export parent.{FrontMatter, whoAmI}
+  object FrontMatter:
+    export parent.FrontMatter.*
+    type Talks = BasePage
+    type Talk = Link {
+      val ordered: String
+    }
+    type Raw = BuiltinFrontMatter
+    type Videos = BuiltinFrontMatter
+    type Video = Link
+    type Projects = BasePage
+    type Project = BaseArticle {
+      val avatar: String
+      val startDate: String
+      val endDate: String
+      val isInProgress: Boolean
+      val url: String
+    }
+
+  export parent.whoAmI

@@ -8,7 +8,7 @@ import model.ctx
 
 import Breeze.*
 
-val projects = Layout: doc =>
+val projects = Layout[FrontMatter.Projects]: doc =>
   breeze.page.wrap(
     doc,
     ctx.site.projects,

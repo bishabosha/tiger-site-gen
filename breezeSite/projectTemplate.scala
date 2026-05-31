@@ -9,7 +9,7 @@ import model.ctx
 
 import Breeze.*
 
-val project = Layout: doc =>
+val project = Layout[FrontMatter.Project]: doc =>
   val (prev, next) =
     ctx.site.projects.prevNext(doc).swap // projects are in reverse order
   val projectNav = (

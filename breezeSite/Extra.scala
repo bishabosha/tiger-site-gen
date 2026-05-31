@@ -1,6 +1,5 @@
 package breezeSite
 
-import Breeze.DocCollection
 import Breeze.Context
 import model.ctx
 

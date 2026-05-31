@@ -51,7 +51,7 @@ object page:
 
   final case class NavBar(brand: String, links: Seq[NavLink])
 
-  private def siteNav(col: DocCollection)(using Context) = NavBar(
+  private def siteNav(col: BaseDocCollection)(using Context) = NavBar(
     brand = s"$whoAmI",
     links = ctx.extra.nav
       .filter(_.willRender)
@@ -66,7 +66,13 @@ object page:
 
   private val (year, today) = io.util.md.renderNow()
 
-  def wrap(using Context)(page: DocPage, col: DocCollection, title: String)(
+  def wrap(using
+      Context
+  )(
+      page: DocPageOf[FrontMatter.BasePage],
+      col: BaseDocCollection,
+      title: String
+  )(
       pageContent: scalatags.Text.Modifier*
   ) =
     import scalatags.Text.tags2.title as titleTag

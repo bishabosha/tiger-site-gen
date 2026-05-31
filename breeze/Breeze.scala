@@ -24,28 +24,35 @@ object Breeze extends model.Theme:
     )
 
   type Site = model.Site {
-    val about: Doc
-    val articles: Docs
+    val about: DocOf[FrontMatter.About]
+    val articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
   }
 
-  type FrontMatter = model.Theme.BuiltinFrontMatter & model.Dictionary {
-    val title: String
-    val published: String
-    val startDate: String
-    val endDate: String
-    val avatar: String
-    val linkss: List[List[String]]
-    val name: String
-    val copyright: String
-    val subtitle: String
-    val url: String
-    val description: String
-    val isInProgress: Boolean
-    val ordered: String // a helper to order items
-  }
+  object FrontMatter:
+    final type BasePage = BuiltinFrontMatter {
+      val description: String
+    }
+    final type About = BasePage {
+      val avatar: String
+      val linkss: List[List[String]]
+      val name: String
+      val copyright: String
+    }
+    type Link = BuiltinFrontMatter {
+      val title: String
+      val subtitle: String
+      val url: String
+    }
+    final type BaseArticle = BasePage {
+      val title: String
+    }
+    final type Articles = BasePage
+    final type Article = BaseArticle {
+      val published: String
+    }
 
   trait Extra(using Context):
-    def nav: List[DocCollection] = List(ctx.site.about, ctx.site.articles)
+    def nav: List[BaseDocCollection] = List(ctx.site.about, ctx.site.articles)
     val extraHead: Seq[scalatags.Text.all.Modifier]
     val extraFoot: Seq[scalatags.Text.all.Modifier]
 

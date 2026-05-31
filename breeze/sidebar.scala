@@ -32,7 +32,9 @@ object sidebar:
       bio(ctx.site.about.index, hideable, collapsable)
     )
 
-  def toc(doc: DocPage)(using Context): scalatags.Text.Modifier =
+  def toc(doc: DocPageOf[FrontMatter.BaseArticle])(using
+      Context
+  ): scalatags.Text.Modifier =
     div(
       id := "sidebar-anchor",
       cls := s"sticky-top top-aligned jumbotron sidebar sidebar__mobile shadow py-lg-4 py-3",

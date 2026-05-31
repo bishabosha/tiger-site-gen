@@ -7,7 +7,10 @@ import scalatags.Text.all.*
 
 object cardExtensions:
 
-  def projects(title: String, projects: Docs): scalatags.Text.Modifier =
+  def projects(
+      title: String,
+      projects: DocsOf[FrontMatter.Projects, FrontMatter.Project]
+  ): scalatags.Text.Modifier =
     cards.wrap(
       title,
       table(

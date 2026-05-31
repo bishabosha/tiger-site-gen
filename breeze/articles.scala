@@ -6,7 +6,7 @@ import model.ctx
 
 import Breeze.*
 
-val articles = Layout: doc =>
+val articles = Layout[FrontMatter.Articles]: doc =>
   breeze.page.wrap(doc, ctx.site.articles, title = s"Articles | $whoAmI")(
     div(
       cls := "container",

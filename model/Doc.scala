@@ -2,6 +2,7 @@ package model
 
 import com.vladsch.flexmark.util.ast.Document
 import io.util.Templates
+import scala.annotation.unchecked.uncheckedVariance
 
 final case class DocPage(
     name: String,
@@ -14,17 +15,17 @@ final case class DocPage(
     private[model] val idx: Int
 )
 
-sealed trait DocCollection[D <: DocPage]:
+sealed trait DocCollection[+DI <: DocPage, +D <: DocPage]:
   def collName: String
   def willRender: Boolean
-  def index: D
+  def index: DI
   def foreach(op: D => Unit): Unit
   def toIterable: Iterable[D]
 
-class Doc[D <: DocPage](val collName: String, _index: D)
-    extends DocCollection[D]:
+class Doc[+D <: DocPage](val collName: String, _index: D)
+    extends DocCollection[D, D]:
   def willRender: Boolean = true
-  def index: D =
+  override def index: D =
     Templates.recordDependency(_index.path)
     _index
   def foreach(op: D => Unit): Unit =
@@ -32,11 +33,11 @@ class Doc[D <: DocPage](val collName: String, _index: D)
     op(_index)
   def toIterable: Iterable[D] = Iterable.empty
 
-class Docs[D <: DocPage](
+class Docs[+DI <: DocPage, +D <: DocPage](
     val collName: String,
-    optIndex: Option[D],
+    optIndex: Option[DI],
     data: IndexedSeq[D]
-) extends DocCollection[D]:
+) extends DocCollection[DI, D]:
   self =>
   export data.size
 
@@ -46,9 +47,9 @@ class Docs[D <: DocPage](
 
   def willRender: Boolean = optIndex.isDefined
 
-  def index: D = optIndex.get
+  override def index: DI = optIndex.get
 
-  def take(n: Int): Docs[D] =
+  def take(n: Int): Docs[DI, D] =
     Templates.recordMultiDependency(data.take(n).map(_.path))
     Docs(collName, optIndex, data.take(n))
 
@@ -57,7 +58,7 @@ class Docs[D <: DocPage](
     Templates.recordMultiDependency(data.map(_.path))
     data.map(f)
 
-  def prevNext(doc: D): (Option[D], Option[D]) =
+  def prevNext(doc: D @uncheckedVariance): (Option[D], Option[D]) =
     val prev = if doc.idx > 0 then Some(self(doc.idx - 1)) else None
     val next =
       if doc.idx >= 0 && doc.idx < size - 1 then Some(self(doc.idx + 1))

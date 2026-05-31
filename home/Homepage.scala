@@ -11,15 +11,16 @@ object Homepage extends Theme:
       val home = homeLayout
 
   type Site = model.Site {
-    val about: Doc
+    val about: DocOf[FrontMatter.About]
   }
 
-  type FrontMatter = model.Theme.BuiltinFrontMatter & model.Dictionary {
-    val avatar: String
-    val linkss: List[List[String]]
-    val name: String
-    val copyright: String
-  }
+  object FrontMatter:
+    final type About = BuiltinFrontMatter {
+      val avatar: String
+      val linkss: List[List[String]]
+      val name: String
+      val copyright: String
+    }
 
   trait Extra
 

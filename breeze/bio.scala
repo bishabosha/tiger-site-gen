@@ -4,7 +4,13 @@ import scalatags.Text.all.*
 
 import Breeze.*
 
-def bio(me: DocPage, hideable: Boolean, collapsable: Boolean)(using Context) =
+def bio(
+    me: DocPageOf[FrontMatter.About],
+    hideable: Boolean,
+    collapsable: Boolean
+)(using
+    Context
+) =
   div(
     cls := "bio-main",
     table(

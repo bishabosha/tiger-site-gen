@@ -32,7 +32,10 @@ object cards:
         )
     Seq(col1, col2).map(col => div(cls := "col-lg", column(col)))
 
-  def recentPosts(kind: String, posts: Docs): scalatags.Text.Modifier =
+  def recentPosts(
+      kind: String,
+      posts: DocsOf[FrontMatter.Articles, FrontMatter.Article]
+  ): scalatags.Text.Modifier =
     wrap(
       s"Recent $kind",
       table(
@@ -66,7 +69,11 @@ object cards:
       )
     )
 
-  def links(title: String, kind: String, links: Docs): scalatags.Text.Modifier =
+  def links(
+      title: String,
+      kind: String,
+      links: DataOf[FrontMatter.Link]
+  ): scalatags.Text.Modifier =
     wrap(
       title,
       (for link <- links.take(4)

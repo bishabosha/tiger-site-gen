@@ -12,7 +12,12 @@ class Layouts extends Selectable:
   def selectDynamic(name: String): Any =
     reflect.Selectable.reflectiveSelectable(this).selectDynamic(name)
 
-  def apply[C <: model.Context, D <: DocPage, DC <: DocCollection[D]](
+  def apply[
+      C <: model.Context,
+      DI <: DocPage,
+      D <: DocPage,
+      DC <: DocCollection[DI, D]
+  ](
       name: String
   )(doc: D)(using
       C,

@@ -1,16 +1,14 @@
 package model
 
-object Theme:
-  type BuiltinFrontMatter = Dictionary {
-    val isRoot: Boolean; val layout: String
-  }
-
 trait Theme:
   thisTheme =>
 
-  final type Layout = model.Layout[Context, DocPage]
+  final type LayoutOf[FM <: BuiltinFrontMatter] =
+    model.Layout[Context, DocPageOf[FM]]
   object Layout:
-    def apply(layout: Layout): layout.type = layout
+    def apply[FM <: BuiltinFrontMatter](
+        layout: LayoutOf[FM]
+    ): layout.type = layout
 
   val metadata: Metadata
   trait Metadata extends Selectable:
@@ -20,21 +18,41 @@ trait Theme:
   val templates: TemplateFunctions = TemplateFunctions.Empty
 
   type Site <: model.Site
-  type FrontMatter <: Theme.BuiltinFrontMatter
 
   type Extra
 
   def extras(using Context, Context.InMakeCtx): Extra
 
-  final type DocCollection = model.DocCollection[DocPage]
-  final type Docs = model.Docs[DocPage]
-  final type Doc = model.Doc[DocPage]
-
-  final type DocPage = model.DocPage {
-    val frontMatter: FrontMatter
+  type BuiltinFrontMatter = Dictionary {
+    val isRoot: Boolean; val layout: String
   }
 
+  final type DocCollectionOf[
+      FMI <: BuiltinFrontMatter,
+      FM <: BuiltinFrontMatter
+  ] =
+    model.DocCollection[DocPageOf[FMI], DocPageOf[FM]]
+  final type DocsOf[
+      FMI <: BuiltinFrontMatter,
+      FM <: BuiltinFrontMatter
+  ] =
+    model.Docs[DocPageOf[FMI], DocPageOf[FM]]
+  final type DataOf[
+      FM <: BuiltinFrontMatter
+  ] =
+    model.Docs[DocPageOf[BuiltinFrontMatter], DocPageOf[FM]]
+  final type DocOf[FM <: BuiltinFrontMatter] = model.Doc[DocPageOf[FM]]
+  final type DocPageOf[FM <: BuiltinFrontMatter] = model.DocPage {
+    val frontMatter: FM
+  }
+  final type BaseDocCollection =
+    DocCollectionOf[BuiltinFrontMatter, BuiltinFrontMatter]
+
   final type Context = model.Context {
-    val site: Site
+    val site: Site {
+      def allDocs: Iterable[
+        BaseDocCollection
+      ]
+    }
     val extra: Extra
   }

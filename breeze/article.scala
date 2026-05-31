@@ -7,7 +7,7 @@ import model.ctx
 
 import Breeze.*
 
-val articleLayout = Layout: doc =>
+val articleLayout = Layout[FrontMatter.Article]: doc =>
   val (prev, next) =
     ctx.site.articles.prevNext(doc).swap // articles is in reverse order
   val articleNav = (
