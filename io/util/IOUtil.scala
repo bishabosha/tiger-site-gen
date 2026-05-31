@@ -239,19 +239,19 @@ object paths:
       given theme.DocCollection = col
       os.makeDir.all(dest / col.collName)
       if col.index.frontMatter.isRoot then optRoots += col
-      if !col.index.frontMatter.isIndexOnly then
-        for doc <- col do
-          if changed.contains(doc.path) then
-            val (subPage, usedDeps) = Templates.withDependencyCollection {
-              theme.metadata.layouts(doc.frontMatter.layout)(doc)
-            }
-            os.write.over(
-              dest / col.collName / sanatise.mdNameToHtml(doc.name),
-              scalatags.Text.all.doctype("html")(subPage)
-            )
-            deps += (doc.path.relativeTo(curr).toString -> usedDeps)
-        end for
+      for doc <- col do
+        if doc.frontMatter.layout.nonEmpty && changed.contains(doc.path) then
+          val (subPage, usedDeps) = Templates.withDependencyCollection {
+            theme.metadata.layouts(doc.frontMatter.layout)(doc)
+          }
+          os.write.over(
+            dest / col.collName / sanatise.mdNameToHtml(doc.name),
+            scalatags.Text.all.doctype("html")(subPage)
+          )
+          deps += (doc.path.relativeTo(curr).toString -> usedDeps)
+      end for
       if changed.contains(col.index.path) then
+        require(col.index.frontMatter.layout.nonEmpty, "index layout required")
         val (indexPage, usedDeps) = Templates.withDependencyCollection {
           theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
         }

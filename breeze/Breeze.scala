@@ -40,7 +40,6 @@ object Breeze extends model.Theme:
     val subtitle: String
     val url: String
     val description: String
-    val isIndexOnly: Boolean
     val isInProgress: Boolean
     val ordered: String // a helper to order items
   }

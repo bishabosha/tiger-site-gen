@@ -6,8 +6,6 @@ class FrontMatter(
 
   lazy val isRoot: Boolean =
     selectDynamic("isRoot").asInstanceOf[Boolean]
-  lazy val isIndexOnly: Boolean =
-    selectDynamic("isIndexOnly").asInstanceOf[Boolean]
   lazy val layout: String =
     selectDynamic("layout").asInstanceOf[String]
 
