@@ -1,8 +1,53 @@
 package io.util
 
 import model.Context
+import model.ctx
 import java.time.Instant
 import scala.collection.mutable
+
+trait TemplateFunction:
+  def render(args: String)(using Context): String
+  def renderDefault(args: String): String
+
+object TemplateFunction:
+  def apply(
+      renderFn: Context ?=> String => String,
+      defaultFn: String => String
+  ): TemplateFunction = new:
+    def render(args: String)(using ctx: Context): String =
+      renderFn(using ctx)(args)
+    def renderDefault(args: String): String = defaultFn(args)
+
+class TemplateFunctions extends Selectable:
+  outer =>
+
+  def selectDynamic(name: String): Any =
+    reflect.Selectable.reflectiveSelectable(this).selectDynamic(name)
+
+  private def split(expr: String): (String, String) =
+    expr.span(!_.isWhitespace) match
+      case (name, args) => (name, args.trim)
+
+  private def templateFunction(name: String, expr: String): TemplateFunction =
+    try selectDynamic(name).asInstanceOf[TemplateFunction]
+    catch
+      case err =>
+        throw new Exception(s"Template function not found: `{{${expr}}}`", err)
+
+  def apply(expr: String)(using Context): String =
+    val (name, args) = split(expr)
+    templateFunction(name, expr).render(args)
+
+  def renderDefault(expr: String): String =
+    val (name, args) = split(expr)
+    templateFunction(name, expr).renderDefault(args)
+
+  def &(additions: TemplateFunctions): this.type & additions.type =
+    new TemplateFunctions:
+      override def selectDynamic(name: String): Any =
+        try additions.selectDynamic(name)
+        catch case err => outer.selectDynamic(name)
+    .asInstanceOf[this.type & additions.type]
 
 object Templates:
   // Thread-local collector to accumulate dependencies during a single page render
@@ -28,8 +73,7 @@ object Templates:
   // Multiple path dependency
   def recordMultiDependency(paths: Iterable[os.Path]): Unit =
     val current = depCollector.get()
-    if current != null then
-      paths.foreach(p => current += p.toString)
+    if current != null then paths.foreach(p => current += p.toString)
 
   private def interpolateWith(template: String, f: String => String): String =
     val regex = """\{\{([^}]+)\}\}""".r
@@ -46,21 +90,9 @@ object Templates:
     buf.result()
 
   def interpolate(template: String)(using Context): String =
-    interpolateWith(template, interpret)
+    interpolateWith(template, expr => ctx.theme.templates(expr))
 
-  def interpolateDefault(template: String): String =
-    interpolateWith(template, interpretDefault)
+  def interpolateDefault(template: String, theme: model.Theme): String =
+    interpolateWith(template, theme.templates.renderDefault)
 
   def stamp = java.lang.Long.toHexString(Instant.now().toEpochMilli())
-
-  private def interpret(expr: String)(using Context): String = expr match
-    case s"url $str" => io.util.paths.resolveStaticAsset(str)
-    case s"""match-sim-embed $size "$query"""" =>
-      val height = if size == "S" then "400px" else size
-      s"""<iframe src="/match-type-simulator/$query&stamp=$stamp" width="100%" height="$height"></iframe>"""
-    case s"""icon $cls""" => s"""<i class="fa-regular $cls"></i>"""
-
-  private def interpretDefault(expr: String): String = expr match
-    case s"url $_"                             => "http://example.com"
-    case s"""match-sim-embed $size "$query"""" => """<div></div>"""
-    case s"""icon $cls""" => s"""<i class="fa-regular $cls"></i>"""

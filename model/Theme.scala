@@ -12,6 +12,8 @@ trait Theme:
     val name: String
     val layouts: model.Layouts
 
+  val templates: io.util.TemplateFunctions = new io.util.TemplateFunctions
+
   type Site <: model.Site
   type FrontMatter <: model.FrontMatter
 

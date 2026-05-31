@@ -19,7 +19,7 @@ object Context:
   ): theme.Context =
     new Context(
       siteRoot = summon[model.SiteRoot],
-      site = io.util.paths.buildSiteDb(src),
+      site = io.util.paths.buildSiteDb(src, theme),
       theme = theme
     ).asInstanceOf[theme.Context]
 

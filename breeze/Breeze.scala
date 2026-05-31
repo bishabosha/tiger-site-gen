@@ -1,6 +1,7 @@
 package breeze
 
 import model.ctx
+import io.util.TemplateFunction
 
 object Breeze extends model.Theme:
 
@@ -11,6 +12,16 @@ object Breeze extends model.Theme:
       val articles = breeze.articles
     }
   }
+
+  override val templates = new io.util.TemplateFunctions:
+    val url = TemplateFunction(
+      io.util.paths.resolveStaticAsset,
+      _ => "http://example.com"
+    )
+    val icon = TemplateFunction(
+      cls => s"""<i class="fa-regular $cls"></i>""",
+      cls => s"""<i class="fa-regular $cls"></i>"""
+    )
 
   type Site = model.Site {
     val about: Doc

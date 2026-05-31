@@ -175,7 +175,10 @@ object paths:
     )
     os.write.over(cachePath, upickle.default.write(newCache))
 
-  def buildSiteDb[S <: model.Site](src: os.Path)(using model.SiteRoot): S =
+  def buildSiteDb[S <: model.Site](
+      src: os.Path,
+      theme: model.Theme
+  )(using model.SiteRoot): S =
     val (roots, files) = os.list(src).partition(os.isDir)
     val optFavicon = files.find(_.last == "favicon.ico")
     val (statics, colls) = roots.partition(_.baseName == "static")
@@ -197,15 +200,17 @@ object paths:
             .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
             .map(_.tail)
           val rendered = ordered.zipWithIndex
-            .map { case ((n, p), i) => md.render(i, n, p) }
+            .map { case ((n, p), i) => md.render(i, n, p, theme) }
           val indexOpt =
-            indexes.headOption.map { case (_, n, p) => md.render(-1, n, p) }
+            indexes.headOption.map { case (_, n, p) =>
+              md.render(-1, n, p, theme)
+            }
           name -> model.Docs(name, indexOpt, rendered)
         else
           val path = paths.head
           val pName = path.baseName
           name -> model
-            .Doc(name, md.render(-1, pName, paths.head))
+            .Doc(name, md.render(-1, pName, paths.head, theme))
       )
       .toMap
     model.Site.read(statics.headOption, optFavicon, data)
@@ -419,10 +424,15 @@ object md:
   def renderRaw(document: String)(using Context): String =
     Templates.interpolate(document)
 
-  def parseDryRun(document: String): Document =
-    parser.parse(Templates.interpolateDefault(document))
+  def parseDryRun(document: String, theme: model.Theme): Document =
+    parser.parse(Templates.interpolateDefault(document, theme))
 
-  def render(index: Int, name: String, path: os.Path): model.DocPage =
+  def render(
+      index: Int,
+      name: String,
+      path: os.Path,
+      theme: model.Theme
+  ): model.DocPage =
     import org.virtuslab.yaml.*
     def frontMatterError(msg: String) =
       s"failed to read front matter of $path:$msg"
@@ -435,7 +445,7 @@ object md:
         case s"```sc\n$son\n```\n---\n$rest" => (Some(son), rest)
         case _                               => (None, rawText)
 
-    val documentNoSplices = parseDryRun(rawDoc)
+    val documentNoSplices = parseDryRun(rawDoc, theme)
     val son: Result[scalanotation.Expr, String] = result {
       val txt = rawSON match
         case Some(value) => value
