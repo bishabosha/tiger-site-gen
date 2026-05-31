@@ -14,7 +14,7 @@ object Homepage extends Theme:
     val about: Doc
   }
 
-  type FrontMatter = model.FrontMatter {
+  type FrontMatter = model.Theme.BuiltinFrontMatter & model.Dictionary {
     val avatar: String
     val linkss: List[List[String]]
     val name: String

@@ -1,13 +1,10 @@
 package model
 
-class FrontMatter(
+class Dictionary(
     data: Map[String, Boolean | String | List[String] | List[List[String]]]
-) extends Selectable:
+) extends Selectable {
 
-  lazy val isRoot: Boolean =
-    selectDynamic("isRoot").asInstanceOf[Boolean]
-  lazy val layout: String =
-    selectDynamic("layout").asInstanceOf[String]
+  override def toString(): String = data.toString
 
   def selectDynamic(name: String): Any = name match
     case s"is$_" =>
@@ -43,5 +40,4 @@ class FrontMatter(
           s
         })
         .getOrElse("")
-
-  override def toString(): String = data.toString
+}

@@ -454,7 +454,7 @@ object md:
     }
     // TODO: ugly rewrapping as List of strings - todo: rework representation of front matter.
     // changed to virtuslab scala-yaml due to a superior parser.
-    val data: model.FrontMatter = son match
+    val data: model.Dictionary = son match
       case Result.Err(error) =>
         throw new Exception(error)
       case Result.Ok(data) =>
@@ -475,7 +475,7 @@ object md:
               case e.VectorExpr(_) =>
                 throw new Exception(frontMatterError(s" at path $innerpath, expected scalar, got ${x.render}"))
 
-            model.FrontMatter(m.elements.map {
+            model.Dictionary(m.elements.map {
               case (name = k, value = vs) =>
                 if k.startsWith("is") then
                   k -> (vs.match{

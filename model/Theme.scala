@@ -1,5 +1,10 @@
 package model
 
+object Theme:
+  type BuiltinFrontMatter = model.Dictionary {
+    val isRoot: Boolean; val layout: String
+  }
+
 trait Theme:
   thisTheme =>
 
@@ -15,7 +20,7 @@ trait Theme:
   val templates: io.util.TemplateFunctions = new io.util.TemplateFunctions
 
   type Site <: model.Site
-  type FrontMatter <: model.FrontMatter
+  type FrontMatter <: Theme.BuiltinFrontMatter
 
   type Extra
 

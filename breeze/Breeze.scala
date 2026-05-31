@@ -28,7 +28,7 @@ object Breeze extends model.Theme:
     val articles: Docs
   }
 
-  type FrontMatter = model.FrontMatter {
+  type FrontMatter = model.Theme.BuiltinFrontMatter & model.Dictionary {
     val title: String
     val published: String
     val startDate: String

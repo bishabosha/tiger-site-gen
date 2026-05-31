@@ -6,7 +6,7 @@ import io.util.Templates
 final case class DocPage(
     name: String,
     path: os.Path,
-    frontMatter: FrontMatter,
+    frontMatter: Dictionary,
     wordCount: Int,
     headings: List[(String, String, Int)],
     htmlPreview: String,
