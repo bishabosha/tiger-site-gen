@@ -1,10 +1,12 @@
+```sc
+(
+  layout = "article",
+  title = "Understanding Match Types in Scala 3",
+  description = "What are Scala 3 match types for and how do they work.",
+  published = "30-Aug-2025"
+)
+```
 ---
-layout: article
-title: "Understanding Match Types in Scala 3"
-description: What are Scala 3 match types for and how do they work.
-published: 30-Aug-2025
----
-
 Scala 3 introduced [match types](https://www.scala-lang.org/api/3.7.2/docs/new-types/match-types.html), a powerful feature enabling to perform computations with types at compile time, a technique known as type-level programming. This post gives an overview of how they work, and what kinds of use cases they can be applied to.
 
 > This post mirrors my talk from ScalaDays 2025. Explore code examples in the [demo repo](https://github.com/bishabosha/scaladays-2025). Also try out the [interactive demo](/match-type-simulator/).

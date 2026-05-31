@@ -1,10 +1,12 @@
+```sc
+(
+  layout = "article",
+  title = "Making ScalaSql boring again (with interesting new internals)",
+  description = "Explaining the motivation for the new SimpleTable feature for the ScalaSql library.",
+  published = "31-May-2025"
+)
+```
 ---
-layout: article
-title: "Making ScalaSql boring again (with interesting new internals)"
-description: Explaining the motivation for the new SimpleTable feature for the ScalaSql library.
-published: 31-May-2025
----
-
 This blog post summarises why I contributed [SimpleTable](https://github.com/com-lihaoyi/scalasql/pull/81) to the ScalaSql library, which reduces boilerplate by pushing some complexity into the implementation. (For the impatient: case class definitions for tables no longer require higher kinded type parameters, thanks to the new named tuples feature in Scala 3.7.)
 
 ## Status Quo

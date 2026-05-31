@@ -1,14 +1,17 @@
+```sc
+(
+  layout = "project",
+  title = "Port Mill build.sc files to Scala 3",
+  description = "Enhance the Mill build tool (github.com/com-lihaoyi/mill) by " +
+    "enabling users to write build.sc files with Scala 3 syntax and libraries.",
+  url = "https://github.com/com-lihaoyi/mill/pull/3369",
+  avatar = "https://mill-build.org/_/logo-white.svg",
+  startDate = "05-Aug-2024",
+  endDate = "19-Oct-2024",
+  isInProgress = false
+)
+```
 ---
-layout: project
-title: Port Mill build.sc files to Scala 3
-description: Enhance the Mill build tool (github.com/com-lihaoyi/mill) by enabling users to write build.sc files with Scala 3 syntax and libraries.
-url: https://github.com/com-lihaoyi/mill/pull/3369
-avatar: https://mill-build.org/_/logo-white.svg
-startDate: 05-Aug-2024
-endDate: 19-Oct-2024
-isInProgress: false
----
-
 ## About the Project
 
 The [Mill build tool](https://mill-build.org) lets users write build pipelines in the Scala programming language.

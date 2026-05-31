@@ -16,7 +16,7 @@ object Homepage extends Theme:
 
   type FrontMatter = model.FrontMatter {
     val avatar: String
-    val links: List[String]
+    val linkss: List[List[String]]
     val name: String
     val copyright: String
   }

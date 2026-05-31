@@ -32,7 +32,7 @@ def bio(me: DocPage, hideable: Boolean, collapsable: Boolean)(using Context) =
     // ),
     ul(
       cls := "list-inline",
-      (for case s"$linkText|$kind|$iconCls|$link" <- me.frontMatter.links
+      (for case List(linkText, kind, iconCls, link) <- me.frontMatter.linkss
       yield li(
         cls := "list-inline-item",
         p(

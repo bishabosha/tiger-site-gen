@@ -1,8 +1,12 @@
----
-layout: article
-title: "Scala's New Named Tuples: why you should embrace structural types"
-description: Explaining the motivation behind named tuples, how they work, their relationship to structural types, and their practical applications, along with their current limitations.
-published: 14-Apr-2025
+```sc
+(
+  layout = "article",
+  title = "Scala's New Named Tuples: why you should embrace structural types",
+  description = "Explaining the motivation behind named tuples, how they work, their relationship to " +
+    "structural types, and their practical applications, along with their current limitations.",
+  published = "14-Apr-2025"
+)
+```
 ---
 
 Scala 3.7 stabilises the Named Tuples proposal, giving users new syntax for structural types and values, and makes it simpler to do typelevel programming without macros. Read on for a summary of the key features and benefits of named tuples, and practical examples.

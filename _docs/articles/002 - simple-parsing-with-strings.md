@@ -1,8 +1,12 @@
----
-layout: article
-title: Enhanced Simple Parsing for Scala
-description: Describes a new string interpolator for Scala that can be used for simple parsing of structured data.
-published: 01-Feb-2024
+```sc
+(
+  layout = "article",
+  title = "Enhanced Simple Parsing for Scala",
+  description = "Describes a new string interpolator for Scala that can be used for " +
+    "simple parsing of structured data.",
+  published = "01-Feb-2024"
+)
+```
 ---
 
 I developed a new String interpolator for Advent of Code to help with parsing - it turns out that I didn't need anything else for solving all this years problems.

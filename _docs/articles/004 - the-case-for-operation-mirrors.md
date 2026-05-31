@@ -1,8 +1,12 @@
----
-layout: article
-title: "Just declare your services: Introducing operation mirrors"
-description: ops-mirror is a new micro-library that helps reflect traits at compile time, for use with type-class derivation.
-published: 24-Jun-2024
+```sc
+(
+  layout = "article",
+  title = "Just declare your services: Introducing operation mirrors",
+  description = "ops-mirror is a new micro-library that helps reflect traits at compile time, " +  
+    "for use with type-class derivation.",
+  published = "24-Jun-2024",
+)
+```
 ---
 
 Scala 3 makes it even easier to write expressive code that feels like it belongs in a dynamic language, but stays aggressively type-safe, improving your productivity. Towards this style, I'm introducing [ops-mirror](https://github.com/bishabosha/ops-mirror), a micro-library for reflection of method signatures, for example to generate schemas for HTTP endpoints from trait definitions.

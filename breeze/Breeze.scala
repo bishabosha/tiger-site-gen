@@ -23,7 +23,7 @@ object Breeze extends model.Theme:
     val startDate: String
     val endDate: String
     val avatar: String
-    val links: List[String]
+    val linkss: List[List[String]]
     val name: String
     val copyright: String
     val subtitle: String

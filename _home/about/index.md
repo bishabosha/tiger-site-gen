@@ -1,21 +1,24 @@
+```sc
+(
+  layout = "home",
+  isRoot = true,
+  title = "About",
+  name = "Jamie Thompson",
+  copyright = "Jamie Thompson",
+  description = "Homepage of Jamie Thompson",
+  avatar = "/static/img/jamie_thompson_profile.png",
+  linkss = Vector(
+    Vector("E-Mail",null,"fa-solid fa-envelope","mailto:jamie.thompson@bath.edu"),
+    Vector("Resume",null,"fa-solid fa-file","/static/pages/jamesThompsonCVNov2024.html"),
+    Vector("Blog","social","fa-solid fa-newspaper","https://bishabosha.github.io/about/"),
+    Vector("GitHub","social","fa-brands fa-github","https://github.com/bishabosha"),
+    Vector("Twitter","social","fa-brands fa-twitter","https://x.com/bishabosha"),
+    Vector("LinkedIn","social","fa-brands fa-linkedin","https://www.linkedin.com/in/james-richard-thompson/"),
+    Vector("Mastodon","social","fa-brands fa-mastodon","https://fosstodon.org/@jrthompson"),
+  )
+)
+```
 ---
-isRoot:
-layout: home
-title: About
-name: Jamie Thompson
-copyright: Jamie Thompson
-description: Homepage of Jamie Thompson
-avatar: /static/img/jamie_thompson_profile.png
-links:
-  - E-Mail||fa-solid fa-envelope|mailto:jamie.thompson@bath.edu
-  - Resume||fa-solid fa-file|/static/pages/jamesThompsonCVNov2024.html
-  - Blog|social|fa-solid fa-newspaper|https://bishabosha.github.io/about/
-  - GitHub|social|fa-brands fa-github|https://github.com/bishabosha
-  - Twitter|social|fa-brands fa-twitter|https://twitter.com/bishabosha
-  - LinkedIn|social|fa-brands fa-linkedin|https://www.linkedin.com/in/james-richard-thompson/
-  - Mastodon|social|fa-brands fa-mastodon|https://fosstodon.org/@jrthompson
----
-
 I am a software engineer with 7 years experience in compiler engineering and programming language design. Currently at [Mibex Software](https://www.mibexsoftware.com/) as a Senior Software Engineer.
 
 **Freelancing**

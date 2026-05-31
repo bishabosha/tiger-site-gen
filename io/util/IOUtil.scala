@@ -34,7 +34,12 @@ import scala.collection.mutable
 import model.Context
 import io.util.md.readDate
 
+import scalanotation.Readers
+import steps.result.Result.apply as result
+import steps.result.Result.eval.{raise, ok}
+
 import upickle.default.*
+import steps.result.Result
 
 case class Cache(files: Map[String, String], deps: Map[String, Set[String]])
     derives ReadWriter
@@ -419,49 +424,74 @@ object md:
 
   def render(index: Int, name: String, path: os.Path): model.DocPage =
     import org.virtuslab.yaml.*
+    def frontMatterError(msg: String) =
+      s"failed to read front matter of $path:$msg"
+    given Conversion[scalanotation.DecodeError, String] = err =>
+      frontMatterError(err.format)
     val rawText = os.read(path)
-    val (rawYaml, rawDoc) =
-      rawText.split("---", 3) match
-        case Array("", yaml, doc) => (yaml, doc)
-        case Array(yaml, doc)     => (yaml, doc)
-        case _                    => ("", rawText)
+    val (rawSON, rawDoc) =
+      rawText.match
+        case s"---\n```sc\n$son\n```\n---\n$rest" => (Some(son), rest)
+        case s"```sc\n$son\n```\n---\n$rest" => (Some(son), rest)
+        case _                               => (None, rawText)
+
     val documentNoSplices = parseDryRun(rawDoc)
-    val yaml = rawYaml.as[Any]
+    val son: Result[scalanotation.Expr, String] = result {
+      val txt = rawSON match
+        case Some(value) => value
+        case None        => raise(frontMatterError(" no front matter found"))
+      Readers.readAs[scalanotation.Expr](txt).ok
+    }
     // TODO: ugly rewrapping as List of strings - todo: rework representation of front matter.
     // changed to virtuslab scala-yaml due to a superior parser.
-    val data: model.FrontMatter = yaml match
-      case Left(error) =>
-        throw error
-      case Right(data) =>
+    val data: model.FrontMatter = son match
+      case Result.Err(error) =>
+        throw new Exception(error)
+      case Result.Ok(data) =>
+        import scalanotation.Expr as e
         data.asMatchable match
-          case m: Map[k, vs] =>
-            val allStrKeys = m.keys.forall({
-              case _: String => true
-              case _         => false
-            })
-            val allListableVals = m.values.forall({
-              case vs: List[t] =>
-                vs.forall({
-                  case _: String  => true
-                  case _: Boolean => true
-                  case _          => false
-                })
-              case _: String  => true
-              case None       => true
-              case _: Boolean => true
-              case _          => false
-            })
-            if allStrKeys && allListableVals then
-              model.FrontMatter(m.view.map { case (k, vs) =>
-                k.asInstanceOf[String] -> (vs.match {
-                  case vs1: List[t] => vs1.map(_.toString())
-                  case v: String    => v :: Nil
-                  case None         => Nil
-                  case v: Boolean   => v.toString() :: Nil
-                })
-              }.toMap)
-            else throw new Exception(s"Invalid front matter $m")
-          case _ => throw new Exception(s"Invalid front matter $data")
+          case m: e.NamedTupleExpr =>
+            def exprAsString(innerpath: String)(x: scalanotation.Expr): String = x match
+              case e.StringConstant(value) => value
+              case e.BooleanConstant(value) => value.toString()
+              case e.IntConstant(value) => value.toString()
+              case e.LongConstant(value) => value.toString()
+              case e.FloatConstant(value) => value.toString()
+              case e.DoubleConstant(value) => value.toString()
+              case e.CharConstant(value) => value.toString()
+              case e.NullConstant => ""
+              case e.NamedTupleExpr(_) =>
+                throw new Exception(frontMatterError(s" at path $innerpath, expected scalar, got ${x.render}"))
+              case e.VectorExpr(_) =>
+                throw new Exception(frontMatterError(s" at path $innerpath, expected scalar, got ${x.render}"))
+
+            model.FrontMatter(m.elements.map {
+              case (name = k, value = vs) =>
+                if k.startsWith("is") then
+                  k -> (vs.match{
+                    case e.BooleanConstant(bool) => bool
+                    case _ => throw new Exception(frontMatterError(s" at path .$k, expected boolean, got $vs"))
+                  }: Boolean)
+                else if k.endsWith("ss") then
+                  k -> (vs.match {
+                    case vs1: e.VectorExpr =>
+                      vs1.elements.zipWithIndex.toList.map({
+                        case (vss1: e.VectorExpr, index) =>
+                          vss1.elements.zipWithIndex.toList.map({case (e, index2) => exprAsString(s".$k[$index][$index2]")(e)})
+                        case (_, index) => throw new Exception(frontMatterError(s" at path .$k[$index], expected vector, got ${vs.render}"))
+                      })
+                    case _ => throw new Exception(frontMatterError(s" at path .$k, expected vector, got ${vs.render}"))
+                  }: List[List[String]])
+                else if k.endsWith("s") then
+                  k -> (vs.match {
+                    case vs1: e.VectorExpr =>
+                      vs1.elements.zipWithIndex.toList.map({case (e, index) => exprAsString(s".$k[$index]")(e)})
+                    case _ => throw new Exception(frontMatterError(s" at path .$k, expected vector, got ${vs.render}"))
+                  }: List[String])
+                else
+                  k -> exprAsString(s".$k")(vs)
+            }.toMap)
+          case _ => throw new Exception(frontMatterError(s" Invalid front matter ${data.render}"))
 
     val (sample, wordCount, headings) =
       ContentSampler.sampleContent(documentNoSplices)
