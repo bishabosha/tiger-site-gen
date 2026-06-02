@@ -1,6 +1,6 @@
 // Main
 //> using scala "3.8.3"
-
+//> using options -experimental -preview
 //> using dependency "com.lihaoyi::os-lib::0.11.8"
 //> using dependency "com.lihaoyi::scalatags::0.13.1"
 //> using dependency "com.lihaoyi::os-lib-watch::0.11.8"

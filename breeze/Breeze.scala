@@ -2,6 +2,9 @@ package breeze
 
 import model.ctx
 import model.TemplateFunction
+import model.AnyDocCollection
+
+import model.SiteMapSchema.auto.given
 
 object Breeze extends model.Theme:
 
@@ -23,10 +26,10 @@ object Breeze extends model.Theme:
       cls => s"""<i class="fa-regular $cls"></i>"""
     )
 
-  type Site = model.Site {
-    val about: DocOf[FrontMatter.About]
-    val articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
-  }
+  type SiteMap = (
+      about: DocOf[FrontMatter.About],
+      articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
+  )
 
   object FrontMatter:
     final type BasePage = BuiltinFrontMatter {
@@ -52,7 +55,7 @@ object Breeze extends model.Theme:
     }
 
   trait Extra(using Context):
-    def nav: List[BaseDocCollection] = List(ctx.site.about, ctx.site.articles)
+    def nav: List[AnyDocCollection] = List(ctx.site.about, ctx.site.articles)
     val extraHead: Seq[scalatags.Text.all.Modifier]
     val extraFoot: Seq[scalatags.Text.all.Modifier]
 
@@ -61,6 +64,7 @@ object Breeze extends model.Theme:
     val extraFoot = Seq.empty
   }
 
-  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
+  def whoAmI(using Context): String =
+    ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright

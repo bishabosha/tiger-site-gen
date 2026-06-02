@@ -4,9 +4,8 @@ import Context.InMakeCtx
 
 final class Context(
     val siteRoot: SiteRoot,
-    val site: model.Site,
     val theme: Theme
-):
+)(val site: model.Site[theme.SiteMap]):
   val extra: theme.Extra =
     theme.extras(using this.asInstanceOf[theme.Context], InMakeCtx)
 
@@ -14,13 +13,14 @@ object Context:
   opaque type InMakeCtx = Unit
   private[Context] def InMakeCtx: InMakeCtx = ()
 
+  opaque type Boxed[C <: Context] <: C = C
+
   def fromTheme[T <: Theme](src: os.Path, theme: T)(using
       model.SiteRoot
   ): theme.Context =
     new Context(
       siteRoot = summon[model.SiteRoot],
-      site = io.util.paths.buildSiteDb(src, theme),
       theme = theme
-    ).asInstanceOf[theme.Context]
+    )(site = io.util.paths.buildSiteDb(src, theme)).asInstanceOf[theme.Context]
 
 inline def ctx(using ctx: Context): ctx.type = ctx

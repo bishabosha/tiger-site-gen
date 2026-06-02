@@ -4,6 +4,8 @@ import model.ctx
 
 import breeze.Breeze as parent
 import model.TemplateFunction
+import model.SiteMapSchema.auto.given
+import model.SiteMapSchema.&++
 
 object Breeze extends model.Theme:
 
@@ -27,12 +29,12 @@ object Breeze extends model.Theme:
       _ => """<div></div>"""
     )
 
-  type Site = parent.Site & {
-    val talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk]
-    val videos: DocsOf[FrontMatter.Videos, FrontMatter.Video]
-    val projects: DocsOf[FrontMatter.Projects, FrontMatter.Project]
-    val `match-type-simulator`: DocOf[FrontMatter.Raw]
-  }
+  type SiteMap = parent.SiteMap &++ (
+    talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk],
+    videos: DocsOf[FrontMatter.Videos, FrontMatter.Video],
+    projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],
+    `match-type-simulator`: DocOf[FrontMatter.Raw]
+  )
 
   override type Extra = parent.Extra & breezeSite.Extra
   override def extras(using

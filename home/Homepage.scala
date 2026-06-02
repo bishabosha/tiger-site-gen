@@ -3,6 +3,9 @@ package home
 import model.Theme
 import model.ctx
 import model.Context.InMakeCtx
+import model.SiteMapSchema.auto.given
+
+val m = Homepage.siteMap
 
 object Homepage extends Theme:
   val metadata = new:
@@ -10,9 +13,7 @@ object Homepage extends Theme:
     val layouts = new:
       val home = homeLayout
 
-  type Site = model.Site {
-    val about: DocOf[FrontMatter.About]
-  }
+  type SiteMap = (about: DocOf[FrontMatter.About])
 
   object FrontMatter:
     final type About = BuiltinFrontMatter {

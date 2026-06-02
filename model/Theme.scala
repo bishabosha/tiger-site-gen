@@ -1,5 +1,7 @@
 package model
 
+import scala.language.experimental.modularity
+
 trait Theme:
   thisTheme =>
 
@@ -17,9 +19,10 @@ trait Theme:
 
   val templates: TemplateFunctions = TemplateFunctions.Empty
 
-  type Site <: model.Site
-
   type Extra
+
+  type SiteMap <: NamedTuple.AnyNamedTuple : SiteMapSchema
+  final def siteMap: SiteMapSchema[SiteMap] = summon[SiteMapSchema[SiteMap]]
 
   def extras(using Context, Context.InMakeCtx): Extra
 
@@ -31,28 +34,35 @@ trait Theme:
       FMI <: BuiltinFrontMatter,
       FM <: BuiltinFrontMatter
   ] =
-    model.DocCollection[DocPageOf[FMI], DocPageOf[FM]]
+    model.DocCollection[FMI, FM]
   final type DocsOf[
       FMI <: BuiltinFrontMatter,
       FM <: BuiltinFrontMatter
   ] =
-    model.Docs[DocPageOf[FMI], DocPageOf[FM]]
+    model.Docs[FMI, FM]
   final type DataOf[
       FM <: BuiltinFrontMatter
   ] =
-    model.Docs[DocPageOf[BuiltinFrontMatter], DocPageOf[FM]]
-  final type DocOf[FM <: BuiltinFrontMatter] = model.Doc[DocPageOf[FM]]
-  final type DocPageOf[FM <: BuiltinFrontMatter] = model.DocPage {
-    val frontMatter: FM
-  }
+    model.Docs[BuiltinFrontMatter, FM]
+  final type DocOf[FM <: BuiltinFrontMatter] = model.Doc[FM]
+  final type DocPageOf[FM <: BuiltinFrontMatter] = model.DocPage[FM]
   final type BaseDocCollection =
     DocCollectionOf[BuiltinFrontMatter, BuiltinFrontMatter]
 
-  final type Context = model.Context {
-    val site: Site {
+  final type Context0 = ContextOf[Extra, SiteMap]
+  final type Context = model.Context.Boxed[Context0]
+
+  given narrowChild: [CE <: PE, PE, Child <: NamedTuple.AnyNamedTuple, Parent <: NamedTuple.AnyNamedTuple]
+    => Context.Boxed[ContextOf[CE, Child]]
+    => (Site.CompatiblePrefix[Parent, Child] =:= Parent)
+    => Context.Boxed[ContextOf[PE, Parent]] =
+      summon[Context.Boxed[ContextOf[CE, Child]]].asInstanceOf[Context.Boxed[ContextOf[PE, Parent]]]
+
+  final type ContextOf[E, T <: NamedTuple.AnyNamedTuple] = model.Context {
+    val site: model.Site[T] {
       def allDocs: Iterable[
         BaseDocCollection
       ]
     }
-    val extra: Extra
+    val extra: E
   }

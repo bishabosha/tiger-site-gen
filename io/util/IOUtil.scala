@@ -175,44 +175,57 @@ object paths:
     )
     os.write.over(cachePath, upickle.default.write(newCache))
 
-  def buildSiteDb[S <: model.Site](
+  def buildSiteDb(
       src: os.Path,
       theme: model.Theme
-  )(using model.SiteRoot): S =
+  )(using model.SiteRoot): model.Site[theme.SiteMap] =
     val (roots, files) = os.list(src).partition(os.isDir)
     val optFavicon = files.find(_.last == "favicon.ico")
     val (statics, colls) = roots.partition(_.baseName == "static")
-    val data: Map[String, model.DocCollection[?, ?]] = colls
-      .map(r =>
-        val paths =
-          os.list(r)
-            .filter(os.isFile)
-            .filter(p => p.ext == "md" || p.ext == "html")
-        val name = r.baseName
-        if name.endsWith("s") then
-          val triples = paths.map(p =>
-            val s"$prefix - $suffix.md" = p.last: @unchecked
-            (prefix.toInt, suffix, p)
-          )
-          val (indexes, docs) = triples.partition((_, n, _) => n == "index")
-          assert(indexes.sizeIs <= 1, "more than 1 index file")
-          val ordered = docs
-            .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
-            .map(_.tail)
-          val rendered = ordered.zipWithIndex
-            .map { case ((n, p), i) => md.render(i, n, p, theme) }
-          val indexOpt =
-            indexes.headOption.map { case (_, n, p) =>
-              md.render(-1, n, p, theme)
-            }
-          name -> model.Docs(name, indexOpt, rendered)
-        else
-          val path = paths.head
-          val pName = path.baseName
-          name -> model
-            .Doc(name, md.render(-1, pName, paths.head, theme))
-      )
-      .toMap
+    val data: Map[String, model.DocCollection[?, ?]] =
+      colls
+        .flatMap(r =>
+          val paths =
+            os.list(r)
+              .filter(os.isFile)
+              .filter(p => p.ext == "md" || p.ext == "html")
+          val name = r.baseName
+          theme.siteMap.get(name) match
+            case Some(doc: model.SiteMapSchema.DocsSpec[i, t]) =>
+              given scalanotation.Reader[i] = doc.evI
+              given scalanotation.Reader[t] = doc.evA
+              val triples = paths.map(p =>
+                val s"$prefix - $suffix.md" = p.last: @unchecked
+                (prefix.toInt, suffix, p)
+              )
+              val (indexes, docs) = triples.partition((_, n, _) => n == "index")
+              assert(indexes.sizeIs <= 1, "more than 1 index file")
+              val ordered = docs
+                .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
+                .map(_.tail)
+              val rendered = ordered.zipWithIndex
+                .map { case ((n, p), i) =>
+                  md.render[t](i, n, p, theme)
+                }
+              val indexOpt =
+                indexes.headOption.map { case (_, n, p) =>
+                  md.render[i](-1, n, p, theme)
+                }
+              Some(name -> model.Docs[i, t](name, indexOpt, rendered))
+            case Some(doc: model.SiteMapSchema.DocSpec[t]) =>
+              given scalanotation.Reader[t] = doc.ev
+              val path = paths.head
+              val pName = path.baseName
+              Some(
+                name -> model
+                  .Doc[t](
+                    name,
+                    md.render[t](-1, pName, paths.head, theme)
+                  )
+              )
+            case _ => None
+        )
+        .toMap
     model.Site.read(statics.headOption, optFavicon, data)
 
   def renderSite(
@@ -427,82 +440,26 @@ object md:
   def parseDryRun(document: String, theme: model.Theme): Document =
     parser.parse(Templates.interpolateDefault(document, theme))
 
-  def render(
+  def render[T: scalanotation.Reader](
       index: Int,
       name: String,
       path: os.Path,
       theme: model.Theme
-  ): model.DocPage =
+  ): model.DocPage[T] =
     import org.virtuslab.yaml.*
-    def frontMatterError(msg: String) =
-      s"failed to read front matter of $path:$msg"
-    given Conversion[scalanotation.DecodeError, String] = err =>
-      frontMatterError(err.format)
+    def frontMatterError(msg: String): Nothing =
+      throw new Exception(s"failed to read front matter of $path:$msg")
     val rawText = os.read(path)
     val (rawSON, rawDoc) =
       rawText.match
-        case s"---\n```sc\n$son\n```\n---\n$rest" => (Some(son), rest)
-        case s"```sc\n$son\n```\n---\n$rest" => (Some(son), rest)
-        case _                               => (None, rawText)
+        case s"---\n```sc\n$son\n```\n---\n$rest" => (son, rest)
+        case s"```sc\n$son\n```\n---\n$rest"      => (son, rest)
+        case _ => frontMatterError(" no front matter found")
 
     val documentNoSplices = parseDryRun(rawDoc, theme)
-    val son: Result[scalanotation.Expr, String] = result {
-      val txt = rawSON match
-        case Some(value) => value
-        case None        => raise(frontMatterError(" no front matter found"))
-      Readers.readAs[scalanotation.Expr](txt).ok
-    }
-    // TODO: ugly rewrapping as List of strings - todo: rework representation of front matter.
-    // changed to virtuslab scala-yaml due to a superior parser.
-    val data: model.Dictionary = son match
-      case Result.Err(error) =>
-        throw new Exception(error)
-      case Result.Ok(data) =>
-        import scalanotation.Expr as e
-        data.asMatchable match
-          case m: e.NamedTupleExpr =>
-            def exprAsString(innerpath: String)(x: scalanotation.Expr): String = x match
-              case e.StringConstant(value) => value
-              case e.BooleanConstant(value) => value.toString()
-              case e.IntConstant(value) => value.toString()
-              case e.LongConstant(value) => value.toString()
-              case e.FloatConstant(value) => value.toString()
-              case e.DoubleConstant(value) => value.toString()
-              case e.CharConstant(value) => value.toString()
-              case e.NullConstant => ""
-              case e.NamedTupleExpr(_) =>
-                throw new Exception(frontMatterError(s" at path $innerpath, expected scalar, got ${x.render}"))
-              case e.VectorExpr(_) =>
-                throw new Exception(frontMatterError(s" at path $innerpath, expected scalar, got ${x.render}"))
-
-            model.Dictionary(m.elements.map {
-              case (name = k, value = vs) =>
-                if k.startsWith("is") then
-                  k -> (vs.match{
-                    case e.BooleanConstant(bool) => bool
-                    case _ => throw new Exception(frontMatterError(s" at path .$k, expected boolean, got $vs"))
-                  }: Boolean)
-                else if k.endsWith("ss") then
-                  k -> (vs.match {
-                    case vs1: e.VectorExpr =>
-                      vs1.elements.zipWithIndex.toList.map({
-                        case (vss1: e.VectorExpr, index) =>
-                          vss1.elements.zipWithIndex.toList.map({case (e, index2) => exprAsString(s".$k[$index][$index2]")(e)})
-                        case (_, index) => throw new Exception(frontMatterError(s" at path .$k[$index], expected vector, got ${vs.render}"))
-                      })
-                    case _ => throw new Exception(frontMatterError(s" at path .$k, expected vector, got ${vs.render}"))
-                  }: List[List[String]])
-                else if k.endsWith("s") then
-                  k -> (vs.match {
-                    case vs1: e.VectorExpr =>
-                      vs1.elements.zipWithIndex.toList.map({case (e, index) => exprAsString(s".$k[$index]")(e)})
-                    case _ => throw new Exception(frontMatterError(s" at path .$k, expected vector, got ${vs.render}"))
-                  }: List[String])
-                else
-                  k -> exprAsString(s".$k")(vs)
-            }.toMap)
-          case _ => throw new Exception(frontMatterError(s" Invalid front matter ${data.render}"))
-
+    val data: T = Readers.readAs[T](rawSON) match
+      case Result.Ok(value)  => value
+      case Result.Err(error) => frontMatterError(error.format)
     val (sample, wordCount, headings) =
       ContentSampler.sampleContent(documentNoSplices)
 
