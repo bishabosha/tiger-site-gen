@@ -83,6 +83,9 @@ object Context:
         type Theme__SiteMap[T <: NamedTuple.AnyNamedTuple] = Theme {
           type SiteMap = T
         }
+        type Theme__BaseType[T] = Theme {
+          type BaseType = T
+        }
 
       type SiteOfTheme[T <: Theme] = T match
         case Accessors.Theme__SiteMap[t] => t

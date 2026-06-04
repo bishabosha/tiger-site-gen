@@ -3,19 +3,24 @@ package model
 trait DictionaryTheme extends Theme:
   thisTheme =>
 
-  final def layoutFor[T](doc: model.DocPage[T]): Option[LayoutOf[T]] =
-    doc.frontMatter match
-      case d: model.Dictionary =>
-        Some(d.asInstanceOf[BuiltinFrontMatter].layout)
-          .filter(_.nonEmpty)
-          .map(layoutKey =>
-            metadata.layouts.selectDynamic(layoutKey).asInstanceOf[LayoutOf[T]]
-          )
-      case _ => None
+  final def layoutFor(
+      doc: model.DocPage.View[BaseType]
+  ): Option[LayoutOf[BaseType]] =
+    // TODO: Layout factory could capture a conforms, or we get rid of all this and
+    // set the layout on the collection directly
+    Some(doc.frontMatter.layout)
+      .filter(_.nonEmpty)
+      .map(layoutKey =>
+        metadata.layouts
+          .selectDynamic(layoutKey)
+          .asInstanceOf[LayoutOf[BaseType]]
+      )
 
   type BuiltinFrontMatter = Dictionary {
     val layout: String
   }
+
+  type BaseType = BuiltinFrontMatter
 
   final type DocCollectionOf[
       FMI <: BuiltinFrontMatter,

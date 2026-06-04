@@ -15,6 +15,23 @@ final case class DocPage[+Data](
     private[model] val idx: Int
 )
 
+object DocPage:
+  opaque type View[D] <: DocPage[D] = DocPage[D]
+  object View:
+    def apply[D](doc: DocPage[D]): View[D] = doc
+
+  trait Conforms[Data, BaseType]:
+    def toBase(doc: DocPage[Data]): View[BaseType]
+  object Conforms:
+    given [Data, BaseType](using ev: Data <:< BaseType): Conforms[
+      Data,
+      BaseType
+    ] with {
+      def toBase(doc: DocPage[Data]): View[BaseType] = View(
+        ev.liftCo(doc)
+      )
+    }
+
 sealed trait AnyDocCollection:
   def collName: String
   def willRender: Boolean

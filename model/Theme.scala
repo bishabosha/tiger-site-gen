@@ -19,14 +19,17 @@ trait Theme:
 
   type Extra
 
-  type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema
+  type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema.Of[BaseType]
 
-  final def siteMap: SiteMapSchema[SiteMap] = summon[SiteMapSchema[SiteMap]]
+  final def siteMap: SiteMapSchema[BaseType, SiteMap] =
+    summon[SiteMapSchema[BaseType, SiteMap]]
   def siteMapMeta: SiteMapMeta[SiteMap] = SiteMapMeta.default
 
   def extras(using SiteContext): Extra
 
-  def layoutFor[T](doc: model.DocPage[T]): Option[LayoutOf[T]]
+  type BaseType
+
+  def layoutFor(doc: model.DocPage.View[BaseType]): Option[LayoutOf[BaseType]]
 
   final type Context =
     model.Context.View[model.Context.ContextForTheme[this.type]]

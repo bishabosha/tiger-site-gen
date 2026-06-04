@@ -192,7 +192,7 @@ object paths:
               .filter(p => p.ext == "md" || p.ext == "html")
           val name = r.baseName
           theme.siteMap.get(name) match
-            case Some(doc: model.SiteMapSchema.DocsSpec[i, t]) =>
+            case Some(doc: model.SiteMapSchema.DocsSpec[b, i, t]) =>
               given scalanotation.Reader[i] = doc.evI
               given scalanotation.Reader[t] = doc.evA
               val triples = paths.map(p =>
@@ -213,7 +213,7 @@ object paths:
                   md.render[i](-1, n, p, theme)
                 }
               Some(name -> model.Docs[i, t](name, indexOpt, rendered))
-            case Some(doc: model.SiteMapSchema.DocSpec[t]) =>
+            case Some(doc: model.SiteMapSchema.DocSpec[b, t]) =>
               given scalanotation.Reader[t] = doc.ev
               val path = paths.head
               val pName = path.baseName
@@ -253,34 +253,43 @@ object paths:
       given model.AnyDocCollection = col
       os.makeDir.all(dest / col.collName)
       if theme.siteMapMeta.query(col.collName).isRoot then optRoots += col
-      for doc <- col do
-        theme.layoutFor(doc) match
-          case Some(layout) if changed.contains(doc.path) =>
-            val (subPage, usedDeps) = Templates.withDependencyCollection {
-              layout(doc)
+      theme.siteMap(col.collName) match
+        case spec: model.SiteMapSchema.DocsConforms[theme.BaseType, i0, d0] =>
+          for doc <- col do
+            val baseDoc =
+              spec.conformsA.toBase(doc.asInstanceOf[model.DocPage[d0]])
+            theme.layoutFor(baseDoc) match
+              case Some(layout) if changed.contains(doc.path) =>
+                val (subPage, usedDeps) = Templates.withDependencyCollection {
+                  layout(baseDoc)
+                }
+                os.write.over(
+                  dest / col.collName / sanatise.mdNameToHtml(doc.name),
+                  scalatags.Text.all.doctype("html")(subPage)
+                )
+                deps += (doc.path.relativeTo(curr).toString -> usedDeps)
+              case _ => // skip unchanged pages or those without a layout
+          end for
+          if changed.contains(col.index.path) then
+            val baseIndex =
+              spec.conformsI.toBase(col.index.asInstanceOf[model.DocPage[i0]])
+            val ilayout =
+              theme.layoutFor(baseIndex) match
+                case Some(layout) => layout
+                case None         =>
+                  throw AssertionError(
+                    s"index page ${col.index.path} must have a layout"
+                  )
+            val (indexPage, usedDeps) = Templates.withDependencyCollection {
+              ilayout(baseIndex)
             }
             os.write.over(
-              dest / col.collName / sanatise.mdNameToHtml(doc.name),
-              scalatags.Text.all.doctype("html")(subPage)
+              dest / col.collName / "index.html",
+              scalatags.Text.all.doctype("html")(indexPage)
             )
-            deps += (doc.path.relativeTo(curr).toString -> usedDeps)
-          case _ => // skip unchanged pages or those without a layout
-      end for
-      if changed.contains(col.index.path) then
-        val ilayout = theme.layoutFor(col.index) match
-          case Some(layout) => layout
-          case None         =>
-            throw AssertionError(
-              s"index page ${col.index.path} must have a layout"
-            )
-        val (indexPage, usedDeps) = Templates.withDependencyCollection {
-          ilayout(col.index)
-        }
-        os.write.over(
-          dest / col.collName / "index.html",
-          scalatags.Text.all.doctype("html")(indexPage)
-        )
-        deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
+            deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
+          end if
+      end match
     end for
     assert(optRoots.sizeIs <= 1, "more than one root")
     for rootCol <- optRoots.headOption do

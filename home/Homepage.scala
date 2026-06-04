@@ -31,22 +31,26 @@ object Homepage extends model.Theme:
 
   trait Extra
 
+  type BaseType = FrontMatter.About
+
   def extras(using SiteContext): Extra = new {}
 
   def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright
 
-  override def layoutFor[T](doc: DocPage[T]): Option[LayoutOf[T]] =
-    // TODO: as we only have one page, this works out, but surely we need a "base type" that
-    // we can cast on, or else for NT we can't test the type.
-    // or we need a way to dynamically test NT shapes?
-    doc.asInstanceOf[DocPage[FrontMatter.About]].frontMatter.layout match
-      case "home" =>
-        // also fields of objects aparently dont infer structural refinements,
-        // so only resort is selectDynamic and cast, so no typesafe way to tie the knot yet.
-        Some(metadata.layouts.selectDynamic("home").asInstanceOf[LayoutOf[T]])
-      case _ => None
+  override def layoutFor(
+      doc: DocPage.View[BaseType]
+  ): Option[LayoutOf[BaseType]] =
+    if doc.frontMatter.layout == "home" then
+      // also fields of objects aparently dont infer structural refinements,
+      // so only resort is selectDynamic and cast, so no typesafe way to tie the knot yet.
+      Some(
+        metadata.layouts
+          .selectDynamic("home")
+          .asInstanceOf[LayoutOf[FrontMatter.About]]
+      )
+    else None
 
   case class Links(
       text: String,
