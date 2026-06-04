@@ -5,7 +5,10 @@ import model.SiteMapSchema.auto.given
 import model.SiteMapMeta
 import model.Doc
 import model.DocPage
+import model.Record
 import steps.result.Result
+
+import scalanotation.Reader.skippable.ofFields
 
 object Homepage extends model.Theme:
   val metadata = new:
@@ -19,36 +22,38 @@ object Homepage extends model.Theme:
     SiteMapMeta.default.about(_.setAsRoot)
 
   object FrontMatter:
-    final type About = (
-        layout: String,
-        title: String,
-        name: String,
-        copyright: String,
-        description: String,
-        avatar: String,
-        linkss: List[Links]
-    )
+    final type About = Record[
+      (
+          layout: Option[String],
+          title: String,
+          name: String,
+          copyright: String,
+          description: String,
+          avatar: String,
+          linkss: List[Links]
+      )
+    ]
 
   trait Extra
 
-  type BaseType = FrontMatter.About
+  type BaseType = Record[(layout: Option[String])]
 
   def extras(using SiteContext): Extra = new {}
 
-  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
+  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.live.name
   def copyright(using Context): String =
-    ctx.site.about.index.frontMatter.copyright
+    ctx.site.about.index.frontMatter.live.copyright
 
   override def layoutFor(
       doc: DocPage.View[BaseType]
   ): Option[LayoutOf[BaseType]] =
-    if doc.frontMatter.layout == "home" then
+    if doc.frontMatter.live.layout.getOrElse("") == "home" then
       // also fields of objects aparently dont infer structural refinements,
       // so only resort is selectDynamic and cast, so no typesafe way to tie the knot yet.
       Some(
         metadata.layouts
           .selectDynamic("home")
-          .asInstanceOf[LayoutOf[FrontMatter.About]]
+          .asInstanceOf[LayoutOf[BaseType]]
       )
     else None
 

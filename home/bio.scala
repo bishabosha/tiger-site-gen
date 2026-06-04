@@ -21,15 +21,15 @@ def bio(
           div(
             cls := "bio-photo",
             img(
-              src := me.frontMatter.avatar,
-              alt := s"photo of ${me.frontMatter.name}",
+              src := me.frontMatter.live.avatar,
+              alt := s"photo of ${me.frontMatter.live.name}",
               cls := "img-avatar"
             )
           )
         ),
         td(
           cls := "bio-right",
-          p(span(cls := "bio-name", me.frontMatter.copyright))
+          p(span(cls := "bio-name", me.frontMatter.live.copyright))
         )
       )
     ),
@@ -39,7 +39,8 @@ def bio(
     // ),
     ul(
       cls := "list-inline",
-      (for case Links(linkText, kind, iconCls, link) <- me.frontMatter.linkss
+      (for case Links(linkText, kind, iconCls, link) <-
+          me.frontMatter.live.linkss
       yield li(
         cls := "list-inline-item",
         p(
