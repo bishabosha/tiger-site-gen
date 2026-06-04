@@ -4,10 +4,11 @@ import scalatags.Text.all.*
 import scalatags.Text.tags2.article
 
 import model.ctx
+import model.Layout
 
 import Breeze.*
 
-val articleLayout = Layout[FrontMatter.Article]: doc =>
+val articleLayout = model.Layout[Breeze.Context, FrontMatter.Article]: doc =>
   val (prev, next) =
     ctx.site.articles.prevNext(doc).swap // articles is in reverse order
   val articleNav = (

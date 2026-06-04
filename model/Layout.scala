@@ -6,6 +6,11 @@ import scalatags.Text.RawFrag
 type Layout[C <: model.Context, D <: DocPage[?]] =
   D => C ?=> ConcreteHtmlTag[String] | RawFrag
 
+object Layout:
+  def apply[Ctx <: Context, Data](
+      layout: Layout[Ctx, model.DocPage[Data]]
+  ): layout.type = layout
+
 class Layouts extends Selectable:
   outer =>
 

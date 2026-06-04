@@ -1,10 +1,15 @@
 package breezeSite
 
-import breezeSite.Breeze.Context
-import model.ctx
+import breezeSite.Breeze.SiteContext
+import model.sctx
 import model.AnyDocCollection
 
-trait NavExtra(using Context) extends breeze.Breeze.Extra:
+trait NavExtra(using SiteContext) extends breeze.Breeze.Extra:
 
   override def nav: List[AnyDocCollection] =
-    List(ctx.site.about, ctx.site.articles, ctx.site.projects, ctx.site.talks)
+    List(
+      sctx.site.about,
+      sctx.site.articles,
+      sctx.site.projects,
+      sctx.site.talks
+    )

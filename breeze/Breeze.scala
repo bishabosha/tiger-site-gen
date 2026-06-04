@@ -1,6 +1,7 @@
 package breeze
 
 import model.ctx
+import model.sctx
 import model.TemplateFunction
 import model.AnyDocCollection
 
@@ -57,12 +58,12 @@ object Breeze extends model.DictionaryTheme:
       val published: String
     }
 
-  trait Extra(using Context):
-    def nav: List[AnyDocCollection] = List(ctx.site.about, ctx.site.articles)
+  trait Extra(using SiteContext):
+    def nav: List[AnyDocCollection] = List(sctx.site.about, sctx.site.articles)
     val extraHead: Seq[scalatags.Text.all.Modifier]
     val extraFoot: Seq[scalatags.Text.all.Modifier]
 
-  def extras(using Context, model.Context.InMakeCtx): Extra = new {
+  def extras(using SiteContext): Extra = new {
     val extraHead = Seq.empty
     val extraFoot = Seq.empty
   }

@@ -1,7 +1,6 @@
 package home
 
 import model.ctx
-import model.Context.InMakeCtx
 import model.SiteMapSchema.auto.given
 import model.SiteMapMeta
 
@@ -28,7 +27,7 @@ object Homepage extends model.DictionaryTheme:
 
   trait Extra
 
-  def extras(using Context, InMakeCtx): Extra = new {}
+  def extras(using SiteContext): Extra = new {}
 
   def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =

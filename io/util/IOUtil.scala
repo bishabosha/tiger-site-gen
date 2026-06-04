@@ -30,6 +30,7 @@ import com.vladsch.flexmark.ast.Heading
 
 import model.curr
 import model.ctx
+import model.sctx
 import scala.collection.mutable
 import model.Context
 import io.util.md.readDate
@@ -75,10 +76,10 @@ object paths:
     val hashedName = s"${path.baseName}_$hashedSuffix.${path.ext}"
     (path / os.up / hashedName)
 
-  def resolveStaticAsset(relURL: String)(using model.Context): String =
+  def resolveStaticAsset(relURL: String)(using model.SiteContext): String =
     relURL match
       case s"/static/$rest" =>
-        ctx.site.optStatic match
+        sctx.site.optStatic match
           case Some(static) =>
             val path = os.Path(rest, static)
             // Record dependency on this static asset for the current page render, if enabled
@@ -268,7 +269,7 @@ object paths:
       if changed.contains(col.index.path) then
         val ilayout = theme.layoutFor(col.index) match
           case Some(layout) => layout
-          case None =>
+          case None         =>
             throw AssertionError(
               s"index page ${col.index.path} must have a layout"
             )
