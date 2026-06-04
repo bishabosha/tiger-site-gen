@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Taste the Difference with Scala 3",
   subtitle = "f(by) Jan 2020, Minsk Belarus",

@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "article",
   title = "Making ScalaSql boring again (with interesting new internals)",

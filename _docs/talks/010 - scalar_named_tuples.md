@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Going Structural with Named Tuples",
   subtitle = "Scalar Mar 2025, Warsaw Poland",

@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Effective Match Types",
   subtitle = "Scala Days Aug 2025, Lausanne Switzerland",

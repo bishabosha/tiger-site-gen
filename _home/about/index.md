@@ -1,7 +1,6 @@
-```sc
+```scala
 (
   layout = "home",
-  isRoot = true,
   title = "About",
   name = "Jamie Thompson",
   copyright = "Jamie Thompson",
@@ -21,7 +20,7 @@
 ---
 I am a software engineer with 8 years experience in building business applications and developer tooling, including compilers and programming language design. Currently at [Elevatic Software](https://www.elevatic.com/) as a Senior Software Engineer.
 
-I am also working on improving the standard library and related core modules for the Scala programming language, as part of a project funded by the Sovereign Tech Agency. I am very interested in how people interact with technology. I believe that programming language design is critical as it is one of the key interfaces where intent and reality meet. 
+I am also working on improving the standard library and related core modules for the Scala programming language, as part of a project funded by the Sovereign Tech Agency. I am very interested in how people interact with technology. I believe that programming language design is critical as it is one of the key interfaces where intent and reality meet.
 
 **Freelancing**
 

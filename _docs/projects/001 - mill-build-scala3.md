@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "project",
   title = "Port Mill build.sc files to Scala 3",

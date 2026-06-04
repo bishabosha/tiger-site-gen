@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "article",
   title = "Understanding Match Types in Scala 3",

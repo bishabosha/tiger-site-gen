@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "project",
   title = "Add method unrolling to Scala 3",

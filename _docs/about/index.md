@@ -1,7 +1,6 @@
-```sc
+```scala
 (
   layout = "about",
-  isRoot = true,
   title = "About",
   name = "bishabosha",
   copyright = "Jamie Thompson",

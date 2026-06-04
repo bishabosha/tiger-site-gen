@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "article",
   title = "Coding with Pizza in 2024",
