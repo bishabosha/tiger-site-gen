@@ -3,6 +3,66 @@ package model
 import NamedTuple.AnyNamedTuple
 import NamedTuple.NamedTuple
 
+// type SiteConforms[BaseData] = [T <: AnyNamedTuple] =>> SiteConformsProof[BaseData, T]
+// sealed trait SiteConformsProof[Bound, T <: AnyNamedTuple]
+// object SiteConformsProof:
+//   sealed trait DataConforms[Bound]
+//   trait DocConforms[Bound, A] extends DataConforms[Bound]
+//   sealed trait DocsConforms[Bound, I, A] extends DataConforms[Bound]
+//   object DocsConforms:
+//     given double: [Bound, I, A] => (DocConforms[Bound, I], DocConforms[Bound, A]) => DocsConforms[Bound, I, A]()
+
+//   type DocColToConforms[Bound, T] <: DataConforms[Bound] = T match
+//     case model.Doc[a] => DocConforms[Bound, a]
+//     case model.Docs[i, a] => DocsConforms[Bound, i, a]
+
+//   object ProofEv extends SiteConformsProof[Any, AnyNamedTuple]
+
+//   sealed trait ProofNeeded[Bound, T <: AnyNamedTuple]
+//   object ProofNeeded:
+//     given empty[Bound]: ProofNeeded[Bound, NamedTuple.Empty]()
+//     inline given nonEmpty[Bound, K <: String, Ks <: Tuple, V, Tail <: Tuple](using
+//         ProofNeeded[Bound, NamedTuple[Ks, Tail]],
+//         DocColToConforms[Bound, V]
+//     ): ProofNeeded[Bound, NamedTuple[K *: Ks, V *: Tail]]()
+
+//   inline given proof: [Bound, NT <: AnyNamedTuple: SiteMapSchema]
+//     => ProofNeeded[Bound, NT]
+//     => SiteConformsProof[Bound, NT] = ProofEv.asInstanceOf[SiteConformsProof[Bound, NT]]
+
+sealed trait SiteMapMeta[T <: AnyNamedTuple] extends Selectable:
+  type Fields = NamedTuple.Map[T, [_] =>> (SiteMapMeta.Data => SiteMapMeta.Data) => SiteMapMeta[T]]
+  def update(name: String)(in: SiteMapMeta.Data => SiteMapMeta.Data): SiteMapMeta[T]
+  def query(name: String): SiteMapMeta.Data
+  final def selectDynamic(name: String): (SiteMapMeta.Data => SiteMapMeta.Data) => SiteMapMeta[T] =
+    update(name)
+
+object SiteMapMeta:
+  private class RawMeta[T <: AnyNamedTuple] private[SiteMapMeta] (data: Map[String, Data]) extends SiteMapMeta[T]:
+    def query(name: String): Data = data.getOrElse(name, emptyData)
+    def update(name: String)(in: Data => Data): SiteMapMeta[T] =
+      RawMeta(data.updatedWith(name) {
+        case Some(d) => Some(in(d))
+        case None => Some(in(emptyData))
+      })
+
+  private val Default: SiteMapMeta[AnyNamedTuple] = new RawMeta[AnyNamedTuple](Map.empty)
+
+  def default[T <: AnyNamedTuple: SiteMapSchema]: SiteMapMeta[T] =
+    Default.asInstanceOf[SiteMapMeta[T]]
+
+  private val emptyData: Data = new:
+    def isRoot: Boolean = false
+    def setAsRoot: Data = rootData
+
+  private val rootData: Data = new:
+    def isRoot: Boolean = true
+    def setAsRoot: Data = this
+
+  sealed trait Data:
+    def isRoot: Boolean
+    def setAsRoot: Data
+
 sealed trait SiteMapSchema[T <: AnyNamedTuple] extends Selectable:
   type Fields = NamedTuple.Map[T, SiteMapSchema.DocColToSchema]
   def get(name: String): Option[SiteMapSchema.CollectionSpec]
@@ -74,12 +134,14 @@ final class Site[T <: AnyNamedTuple] private (
   def allDocs: Iterable[DocCollection[?, ?]] = data.values
 
 object Site:
-  type CompatiblePrefix[T <: AnyNamedTuple, U <: AnyNamedTuple] =
-    NamedTuple.Take[T, ToTake[NamedTuple.Names[T], NamedTuple.Names[U], 0]]
+  type IsSubPrefix[This <: AnyNamedTuple, That <: AnyNamedTuple] =
+    CompatiblePrefix[This, That] =:= That
+  type CompatiblePrefix[This <: AnyNamedTuple, That <: AnyNamedTuple] =
+    NamedTuple.Take[This, PrefixLength[NamedTuple.Names[This], NamedTuple.Names[That], 0]]
 
-  type ToTake[T <: Tuple, U <: Tuple, Acc <: Int] <: Int = (T, U) match
+  type PrefixLength[T <: Tuple, U <: Tuple, Acc <: Int] <: Int = (T, U) match
     case (t *: ts, u *: us) => compiletime.ops.any.==[t, u] match
-      case true => ToTake[ts, us, compiletime.ops.int.S[Acc]]
+      case true => PrefixLength[ts, us, compiletime.ops.int.S[Acc]]
       case false => Acc
     case _ => Acc
 

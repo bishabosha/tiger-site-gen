@@ -4,9 +4,10 @@ import model.ctx
 import model.TemplateFunction
 import model.AnyDocCollection
 
+import model.SiteMapMeta
 import model.SiteMapSchema.auto.given
 
-object Breeze extends model.Theme:
+object Breeze extends model.DictionaryTheme:
 
   val metadata = new {
     val name = "Breeze"
@@ -30,6 +31,8 @@ object Breeze extends model.Theme:
       about: DocOf[FrontMatter.About],
       articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
   )
+  override val siteMapMeta: SiteMapMeta[SiteMap] =
+    SiteMapMeta.default.about(_.setAsRoot)
 
   object FrontMatter:
     final type BasePage = BuiltinFrontMatter {

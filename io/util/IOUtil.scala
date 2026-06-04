@@ -247,26 +247,33 @@ object paths:
     val activeCols = ctx.site.allDocs.collect {
       case col if col.willRender => col
     }
-    var optRoots = Set.empty[theme.BaseDocCollection]
+    var optRoots = Set.empty[model.AnyDocCollection]
     for col <- activeCols do
-      given theme.BaseDocCollection = col
+      given model.AnyDocCollection = col
       os.makeDir.all(dest / col.collName)
-      if col.index.frontMatter.isRoot then optRoots += col
+      if theme.siteMapMeta.query(col.collName).isRoot then optRoots += col
       for doc <- col do
-        if doc.frontMatter.layout.nonEmpty && changed.contains(doc.path) then
-          val (subPage, usedDeps) = Templates.withDependencyCollection {
-            theme.metadata.layouts(doc.frontMatter.layout)(doc)
-          }
-          os.write.over(
-            dest / col.collName / sanatise.mdNameToHtml(doc.name),
-            scalatags.Text.all.doctype("html")(subPage)
-          )
-          deps += (doc.path.relativeTo(curr).toString -> usedDeps)
+        theme.layoutFor(doc) match
+          case Some(layout) if changed.contains(doc.path) =>
+            val (subPage, usedDeps) = Templates.withDependencyCollection {
+              layout(doc)
+            }
+            os.write.over(
+              dest / col.collName / sanatise.mdNameToHtml(doc.name),
+              scalatags.Text.all.doctype("html")(subPage)
+            )
+            deps += (doc.path.relativeTo(curr).toString -> usedDeps)
+          case _ => // skip unchanged pages or those without a layout
       end for
       if changed.contains(col.index.path) then
-        require(col.index.frontMatter.layout.nonEmpty, "index layout required")
+        val ilayout = theme.layoutFor(col.index) match
+          case Some(layout) => layout
+          case None =>
+            throw AssertionError(
+              s"index page ${col.index.path} must have a layout"
+            )
         val (indexPage, usedDeps) = Templates.withDependencyCollection {
-          theme.metadata.layouts(col.index.frontMatter.layout)(col.index)
+          ilayout(col.index)
         }
         os.write.over(
           dest / col.collName / "index.html",
@@ -452,8 +459,8 @@ object md:
     val rawText = os.read(path)
     val (rawSON, rawDoc) =
       rawText.match
-        case s"---\n```sc\n$son\n```\n---\n$rest" => (son, rest)
-        case s"```sc\n$son\n```\n---\n$rest"      => (son, rest)
+        case s"---\n```scala\n$son\n```\n---\n$rest" => (son, rest)
+        case s"```scala\n$son\n```\n---\n$rest"      => (son, rest)
         case _ => frontMatterError(" no front matter found")
 
     val documentNoSplices = parseDryRun(rawDoc, theme)

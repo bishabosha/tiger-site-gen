@@ -1,19 +1,22 @@
 package home
 
-import model.Theme
 import model.ctx
 import model.Context.InMakeCtx
 import model.SiteMapSchema.auto.given
+import model.SiteMapMeta
 
 val m = Homepage.siteMap
 
-object Homepage extends Theme:
+object Homepage extends model.DictionaryTheme:
   val metadata = new:
     val name = "Homepage"
     val layouts = new:
       val home = homeLayout
 
   type SiteMap = (about: DocOf[FrontMatter.About])
+
+  override val siteMapMeta: SiteMapMeta[SiteMap] =
+    SiteMapMeta.default.about(_.setAsRoot)
 
   object FrontMatter:
     final type About = BuiltinFrontMatter {

@@ -6,8 +6,9 @@ import breeze.Breeze as parent
 import model.TemplateFunction
 import model.SiteMapSchema.auto.given
 import model.SiteMapSchema.&++
+import model.SiteMapMeta
 
-object Breeze extends model.Theme:
+object Breeze extends model.DictionaryTheme:
 
   val metadata = new:
     val name = parent.metadata.name
@@ -35,6 +36,9 @@ object Breeze extends model.Theme:
     projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],
     `match-type-simulator`: DocOf[FrontMatter.Raw]
   )
+  // todo: copy from parent
+  override val siteMapMeta: SiteMapMeta[SiteMap] =
+    SiteMapMeta.default.about(_.setAsRoot)
 
   override type Extra = parent.Extra & breezeSite.Extra
   override def extras(using
