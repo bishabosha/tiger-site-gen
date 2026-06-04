@@ -3,27 +3,31 @@ package home
 import model.ctx
 import model.SiteMapSchema.auto.given
 import model.SiteMapMeta
+import model.Doc
+import model.DocPage
+import steps.result.Result
 
-val m = Homepage.siteMap
-
-object Homepage extends model.DictionaryTheme:
+object Homepage extends model.Theme:
   val metadata = new:
     val name = "Homepage"
-    val layouts = new:
+    val layouts = new model.Layouts:
       val home = homeLayout
 
-  type SiteMap = (about: DocOf[FrontMatter.About])
+  type SiteMap = (about: Doc[FrontMatter.About])
 
   override val siteMapMeta: SiteMapMeta[SiteMap] =
     SiteMapMeta.default.about(_.setAsRoot)
 
   object FrontMatter:
-    final type About = BuiltinFrontMatter {
-      val avatar: String
-      val linkss: List[List[String]]
-      val name: String
-      val copyright: String
-    }
+    final type About = (
+        layout: String,
+        title: String,
+        name: String,
+        copyright: String,
+        description: String,
+        avatar: String,
+        linkss: List[Links]
+    )
 
   trait Extra
 
@@ -32,3 +36,34 @@ object Homepage extends model.DictionaryTheme:
   def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright
+
+  override def layoutFor[T](doc: DocPage[T]): Option[LayoutOf[T]] =
+    // TODO: as we only have one page, this works out, but surely we need a "base type" that
+    // we can cast on, or else for NT we can't test the type.
+    // or we need a way to dynamically test NT shapes?
+    doc.asInstanceOf[DocPage[FrontMatter.About]].frontMatter.layout match
+      case "home" =>
+        // also fields of objects aparently dont infer structural refinements,
+        // so only resort is selectDynamic and cast, so no typesafe way to tie the knot yet.
+        Some(metadata.layouts.selectDynamic("home").asInstanceOf[LayoutOf[T]])
+      case _ => None
+
+  case class Links(
+      text: String,
+      kind: Option[String],
+      iconCls: String,
+      link: String
+  )
+  given scalanotation.Reader[Links] =
+    summon[scalanotation.Reader[Vector[Option[String]]]].mapResult { vec =>
+      // TODO: it would be nicer to support tuple syntax directly
+      vec match
+        case Vector(Some(text), kind, Some(iconCls), Some(link)) =>
+          Result.Ok(Links(text, kind, iconCls, link))
+        case _ =>
+          Result.Err(
+            scalanotation.DecodeError.Custom(
+              s"Expected a list of 4 items: text, optional kind, icon class, and link"
+            )
+          )
+    }
