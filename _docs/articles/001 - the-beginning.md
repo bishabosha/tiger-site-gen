@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "article",
   title = "How to write a website generator in Scala, Part 1",

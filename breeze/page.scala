@@ -3,6 +3,7 @@ package breeze
 import scalatags.Text.all.*
 
 import model.ctx
+import model.AnyDocCollection
 import Breeze.*
 
 object page:
@@ -51,7 +52,7 @@ object page:
 
   final case class NavBar(brand: String, links: Seq[NavLink])
 
-  private def siteNav(col: BaseDocCollection)(using Context) = NavBar(
+  private def siteNav(col: AnyDocCollection)(using Context) = NavBar(
     brand = s"$whoAmI",
     links = ctx.extra.nav
       .filter(_.willRender)
@@ -66,11 +67,9 @@ object page:
 
   private val (year, today) = io.util.md.renderNow()
 
-  def wrap(using
-      Context
-  )(
+  def wrap(using Context)(
       page: DocPageOf[FrontMatter.BasePage],
-      col: BaseDocCollection,
+      col: AnyDocCollection,
       title: String
   )(
       pageContent: scalatags.Text.Modifier*

@@ -3,8 +3,13 @@ package model
 import scalatags.Text.all.ConcreteHtmlTag
 import scalatags.Text.RawFrag
 
-type Layout[C <: model.Context, D <: DocPage] =
+type Layout[C <: model.Context, D <: DocPage[?]] =
   D => C ?=> ConcreteHtmlTag[String] | RawFrag
+
+object Layout:
+  def apply[Ctx <: Context, Data](
+      layout: Layout[Ctx, model.DocPage[Data]]
+  ): layout.type = layout
 
 class Layouts extends Selectable:
   outer =>
@@ -14,17 +19,15 @@ class Layouts extends Selectable:
 
   def apply[
       C <: model.Context,
-      DI <: DocPage,
-      D <: DocPage,
-      DC <: DocCollection[DI, D]
+      DC <: DocCollection[?, ?]
   ](
       name: String
-  )(doc: D)(using
+  )(doc: DocPage[?])(using
       C,
       DC
   ): ConcreteHtmlTag[String] | RawFrag =
     val layout =
-      try selectDynamic(name).asInstanceOf[Layout[C, D]]
+      try selectDynamic(name).asInstanceOf[Layout[C, DocPage[?]]]
       catch
         case err =>
           throw new Exception(

@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "article",
   title = "Enhanced Simple Parsing for Scala",

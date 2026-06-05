@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Immutable Data - Your Next Superpower",
   subtitle = "Let's Talk About Scala 3",

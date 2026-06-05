@@ -1,9 +1,14 @@
 package breeze
 
 import model.ctx
+import model.sctx
 import model.TemplateFunction
+import model.AnyDocCollection
 
-object Breeze extends model.Theme:
+import model.SiteMapMeta
+import model.SiteMapSchema.auto.given
+
+object Breeze extends model.DictionaryTheme:
 
   val metadata = new {
     val name = "Breeze"
@@ -23,10 +28,12 @@ object Breeze extends model.Theme:
       cls => s"""<i class="fa-regular $cls"></i>"""
     )
 
-  type Site = model.Site {
-    val about: DocOf[FrontMatter.About]
-    val articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
-  }
+  type SiteMap = (
+      about: DocOf[FrontMatter.About],
+      articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
+  )
+  override val siteMapMeta: SiteMapMeta[SiteMap] =
+    SiteMapMeta.default.about(_.setAsRoot)
 
   object FrontMatter:
     final type BasePage = BuiltinFrontMatter {
@@ -51,16 +58,17 @@ object Breeze extends model.Theme:
       val published: String
     }
 
-  trait Extra(using Context):
-    def nav: List[BaseDocCollection] = List(ctx.site.about, ctx.site.articles)
+  trait Extra(using SiteContext):
+    def nav: List[AnyDocCollection] = List(sctx.site.about, sctx.site.articles)
     val extraHead: Seq[scalatags.Text.all.Modifier]
     val extraFoot: Seq[scalatags.Text.all.Modifier]
 
-  def extras(using Context, model.Context.InMakeCtx): Extra = new {
+  def extras(using SiteContext): Extra = new {
     val extraHead = Seq.empty
     val extraFoot = Seq.empty
   }
 
-  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
+  def whoAmI(using Context): String =
+    ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright

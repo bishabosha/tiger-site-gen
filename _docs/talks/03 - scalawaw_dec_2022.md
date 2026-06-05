@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Contributing to Scala",
   subtitle = "ScalaWAW Dec 2022, Warsaw Poland",

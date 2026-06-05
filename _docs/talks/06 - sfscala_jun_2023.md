@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Adding multi-project builds to Scala CLI",
   subtitle = "SF Scala Jun 2023, San Francisco USA",

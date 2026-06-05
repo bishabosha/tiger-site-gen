@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Mirrors for Operations, not Data",
   subtitle = "Scalar Conf Mar 2024, Warsaw Poland",

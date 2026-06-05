@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "How do we optimise Scala Build times?",
   subtitle = "Func Prog Sweden Feb 2024, Online",

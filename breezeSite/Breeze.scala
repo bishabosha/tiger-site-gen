@@ -4,8 +4,11 @@ import model.ctx
 
 import breeze.Breeze as parent
 import model.TemplateFunction
+import model.SiteMapSchema.auto.given
+import model.SiteMapSchema.&++
+import model.SiteMapMeta
 
-object Breeze extends model.Theme:
+object Breeze extends model.DictionaryTheme:
 
   val metadata = new:
     val name = parent.metadata.name
@@ -18,27 +21,30 @@ object Breeze extends model.Theme:
 
   override val templates = parent.templates & new model.TemplateFunctions:
     val `match-sim-embed` = TemplateFunction(
-      args => args match
-        case s"""$size "$query"""" =>
-          val height = if size == "S" then "400px" else size
-          s"""<iframe src="/match-type-simulator/$query&stamp=${io.util.Templates.stamp}" width="100%" height="$height"></iframe>"""
-        case _ =>
-          throw new Exception(s"Invalid match-sim-embed template arguments: $args"),
+      args =>
+        args match
+          case s"""$size "$query"""" =>
+            val height = if size == "S" then "400px" else size
+            s"""<iframe src="/match-type-simulator/$query&stamp=${io.util.Templates.stamp}" width="100%" height="$height"></iframe>"""
+          case _ =>
+            throw new Exception(
+              s"Invalid match-sim-embed template arguments: $args"
+            ),
       _ => """<div></div>"""
     )
 
-  type Site = parent.Site & {
-    val talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk]
-    val videos: DocsOf[FrontMatter.Videos, FrontMatter.Video]
-    val projects: DocsOf[FrontMatter.Projects, FrontMatter.Project]
-    val `match-type-simulator`: DocOf[FrontMatter.Raw]
-  }
+  type SiteMap = parent.SiteMap &++ (
+      talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk],
+      videos: DocsOf[FrontMatter.Videos, FrontMatter.Video],
+      projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],
+      `match-type-simulator`: DocOf[FrontMatter.Raw]
+  )
+  // todo: copy from parent
+  override val siteMapMeta: SiteMapMeta[SiteMap] =
+    SiteMapMeta.default.about(_.setAsRoot)
 
   override type Extra = parent.Extra & breezeSite.Extra
-  override def extras(using
-      Context,
-      model.Context.InMakeCtx
-  ): breezeSite.Extra = new {}
+  override def extras(using SiteContext): breezeSite.Extra = new {}
 
   object FrontMatter:
     export parent.FrontMatter.*

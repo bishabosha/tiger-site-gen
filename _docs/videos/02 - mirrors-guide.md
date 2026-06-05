@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "How Does the Scala Compiler Give You a Mirror?",
   subtitle = "Scala Compiler Academy",

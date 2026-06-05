@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Pick any Card - Write Better Data Structures with Scala",
   subtitle = "Let's Talk About Scala 3",

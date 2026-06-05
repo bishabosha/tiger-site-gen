@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Mill Builds with Scala 3",
   subtitle = "Scala.io Nov 2024, Paris France",

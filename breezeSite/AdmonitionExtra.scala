@@ -2,17 +2,17 @@ package breezeSite
 
 import scalatags.Text.all.*
 import scalatags.Text.all
-import model.Context
+import model.SiteContext
 
 trait AdmonitionExtra extends breeze.Breeze.Extra:
-  def admonitionStyle(using Context) = link(
+  def admonitionStyle(using SiteContext) = link(
     rel := "stylesheet",
     href := io.util.paths.resolveStaticAsset("/static/css/admonition.css")
   )
-  def admonitionScript(using Context) = script(
+  def admonitionScript(using SiteContext) = script(
     src := io.util.paths.resolveStaticAsset("/static/js/admonition.js"),
     tpe := "text/javascript"
   )
 
-  def admonitionHead(using Context) = Seq(admonitionStyle)
-  def admonitionFoot(using Context) = Seq(admonitionScript)
+  def admonitionHead(using SiteContext) = Seq(admonitionStyle)
+  def admonitionFoot(using SiteContext) = Seq(admonitionScript)

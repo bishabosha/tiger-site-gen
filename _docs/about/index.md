@@ -1,14 +1,13 @@
-```sc
+```scala
 (
   layout = "about",
-  isRoot = true,
   title = "About",
   name = "bishabosha",
   copyright = "Jamie Thompson",
   description = "Homepage of Jamie Thompson (@bishabosha)",
   avatar = "/static/img/jamie_thompson_profile.png",
   linkss = Vector(
-    Vector("E-Mail",null,"fa-solid fa-envelope","mailto:jamie.thompson@bath.edu"),
+    Vector("E-Mail","","fa-solid fa-envelope","mailto:jamie.thompson@bath.edu"),
     Vector("GitHub","social","fa-brands fa-github","https://github.com/bishabosha"),
     Vector("Twitter","social","fa-brands fa-twitter","https://x.com/bishabosha"),
     Vector("LinkedIn","social","fa-brands fa-linkedin","https://www.linkedin.com/in/james-richard-thompson/"),

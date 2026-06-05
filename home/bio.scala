@@ -3,9 +3,10 @@ package home
 import scalatags.Text.all.*
 
 import Homepage.*
+import model.DocPage
 
 def bio(
-    me: DocPageOf[FrontMatter.About],
+    me: DocPage[FrontMatter.About],
     hideable: Boolean,
     collapsable: Boolean
 )(using
@@ -20,15 +21,15 @@ def bio(
           div(
             cls := "bio-photo",
             img(
-              src := me.frontMatter.avatar,
-              alt := s"photo of ${me.frontMatter.name}",
+              src := me.frontMatter.live.avatar,
+              alt := s"photo of ${me.frontMatter.live.name}",
               cls := "img-avatar"
             )
           )
         ),
         td(
           cls := "bio-right",
-          p(span(cls := "bio-name", me.frontMatter.copyright))
+          p(span(cls := "bio-name", me.frontMatter.live.copyright))
         )
       )
     ),
@@ -38,7 +39,8 @@ def bio(
     // ),
     ul(
       cls := "list-inline",
-      (for case List(linkText, kind, iconCls, link) <- me.frontMatter.linkss
+      (for case Links(linkText, kind, iconCls, link) <-
+          me.frontMatter.live.linkss
       yield li(
         cls := "list-inline-item",
         p(
@@ -47,7 +49,7 @@ def bio(
             a(
               href := link,
               cls := "bio-link",
-              Option.when(kind == "social")(rel := "me"),
+              Option.when(kind.contains("social"))(rel := "me"),
               i(cls := s"${iconCls} fa-lg"),
               br(),
               linkText

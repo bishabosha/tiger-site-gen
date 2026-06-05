@@ -3,7 +3,7 @@ package breezeSite
 import scalatags.Text.all.*
 import scalatags.Text.all
 
-import model.Context
+import model.SiteContext
 
 trait HljsExtra extends breeze.Breeze.Extra:
   val hljsStyle = link(
@@ -14,14 +14,14 @@ trait HljsExtra extends breeze.Breeze.Extra:
     src := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js",
     tpe := "text/javascript"
   )
-  def hljsScala(using Context) = script(
+  def hljsScala(using SiteContext) = script(
     src := io.util.paths.resolveStaticAsset("/static/js/hljs-scala3.js"),
     tpe := "text/javascript"
   )
-  def hljsAll(using Context) = script(
+  def hljsAll(using SiteContext) = script(
     src := io.util.paths.resolveStaticAsset("/static/js/hljs.js"),
     tpe := "text/javascript"
   )
 
   val hljsHead = Seq(hljsStyle)
-  def hljsFoot(using Context) = Seq(hljsScript, hljsScala, hljsAll)
+  def hljsFoot(using SiteContext) = Seq(hljsScript, hljsScala, hljsAll)

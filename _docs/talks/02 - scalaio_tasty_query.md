@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Discover TASTy Query",
   subtitle = "ScalaIO Nov 2022, Paris France",

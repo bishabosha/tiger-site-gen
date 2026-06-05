@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "Optimising Scala 3 build times",
   subtitle = "Scala Matsuri Jun 2024, Tokyo Japan",

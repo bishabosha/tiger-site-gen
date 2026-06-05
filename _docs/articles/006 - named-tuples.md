@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   layout = "article",
   title = "Scala's New Named Tuples: why you should embrace structural types",

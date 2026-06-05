@@ -1,4 +1,4 @@
-```sc
+```scala
 (
   title = "How does incremental compilation work with Scala 3?",
   subtitle = "Scala Days Jun 2023, Seattle USA",

@@ -6,7 +6,7 @@ import model.ctx
 
 import Homepage.*
 
-val homeLayout = Layout[FrontMatter.About]: doc =>
+val homeLayout = model.Layout[Homepage.Context, FrontMatter.About]: doc =>
   basicPage(title = s"About | $whoAmI")(
     div(
       cls := "container",

@@ -4,5 +4,5 @@ import scalatags.Text.all.raw
 
 import Breeze.*
 
-val rawTemplate = Layout[FrontMatter.Raw]: doc =>
+val rawTemplate = model.Layout[Breeze.Context, FrontMatter.Raw]: doc =>
   raw(io.util.md.renderRaw(doc.rawContent))
