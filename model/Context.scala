@@ -1,51 +1,79 @@
 package model
 
 sealed trait SiteContext:
-  val theme: Theme
+  type SiteMap <: NamedTuple.AnyNamedTuple
+  val theme: Theme // never widen
   val siteRoot: SiteRoot
-  val site: model.Site[theme.SiteMap]
+  val site: model.Site[SiteMap]
 
 sealed trait Context extends SiteContext:
-  val extra: theme.Extra
+  type Extra
+  val extra: Extra
 
 object Context:
 
-  def fromTheme[T <: Theme](src: os.Path, theme: T)(using
+  def fromTheme[T <: Theme](src: os.Path, theme0: T)(using
       root: model.SiteRoot
-  ): View[ContextForTheme[T]] =
-    val theme0 = theme
-    View(
+  ): View[ContextForTheme[theme0.type]] =
+    View[theme0.type](
       new Context { self =>
-        override val theme: theme0.type = theme0
+        override type SiteMap = theme0.SiteMap
+        override type Extra = theme0.Extra
+        val theme: Theme = theme0
         val siteCtx = SiteView[theme0.type](
           new SiteContext {
-            override val theme: theme0.type = theme0
+            override type SiteMap = theme0.SiteMap
+            val theme: Theme = theme0
             override val siteRoot: SiteRoot = root
             override val site: model.Site[theme0.SiteMap] =
               io.util.paths.buildSiteDb(src, theme0)
           }
         )
-        export siteCtx.{siteRoot, site}
+        override val siteRoot: SiteRoot = root
+        override val site: model.Site[theme0.SiteMap] =
+          io.util.paths.buildSiteDb(src, theme0)
 
-        val extra = {
+        override val extra: theme0.Extra = {
           given SiteView[SiteContextForTheme[theme0.type]] = siteCtx
-          self.theme.extras
+          theme0.extras
         }
       }
     )
 
   final type ContextForTheme[T <: Theme] = Context {
-    val theme: T
+    type SiteMap = Views.Theme.SiteMap[T]
+    type Extra = Views.Theme.Extra[T]
   }
   final type SiteContextForTheme[T <: Theme] = SiteContext {
-    val theme: T
+    type SiteMap = Views.Theme.SiteMap[T]
   }
 
   export Views.*
 
   object Views {
 
-    opaque type SiteView[C <: SiteContext] <: C = C
+    object Theme:
+      type SiteMap[T <: Theme] = T match
+        case Accessors.Theme__SiteMap[t] => t
+      type Extra[T <: Theme] = T match
+        case Accessors.Theme__Extra[t] => t
+
+    // object Context:
+    //   type Extra[T <: Theme] = T match
+    //     case Accessors.Context__Extra[t] => t
+
+    object Accessors:
+      type Theme__SiteMap[T <: NamedTuple.AnyNamedTuple] = Theme {
+        type SiteMap = T
+      }
+      type Theme__Extra[T] = Theme {
+        type Extra = T
+      }
+      type Theme__BaseType[T] = Theme {
+        type BaseType = T
+      }
+
+    opaque type SiteView[+C <: SiteContext] <: C = C
     object SiteView {
       def apply[T <: Theme](
           ctx: SiteContextForTheme[T]
@@ -54,13 +82,13 @@ object Context:
 
       given narrowChild: [Child <: Theme, Parent <: Theme]
         => (childCtx: SiteView[SiteContextForTheme[Child]])
-        => Site.IsSubPrefix[childCtx.theme.SiteMap, View.SiteOfTheme[Parent]]
+        => Site.IsSubPrefix[childCtx.SiteMap, Views.Theme.SiteMap[Parent]]
         => SiteView[SiteContextForTheme[Parent]] =
         summon[SiteView[SiteContextForTheme[Child]]]
           .asInstanceOf[SiteView[SiteContextForTheme[Parent]]]
     }
 
-    opaque type View[C <: Context] <: C = C
+    opaque type View[+C <: Context] <: C = C
     object View {
       // FIXME: INFERENCE-0: is this a dotty bug? necessary to have a
       // nonsense structural refinement or else implicits are not found
@@ -79,23 +107,19 @@ object Context:
       def apply[T <: Theme](ctx: ContextForTheme[T]): View[ContextForTheme[T]] =
         ctx
 
-      object Accessors:
-        type Theme__SiteMap[T <: NamedTuple.AnyNamedTuple] = Theme {
-          type SiteMap = T
-        }
-        type Theme__BaseType[T] = Theme {
-          type BaseType = T
-        }
-
-      type SiteOfTheme[T <: Theme] = T match
-        case Accessors.Theme__SiteMap[t] => t
+      type ExtraConforms[Child <: Theme, Parent <: Theme] = Child match
+        case Accessors.Theme__Extra[ce] =>
+          Parent match
+            case Accessors.Theme__Extra[pe] => ce <:< pe
+            case _                          => Nothing
+        case _ => Nothing
 
       given narrowChild: [Child <: Theme, Parent <: Theme]
         => (childCtx: View[ContextForTheme[Child]])
-        => Site.IsSubPrefix[childCtx.theme.SiteMap, SiteOfTheme[Parent]]
+        => Site.IsSubPrefix[childCtx.SiteMap, Views.Theme.SiteMap[Parent]]
+        => ExtraConforms[Child, Parent]
         => View[ContextForTheme[Parent]] =
-        summon[View[ContextForTheme[Child]]]
-          .asInstanceOf[View[ContextForTheme[Parent]]]
+        childCtx.asInstanceOf[View[ContextForTheme[Parent]]]
     }
   }
 
