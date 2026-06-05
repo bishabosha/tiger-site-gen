@@ -67,7 +67,9 @@ object page:
 
   private val (year, today) = io.util.md.renderNow()
 
-  def wrap(using Context)(
+  def wrap(using
+      Context
+  )(
       page: DocPageOf[FrontMatter.BasePage],
       col: AnyDocCollection,
       title: String

@@ -1,6 +1,5 @@
 package io.util
 
-import model.Context
 import model.ctx
 import java.time.Instant
 import scala.collection.mutable
@@ -9,7 +8,9 @@ object Templates:
   // Thread-local collector to accumulate dependencies during a single page render
   private val depCollector = new java.lang.ThreadLocal[mutable.Set[String]]()
 
-  def withDependencyCollection[A](body: => A)(using Context): (A, Set[String]) =
+  def withDependencyCollection[A](body: => A)(using
+      model.Context
+  ): (A, Set[String]) =
     val set = mutable.Set.empty[String]
     depCollector.set(set)
     try
@@ -45,8 +46,8 @@ object Templates:
     if index < template.length then buf ++= template.substring(index)
     buf.result()
 
-  def interpolate(template: String)(using Context): String =
-    interpolateWith(template, expr => ctx.theme.templates(expr))
+  def interpolate(template: String)(using model.Context): String =
+    interpolateWith(template, ctx.theme.templates(_))
 
   def interpolateDefault(template: String, theme: model.Theme): String =
     interpolateWith(template, theme.templates.renderDefault)
