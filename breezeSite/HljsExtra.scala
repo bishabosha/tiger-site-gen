@@ -5,7 +5,7 @@ import scalatags.Text.all
 
 import model.SiteContext
 
-trait HljsExtra extends breeze.Breeze.Extra:
+object HljsExtra:
   val hljsStyle = link(
     rel := "stylesheet",
     href := "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css"

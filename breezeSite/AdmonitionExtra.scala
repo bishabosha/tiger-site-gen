@@ -4,7 +4,7 @@ import scalatags.Text.all.*
 import scalatags.Text.all
 import model.SiteContext
 
-trait AdmonitionExtra extends breeze.Breeze.Extra:
+object AdmonitionExtra:
   def admonitionStyle(using SiteContext) = link(
     rel := "stylesheet",
     href := io.util.paths.resolveStaticAsset("/static/css/admonition.css")

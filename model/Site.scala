@@ -3,33 +3,6 @@ package model
 import NamedTuple.AnyNamedTuple
 import NamedTuple.NamedTuple
 
-// type SiteConforms[BaseData] = [T <: AnyNamedTuple] =>> SiteConformsProof[BaseData, T]
-// sealed trait SiteConformsProof[Bound, T <: AnyNamedTuple]
-// object SiteConformsProof:
-//   sealed trait DataConforms[Bound]
-//   trait DocConforms[Bound, A] extends DataConforms[Bound]
-//   sealed trait DocsConforms[Bound, I, A] extends DataConforms[Bound]
-//   object DocsConforms:
-//     given double: [Bound, I, A] => (DocConforms[Bound, I], DocConforms[Bound, A]) => DocsConforms[Bound, I, A]()
-
-//   type DocColToConforms[Bound, T] <: DataConforms[Bound] = T match
-//     case model.Doc[a] => DocConforms[Bound, a]
-//     case model.Docs[i, a] => DocsConforms[Bound, i, a]
-
-//   object ProofEv extends SiteConformsProof[Any, AnyNamedTuple]
-
-//   sealed trait ProofNeeded[Bound, T <: AnyNamedTuple]
-//   object ProofNeeded:
-//     given empty[Bound]: ProofNeeded[Bound, NamedTuple.Empty]()
-//     inline given nonEmpty[Bound, K <: String, Ks <: Tuple, V, Tail <: Tuple](using
-//         ProofNeeded[Bound, NamedTuple[Ks, Tail]],
-//         DocColToConforms[Bound, V]
-//     ): ProofNeeded[Bound, NamedTuple[K *: Ks, V *: Tail]]()
-
-//   inline given proof: [Bound, NT <: AnyNamedTuple: SiteMapSchema]
-//     => ProofNeeded[Bound, NT]
-//     => SiteConformsProof[Bound, NT] = ProofEv.asInstanceOf[SiteConformsProof[Bound, NT]]
-
 sealed trait SiteMapMeta[T <: AnyNamedTuple] extends Selectable:
   type Fields = NamedTuple.Map[
     T,

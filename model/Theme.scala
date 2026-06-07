@@ -32,6 +32,6 @@ trait Theme:
   def layoutFor(doc: model.DocPage.View[BaseType]): Option[LayoutOf[BaseType]]
 
   final type Context =
-    model.Context.View[model.Context.ContextForTheme[this.type]]
+    model.Context.Views.View[model.Context.ContextForTheme[this.type]]
   final type SiteContext =
-    model.Context.SiteView[model.Context.SiteContextForTheme[this.type]]
+    model.Context.Views.SiteView[model.Context.SiteContextForTheme[this.type]]

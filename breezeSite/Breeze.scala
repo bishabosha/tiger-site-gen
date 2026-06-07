@@ -4,6 +4,7 @@ import model.ctx
 
 import breeze.Breeze as parent
 import model.TemplateFunction
+import model.Record
 import model.SiteMapSchema.auto.given
 import model.SiteMapSchema.&++
 import model.SiteMapMeta
@@ -43,8 +44,16 @@ object Breeze extends model.DictionaryTheme:
   override val siteMapMeta: SiteMapMeta[SiteMap] =
     SiteMapMeta.default.about(_.setAsRoot)
 
-  override type Extra = parent.Extra & breezeSite.Extra
-  override def extras(using SiteContext): breezeSite.Extra = new {}
+  override type Extra = parent.Extra
+  override def extras(using SiteContext): Extra =
+    Record:
+      (
+        nav = NavExtra.nav,
+        extraHead =
+          HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
+        extraFoot =
+          HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
+      )
 
   object FrontMatter:
     export parent.FrontMatter.*

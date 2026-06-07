@@ -5,7 +5,7 @@ import scalatags.Text.all
 
 import model.SiteContext
 
-trait KatexExtra extends breeze.Breeze.Extra:
+object KatexExtra:
   val katexStyle = link(
     rel := "stylesheet",
     href := "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css"

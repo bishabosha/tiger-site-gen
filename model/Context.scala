@@ -1,6 +1,7 @@
 package model
 
 import NamedTuple.AnyNamedTuple
+import Context.Views.{Conforms, View, SiteView}
 
 sealed trait SiteContext:
   type SiteMap <: NamedTuple.AnyNamedTuple
@@ -13,6 +14,19 @@ sealed trait Context extends SiteContext:
   val extra: Extra
 
 object Context:
+
+  given conformsContext: [
+      CS <: AnyNamedTuple,
+      PS <: AnyNamedTuple,
+      CE,
+      PE
+  ]
+    => Conforms[Site[CS], Site[PS]]
+    => Conforms[CE, PE]
+      => Conforms[
+        Context { type SiteMap = CS; type Extra = CE },
+        Context { type SiteMap = PS; type Extra = PE }
+      ]()
 
   def fromTheme[T <: Theme](src: os.Path, theme0: T)(using
       root: model.SiteRoot
@@ -50,13 +64,12 @@ object Context:
     type SiteMap = Views.Theme.SiteMap[T]
   }
 
-  export Views.*
-
   object Views {
 
     trait Conforms[-Child, +Parent]
     object Conforms {
-      given subtypeConforms: [T] => Conforms[T, T]()
+      given subtypeConforms
+          : [Parent, Child <: Parent] => Conforms[Child, Parent]()
     }
 
     object Theme:
@@ -110,17 +123,13 @@ object Context:
         ctx
 
       given narrowChild: [
-          CS <: AnyNamedTuple,
-          PS <: AnyNamedTuple,
-          CE,
-          PE
+          Child <: Context,
+          Parent <: Context
       ]
-        => (childCtx: View[Context { type SiteMap = CS; type Extra = CE }])
-        => Conforms[Site[CS], Site[PS]]
-        => Conforms[CE, PE]
-        => View[Context { type SiteMap = PS; type Extra = PE }] =
-        childCtx
-          .asInstanceOf[View[Context { type SiteMap = PS; type Extra = PE }]]
+        => (childCtx: View[Child])
+        => Conforms[Child, Parent]
+        => View[Parent] =
+        childCtx.asInstanceOf[View[Parent]]
     }
   }
 
