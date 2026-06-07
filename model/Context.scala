@@ -1,5 +1,8 @@
 package model
 
+import NamedTuple.AnyNamedTuple
+import Context.Views.{Conforms, View, SiteView}
+
 sealed trait SiteContext:
   type SiteMap <: NamedTuple.AnyNamedTuple
   val theme: Theme // never widen
@@ -11,6 +14,19 @@ sealed trait Context extends SiteContext:
   val extra: Extra
 
 object Context:
+
+  given conformsContext: [
+      CS <: AnyNamedTuple,
+      PS <: AnyNamedTuple,
+      CE,
+      PE
+  ]
+    => Conforms[Site[CS], Site[PS]]
+    => Conforms[CE, PE]
+      => Conforms[
+        Context { type SiteMap = CS; type Extra = CE },
+        Context { type SiteMap = PS; type Extra = PE }
+      ]()
 
   def fromTheme[T <: Theme](src: os.Path, theme0: T)(using
       root: model.SiteRoot
@@ -48,9 +64,13 @@ object Context:
     type SiteMap = Views.Theme.SiteMap[T]
   }
 
-  export Views.*
-
   object Views {
+
+    trait Conforms[-Child, +Parent]
+    object Conforms {
+      given subtypeConforms
+          : [Parent, Child <: Parent] => Conforms[Child, Parent]()
+    }
 
     object Theme:
       type SiteMap[T <: Theme] = T match
@@ -58,19 +78,12 @@ object Context:
       type Extra[T <: Theme] = T match
         case Accessors.Theme__Extra[t] => t
 
-    // object Context:
-    //   type Extra[T <: Theme] = T match
-    //     case Accessors.Context__Extra[t] => t
-
     object Accessors:
       type Theme__SiteMap[T <: NamedTuple.AnyNamedTuple] = Theme {
         type SiteMap = T
       }
       type Theme__Extra[T] = Theme {
         type Extra = T
-      }
-      type Theme__BaseType[T] = Theme {
-        type BaseType = T
       }
 
     opaque type SiteView[+C <: SiteContext] <: C = C
@@ -80,12 +93,14 @@ object Context:
       ): SiteView[SiteContextForTheme[T]] =
         ctx
 
-      given narrowChild: [Child <: Theme, Parent <: Theme]
-        => (childCtx: SiteView[SiteContextForTheme[Child]])
-        => Site.IsSubPrefix[childCtx.SiteMap, Views.Theme.SiteMap[Parent]]
-        => SiteView[SiteContextForTheme[Parent]] =
-        summon[SiteView[SiteContextForTheme[Child]]]
-          .asInstanceOf[SiteView[SiteContextForTheme[Parent]]]
+      given narrowChild: [
+          CS <: AnyNamedTuple,
+          PS <: AnyNamedTuple
+      ] => (childCtx: SiteView[SiteContext { type SiteMap = CS }])
+        => Conforms[Site[CS], Site[PS]]
+        => SiteView[SiteContext { type SiteMap = PS }] =
+        childCtx
+          .asInstanceOf[SiteView[SiteContext { type SiteMap = PS }]]
     }
 
     opaque type View[+C <: Context] <: C = C
@@ -107,19 +122,14 @@ object Context:
       def apply[T <: Theme](ctx: ContextForTheme[T]): View[ContextForTheme[T]] =
         ctx
 
-      type ExtraConforms[Child <: Theme, Parent <: Theme] = Child match
-        case Accessors.Theme__Extra[ce] =>
-          Parent match
-            case Accessors.Theme__Extra[pe] => ce <:< pe
-            case _                          => Nothing
-        case _ => Nothing
-
-      given narrowChild: [Child <: Theme, Parent <: Theme]
-        => (childCtx: View[ContextForTheme[Child]])
-        => Site.IsSubPrefix[childCtx.SiteMap, Views.Theme.SiteMap[Parent]]
-        => ExtraConforms[Child, Parent]
-        => View[ContextForTheme[Parent]] =
-        childCtx.asInstanceOf[View[ContextForTheme[Parent]]]
+      given narrowChild: [
+          Child <: Context,
+          Parent <: Context
+      ]
+        => (childCtx: View[Child])
+        => Conforms[Child, Parent]
+        => View[Parent] =
+        childCtx.asInstanceOf[View[Parent]]
     }
   }
 
