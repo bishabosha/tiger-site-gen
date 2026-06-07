@@ -34,20 +34,19 @@ object Homepage extends model.Theme:
       )
     ]
 
-  trait Extra
-
   type BaseType = Record[(layout: Option[String])]
 
-  def extras(using SiteContext): Extra = new {}
+  type Extra = Unit
+  def extras(using SiteContext): Extra = ()
 
-  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.live.name
+  def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
-    ctx.site.about.index.frontMatter.live.copyright
+    ctx.site.about.index.frontMatter.copyright
 
   override def layoutFor(
       doc: DocPage.View[BaseType]
   ): Option[LayoutOf[BaseType]] =
-    if doc.frontMatter.live.layout.getOrElse("") == "home" then
+    if doc.frontMatter.layout.getOrElse("") == "home" then
       // also fields of objects aparently dont infer structural refinements,
       // so only resort is selectDynamic and cast, so no typesafe way to tie the knot yet.
       Some(

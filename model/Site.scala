@@ -192,6 +192,9 @@ object Site:
         case false => Acc
     case _ => Acc
 
+  given [C <: AnyNamedTuple, P <: AnyNamedTuple]
+    => IsSubPrefix[C, P] => Context.Views.Conforms[Site[C], Site[P]]()
+
   def read[T <: AnyNamedTuple](
       optStatic: Option[os.Path],
       optFavicon: Option[os.Path],

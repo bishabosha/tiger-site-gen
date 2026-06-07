@@ -5,19 +5,15 @@ import scala.NamedTuple.AnyNamedTuple
 import steps.result.Result, Result.eval.{raise, ok}
 import steps.result.Result.apply as result
 
-class Record[T](
-    val live: T,
-    val raw: scalanotation.Expr
+class Record[T <: AnyNamedTuple](
+    live: T
 ) extends Selectable {
-  type Fields = NamedTuple.Map[NamedTuple.From[T], Record]
+  type Fields = T
 
-  override def toString(): String = raw.toString
+  override def toString(): String = live.toString
 
   def apply(index: Int): Any = {
-    val inner = live.asInstanceOf[Product].productElement(index)
-    val expr =
-      raw.asInstanceOf[scalanotation.Expr.NamedTupleExpr].elements(index).value
-    Record(inner, expr)
+    live.asInstanceOf[Product].productElement(index)
   }
 
   inline def selectDynamic(name: String): Any =
@@ -35,20 +31,9 @@ object Record:
 
   inline given [T <: AnyNamedTuple, Prefix <: AnyNamedTuple]
     => IsSubPrefix[NamedTuple.From[T], Prefix]
-    => (
-        vo: ValueOf[model.Site.PrefixLength[NamedTuple.Names[
-          T
-        ], NamedTuple.Names[Prefix], 0]]
-  ) => DocPage.Conforms[Record[T], Record[Prefix]] {
+      => DocPage.Conforms[Record[T], Record[Prefix]] {
     def toBase(doc: DocPage[Record[T]]): DocPage.View[Record[Prefix]] =
-      val live = doc.frontMatter.live
-        .asInstanceOf[Tuple]
-        .toIArray
-        .take(
-          vo.value
-        )
-      val live0 = NamedTuple(Tuple.fromIArray(live)).asInstanceOf[Prefix]
-      DocPage.View(doc.copy(frontMatter = Record(live0, doc.frontMatter.raw)))
+      DocPage.View(doc.asInstanceOf[DocPage[Record[Prefix]]])
   }
 
   type IndexOf[FieldName <: String, Names <: Tuple, Acc <: Int] <: Int =
@@ -58,10 +43,7 @@ object Record:
         IndexOf[FieldName, tail, scala.compiletime.ops.int.S[Acc]]
       case EmptyTuple => -1
 
-  inline given derivedAuto[T: deriving.Mirror.Of]
+  inline given derivedAuto[T <: AnyNamedTuple: deriving.Mirror.Of]
       : scalanotation.Reader[Record[T]] =
-    summon[scalanotation.Reader[scalanotation.Expr]].mapResult({ raw =>
-      given scalanotation.Configured[T] = scalanotation.Configured.skippable
-      given scalanotation.Reader[T] = scalanotation.Reader.configured.derived[T]
-      raw.decodeAs[T].map(live => Record(live, raw))
-    })
+    given scalanotation.Configured[T] = scalanotation.Configured.skippable
+    scalanotation.Reader.configured.derived[T].map(Record(_))
