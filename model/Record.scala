@@ -32,9 +32,7 @@ class Record[T <: AnyNamedTuple](
   inline def selectDynamic(name: String): Any =
     apply(
       scala.compiletime
-        .constValue[Record.IndexOf[name.type, NamedTuple.Names[
-          NamedTuple.From[T]
-        ], 0]]
+        .constValue[Record.IndexOf[name.type, NamedTuple.Names[T], 0]]
     )
 }
 

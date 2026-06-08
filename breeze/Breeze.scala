@@ -68,14 +68,12 @@ object Breeze extends model.DictionaryTheme:
       val published: String
     }
 
-  type Extra = Record[
-    (
-        nav: List[AnyDocCollection],
-        extraHead: Seq[scalatags.Text.all.Modifier],
-        extraFoot: Seq[scalatags.Text.all.Modifier]
-    )
-  ]
-  override def extras(using SiteContext): Extra = Record:
+  type Extra = (
+      nav: List[AnyDocCollection],
+      extraHead: Seq[scalatags.Text.all.Modifier],
+      extraFoot: Seq[scalatags.Text.all.Modifier]
+  )
+  def extras(using SiteContext) = Record:
     (
       nav = List(sctx.site.about, sctx.site.articles),
       extraHead = Seq.empty,

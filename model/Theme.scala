@@ -22,10 +22,10 @@ trait Theme:
   def siteMapMeta: SiteMapMeta[Context, SiteMap] = defaultSiteMeta
   def defaultSiteMeta: SiteMapMeta[Context, SiteMap] = SiteMapMeta.default
 
-  type Extra
-  def extras(using SiteContext): Extra = ().asInstanceOf[Extra]
+  type Extra <: NamedTuple.AnyNamedTuple
+  def extras(using SiteContext): model.Record[Extra]
 
   final type Context =
-    model.Context.Views.View[model.Context.ContextForTheme[this.type]]
+    model.Context.Views.View[model.Context.Of[SiteMap, Extra]]
   final type SiteContext =
-    model.Context.Views.SiteView[model.Context.SiteContextForTheme[this.type]]
+    model.Context.Views.SiteView[model.SiteContext.Of[SiteMap]]

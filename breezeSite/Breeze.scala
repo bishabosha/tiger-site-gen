@@ -56,8 +56,8 @@ object Breeze extends model.DictionaryTheme:
     )
     .`match-type-simulator`(_.indexLayout(dict((raw = layouts.raw))))
 
-  override type Extra = parent.Extra
-  override def extras(using SiteContext): Extra = Record:
+  type Extra = parent.Extra
+  def extras(using SiteContext) = Record:
     val p = parent.extras
     (
       nav = p.nav :+ sctx.site.projects :+ sctx.site.talks,

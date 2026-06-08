@@ -36,6 +36,9 @@ object Homepage extends model.Theme:
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright
 
+  type Extra = NamedTuple.Empty
+  def extras(using SiteContext) = Record(NamedTuple.Empty)
+
   case class Links(
       text: String,
       kind: Option[String],

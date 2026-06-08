@@ -15,8 +15,8 @@ object SiteContext:
   }
 
 sealed trait Context extends SiteContext:
-  type Extra
-  val extra: Extra
+  type Extra <: NamedTuple.AnyNamedTuple
+  val extra: model.Record[Extra]
 
 object Context:
 
@@ -26,7 +26,7 @@ object Context:
 
   def fromTheme[T <: Theme](src: os.Path, theme0: T)(using
       root: model.SiteRoot
-  ): View[ContextForTheme[theme0.type]] =
+  ): View[Context.Of[theme0.SiteMap, theme0.Extra]] =
     View(
       new Context { self =>
         override type SiteMap = theme0.SiteMap
@@ -45,20 +45,12 @@ object Context:
         override val site: model.Site[theme0.SiteMap] =
           io.util.paths.buildSiteDb(src, theme0)
 
-        override val extra: theme0.Extra = {
-          given SiteView[SiteContextForTheme[theme0.type]] = siteCtx
+        override val extra: model.Record[Extra] = {
+          given SiteView[SiteContext.Of[theme0.SiteMap]] = siteCtx
           theme0.extras
         }
       }
     )
-
-  final type ContextForTheme[T <: Theme] = Context.Of[
-    Views.Theme.SiteMap[T],
-    Views.Theme.Extra[T]
-  ]
-  final type SiteContextForTheme[T <: Theme] = SiteContext.Of[
-    Views.Theme.SiteMap[T]
-  ]
 
   object Views {
 
@@ -77,7 +69,7 @@ object Context:
       type Theme__SiteMap[T <: NamedTuple.AnyNamedTuple] = Theme {
         type SiteMap = T
       }
-      type Theme__Extra[T] = Theme {
+      type Theme__Extra[T <: NamedTuple.AnyNamedTuple] = Theme {
         type Extra = T
       }
 

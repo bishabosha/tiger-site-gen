@@ -253,46 +253,45 @@ object paths:
       if colMeta.isRoot then optRoots += col
       colMeta match
         case spec: model.SiteMapMeta.DocsData[theme.Context, i0, d0] =>
-          spec.optPageLayout match
-            case Some(fn) =>
-              for doc <- col do
-                val d0 = doc.asInstanceOf[model.DocPage[d0]]
-                fn(d0) match
-                  case Result.Ok(Some(layout)) if changed.contains(doc.path) =>
-                    val (subPage, usedDeps) = Templates.withDependencyCollection {
-                      layout.run(d0)
-                    }
-                    os.write.over(
-                      dest / col.collName / sanatise.mdNameToHtml(doc.name),
-                      scalatags.Text.all.doctype("html")(subPage)
-                    )
-                    deps += (doc.path.relativeTo(curr).toString -> usedDeps)
-                  case Result.Ok(_)  => // skip unchanged pages or those without a layout
-                  case Result.Err(e) => throw e
-              end for
-            case _ => // skip docs without a layout
-          spec.optIndexLayout match
-            case Some(fn) =>
-              if changed.contains(col.index.path) then
-                val i0 = col.index.asInstanceOf[model.DocPage[i0]]
-                val ilayout =
-                  fn(i0) match
-                    case Result.Ok(Some(layout)) => layout
-                    case Result.Ok(None)         =>
-                      throw AssertionError(
-                        s"index page ${col.index.path} must have a layout"
-                      )
-                    case Result.Err(e) => throw e
-                val (indexPage, usedDeps) = Templates.withDependencyCollection {
-                  ilayout.run(i0)
+          for
+            fn <- spec.optPageLayout
+            doc <- col
+          do
+            val d0 = doc.asInstanceOf[model.DocPage[d0]]
+            fn(d0) match
+              case Result.Ok(Some(layout)) if changed.contains(doc.path) =>
+                val (subPage, usedDeps) = Templates.withDependencyCollection {
+                  layout.run(d0)
                 }
                 os.write.over(
-                  dest / col.collName / "index.html",
-                  scalatags.Text.all.doctype("html")(indexPage)
+                  dest / col.collName / sanatise.mdNameToHtml(doc.name),
+                  scalatags.Text.all.doctype("html")(subPage)
                 )
-                deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
-              end if
-            case _ => // skip docs without a layout
+                deps += (doc.path.relativeTo(curr).toString -> usedDeps)
+              case Result.Ok(_)  => // skip unchanged pages or those without a layout
+              case Result.Err(e) => throw e
+          end for
+          if changed.contains(col.index.path) then
+            for fn <- spec.optIndexLayout do
+              val i0 = col.index.asInstanceOf[model.DocPage[i0]]
+              val ilayout =
+                fn(i0) match
+                  case Result.Ok(Some(layout)) => layout
+                  case Result.Ok(None)         =>
+                    throw AssertionError(
+                      s"index page ${col.index.path} must have a layout"
+                    )
+                  case Result.Err(e) => throw e
+              val (indexPage, usedDeps) = Templates.withDependencyCollection {
+                ilayout.run(i0)
+              }
+              os.write.over(
+                dest / col.collName / "index.html",
+                scalatags.Text.all.doctype("html")(indexPage)
+              )
+              deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
+            end for
+          end if
       end match
     end for
     assert(optRoots.sizeIs <= 1, "more than one root")
