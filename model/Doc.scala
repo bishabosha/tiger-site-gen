@@ -31,6 +31,16 @@ object DocPage:
         ev.liftCo(doc)
       )
     }
+  trait ConformsAll[Layouts <: Tuple, BaseType]
+  object ConformsAll:
+    given [BaseType]: ConformsAll[EmptyTuple, BaseType]()
+    given [H, T <: Tuple, BaseType](using
+        evH: Conforms[H, BaseType],
+        ev: ConformsAll[T, BaseType]
+    ): ConformsAll[
+      H *: T,
+      BaseType
+    ]()
 
 sealed trait AnyDocCollection:
   def collName: String

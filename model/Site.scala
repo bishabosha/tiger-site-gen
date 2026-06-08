@@ -2,49 +2,113 @@ package model
 
 import NamedTuple.AnyNamedTuple
 import NamedTuple.NamedTuple
+import steps.result.Result
+import model.SiteMapMeta.RawMeta
 
-sealed trait SiteMapMeta[T <: AnyNamedTuple] extends Selectable:
+sealed trait SiteMapMeta[C <: model.Context, BaseType, T <: AnyNamedTuple] extends Selectable:
   type Fields = NamedTuple.Map[
     T,
-    [_] =>> (SiteMapMeta.Data => SiteMapMeta.Data) => SiteMapMeta[T]
+    [X] =>> (
+        SiteMapMeta.DocColToMetaOf[C, BaseType, X] => SiteMapMeta.DocColToMetaOf[C, BaseType, X]
+    ) => SiteMapMeta[C, BaseType, T]
   ]
   def update(name: String)(
-      in: SiteMapMeta.Data => SiteMapMeta.Data
-  ): SiteMapMeta[T]
-  def query(name: String): SiteMapMeta.Data
+      in: SiteMapMeta.Data[C, BaseType] => SiteMapMeta.Data[C, BaseType]
+  ): SiteMapMeta[C, BaseType, T]
+  def query(name: String): SiteMapMeta.Data[C, BaseType]
   final def selectDynamic(
       name: String
-  ): (SiteMapMeta.Data => SiteMapMeta.Data) => SiteMapMeta[T] =
+  ): (
+      SiteMapMeta.Data[C, BaseType] => SiteMapMeta.Data[C, BaseType]
+  ) => SiteMapMeta[C, BaseType, T] =
     update(name)
 
+  def merge[C0 <: model.Context, BaseType0, T0 <: AnyNamedTuple](
+      that: SiteMapMeta[C0, BaseType0, T0]
+  )(using
+      conformsBase: model.DocPage.Conforms[BaseType0, BaseType],
+      sub: Site.IsSubPrefix[T0, T],
+      conformsCtx: model.Context.Views.Conforms[C0, C]
+  ): SiteMapMeta[C0, BaseType0, T0] =
+    (this, that) match
+      case (thisRaw: RawMeta[c, b, t], thatRaw: RawMeta[c0, b0, t0]) =>
+        thatRaw.mergeInner(thisRaw.asInstanceOf[RawMeta[c0, b0, t0]])
+
 object SiteMapMeta:
-  private class RawMeta[T <: AnyNamedTuple] private[SiteMapMeta] (
-      data: Map[String, Data]
-  ) extends SiteMapMeta[T]:
-    def query(name: String): Data = data.getOrElse(name, emptyData)
-    def update(name: String)(in: Data => Data): SiteMapMeta[T] =
+  type Of[C <: model.Context, BaseType] = [T <: AnyNamedTuple] =>> SiteMapMeta[C, BaseType, T]
+  type DocColToMeta[C <: model.Context, BaseType] = [T] =>> DocColToMetaOf[C, BaseType, T]
+
+  type DocColToMetaOf[C <: model.Context, BaseType, T] <: Data[C, BaseType] = T match
+    case model.Doc[a]     => DocData[C, BaseType, a]
+    case model.Docs[i, a] => DocsData[C, BaseType, i, a]
+
+  private class RawMeta[C <: model.Context, BaseType, T <: AnyNamedTuple] private[SiteMapMeta] (
+      private val data: Map[String, Data[C, BaseType]]
+  ) extends SiteMapMeta[C, BaseType, T]:
+    def query(name: String): Data[C, BaseType] = data.getOrElse(name, emptyDataOf)
+    def update(
+        name: String
+    )(in: Data[C, BaseType] => Data[C, BaseType]): SiteMapMeta[C, BaseType, T] =
       RawMeta(data.updatedWith(name) {
         case Some(d) => Some(in(d))
-        case None    => Some(in(emptyData))
+        case None    => Some(in(emptyDataOf))
       })
+    def mergeInner(that: RawMeta[C, BaseType, T]): RawMeta[C, BaseType, T] =
+      var folded = this.data
+      that.data.foreach((name, d) =>
+        folded = folded.updatedWith(name) {
+          case Some(existing) =>
+            (existing, d) match
+              case (existing0: DefaultData, d0: DefaultData) =>
+                Some(
+                  DefaultData(
+                    isRoot = existing0.isRoot || d0.isRoot,
+                    optIndexLayout = existing0.optIndexLayout.orElse(d0.optIndexLayout),
+                    optPageLayout = existing0.optPageLayout.orElse(d0.optPageLayout)
+                  )
+                )
 
-  private val Default: SiteMapMeta[AnyNamedTuple] =
-    new RawMeta[AnyNamedTuple](Map.empty)
+          case None => Some(d)
+        }
+      )
+      RawMeta(folded)
 
-  def default[BaseType, T <: AnyNamedTuple: SiteMapSchema.Of[BaseType]]: SiteMapMeta[T] =
-    Default.asInstanceOf[SiteMapMeta[T]]
+  private val Default: SiteMapMeta[model.Context, Any, AnyNamedTuple] =
+    new RawMeta[model.Context, Any, AnyNamedTuple](Map.empty)
 
-  private val emptyData: Data = new:
-    def isRoot: Boolean = false
-    def setAsRoot: Data = rootData
+  def default[C <: model.Context, BaseType, T <: AnyNamedTuple: SiteMapSchema.Of[BaseType]]
+      : SiteMapMeta[C, BaseType, T] =
+    Default.asInstanceOf[SiteMapMeta[C, BaseType, T]]
 
-  private val rootData: Data = new:
-    def isRoot: Boolean = true
-    def setAsRoot: Data = this
+  private val emptyData: DefaultData = DefaultData(false, None, None)
+  private def emptyDataOf[C <: model.Context, BaseType]: Data[C, BaseType] =
+    emptyData.asInstanceOf[Data[C, BaseType]]
 
-  sealed trait Data:
+  private case class DefaultData(
+      isRoot: Boolean,
+      optIndexLayout: Option[SelLayout[model.Context, Any]],
+      optPageLayout: Option[SelLayout[model.Context, Any]]
+  ) extends DocsData[model.Context, Any, Any, Any]:
+    def setAsRoot = copy(isRoot = true)
+    def indexLayout(fn: SelLayout[model.Context, Any]) = copy(optIndexLayout = Some(fn))
+    def pageLayout(fn: SelLayout[model.Context, Any]) = copy(optPageLayout = Some(fn))
+
+  sealed trait Data[C <: model.Context, BaseType]:
     def isRoot: Boolean
-    def setAsRoot: Data
+    def setAsRoot: Data[C, BaseType]
+
+  type SelLayout[C <: model.Context, A] =
+    model.DocPage[A] => Result[Option[model.Layout[C, model.DocPage[A]]], Exception]
+
+  sealed trait DocData[C <: model.Context, BaseType, I] extends Data[C, BaseType]:
+    override def setAsRoot: DocData[C, BaseType, I]
+    def optIndexLayout: Option[SelLayout[C, I]]
+    def indexLayout(fn: SelLayout[C, I]): DocData[C, BaseType, I]
+  sealed trait DocsData[C <: model.Context, BaseType, I, A] extends DocData[C, BaseType, I]:
+    override def setAsRoot: DocsData[C, BaseType, I, A]
+    override def indexLayout(fn: SelLayout[C, I]): DocsData[C, BaseType, I, A]
+    def pageLayout(fn: SelLayout[C, A]): DocsData[C, BaseType, I, A]
+    def optPageLayout: Option[SelLayout[C, A]]
 
 sealed trait SiteMapSchema[BaseType, T <: AnyNamedTuple] extends Selectable:
   type Fields = NamedTuple.Map[T, SiteMapSchema.DocColToSchema[BaseType]]

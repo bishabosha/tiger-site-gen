@@ -121,6 +121,12 @@ object Context:
       def apply[T <: Theme](ctx: ContextForTheme[T]): View[ContextForTheme[T]] =
         ctx
 
+      given conformsContextView: [
+          Child <: Context,
+          Parent <: Context
+      ]
+        => Conforms[Child, Parent] => Conforms[View[Child], View[Parent]]()
+
       given narrowChild: [
           Child <: Context,
           Parent <: Context

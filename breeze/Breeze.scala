@@ -18,7 +18,6 @@ object Breeze extends model.DictionaryTheme:
   override val metadata = new:
     val name = "Breeze"
 
-  type Layouts = (article: LayoutOf[FrontMatter.Article], articles: LayoutOf[FrontMatter.Articles])
   val layouts = Record:
     (
       article = articleLayout,
@@ -39,27 +38,12 @@ object Breeze extends model.DictionaryTheme:
       about: DocOf[FrontMatter.About],
       articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
   )
-  override val siteMapMeta: SiteMapMeta[SiteMap] =
-    SiteMapMeta.default
-      .about(_.setAsRoot)
-    // .articles(_.indexLayout((articles = layouts.articles)).pageLayout((article = layouts.article)))
-    //             ^^^^^^^^^^^                                ^^^^^^^^^^
-    //             |                                          |
-    //             | the idea here is that we capture a type safe association between
-    //             | the the index and page slots, and the available layouts for each type.
-    //             | The "generic" layout lookup function only needs to return the string
-    //             | for the name, and then IO can use the siteMapMeta to lookup the name,
-    //             | and will trust it matches.
-    // .articles(_.indexLayout(dict((articles = layouts.articles))).pageLayout(dict((article = layouts.article))))
-    //             | To be more generic, we can instead only ask for a function that will return an optional
-    //             | layout or error, given a doc page of the right type. Then we can provide helpers
-    //             | (e.g. `dict`) for specific types of front matter.
-
-  // val siteLayouts = Record:
-  //   (
-  //     about = Nil,
-  //     articles = (layouts.article :: Nil, layouts.articles :: Nil),
-  //   )
+  override val siteMapMeta = defaultSiteMeta
+    .about(_.setAsRoot)
+    .articles(
+      _.indexLayout(dict((articles = layouts.articles)))
+        .pageLayout(dict((article = layouts.article)))
+    )
 
   object FrontMatter:
     final type BasePage = BuiltinFrontMatter {
@@ -91,7 +75,7 @@ object Breeze extends model.DictionaryTheme:
         extraFoot: Seq[scalatags.Text.all.Modifier]
     )
   ]
-  def extras(using SiteContext): Extra = Record:
+  override def extras(using SiteContext): Extra = Record:
     (
       nav = List(sctx.site.about, sctx.site.articles),
       extraHead = Seq.empty,

@@ -9,29 +9,20 @@ import model.Record
 import model.Record.Lookup.auto.given
 import steps.result.Result
 
-import scalanotation.Reader.skippable.ofFields
-
 object Homepage extends model.Theme:
   val metadata = new:
     val name = "Homepage"
 
-  type Layouts = (
-      home: LayoutOf[FrontMatter.About]
-  )
-  val layouts = Record:
-    (
-      home = homeLayout
-    )
-
   type SiteMap = (about: Doc[FrontMatter.About])
 
-  override val siteMapMeta: SiteMapMeta[SiteMap] =
-    SiteMapMeta.default.about(_.setAsRoot)
+  override val siteMapMeta =
+    defaultSiteMeta.about(
+      _.setAsRoot.indexLayout(Function.const(Result.Ok(Some(homeLayout))))
+    )
 
   object FrontMatter:
     final type About = Record[
       (
-          layout: Option[String],
           title: String,
           name: String,
           copyright: String,
@@ -41,24 +32,11 @@ object Homepage extends model.Theme:
       )
     ]
 
-  type BaseType = Record[(layout: Option[String])]
-
-  type Extra = Unit
-  def extras(using SiteContext): Extra = ()
+  type BaseType = Record[NamedTuple.Empty]
 
   def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright
-
-  override def layoutFor(
-      doc: DocPage.View[BaseType]
-  ): Option[LayoutOf[BaseType]] =
-    if doc.frontMatter.layout.getOrElse("") == "home" then
-      Some(
-        layouts.home
-          .asInstanceOf[LayoutOf[BaseType]]
-      )
-    else None
 
   case class Links(
       text: String,

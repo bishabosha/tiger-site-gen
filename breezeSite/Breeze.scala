@@ -16,15 +16,6 @@ object Breeze extends model.DictionaryTheme:
   val metadata = new:
     val name = parent.metadata.name
 
-  type Layouts = parent.Layouts &++
-    (
-        about: LayoutOf[FrontMatter.About],
-        talks: LayoutOf[FrontMatter.Talks],
-        projects: LayoutOf[FrontMatter.Projects],
-        project: LayoutOf[FrontMatter.Project],
-        raw: LayoutOf[FrontMatter.Raw]
-    )
-
   val layouts = parent.layouts ++
     (
       about = breezeSite.about,
@@ -54,9 +45,16 @@ object Breeze extends model.DictionaryTheme:
       projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],
       `match-type-simulator`: DocOf[FrontMatter.Raw]
   )
-  // todo: copy from parent
-  override val siteMapMeta: SiteMapMeta[SiteMap] =
-    SiteMapMeta.default.about(_.setAsRoot)
+
+  override val siteMapMeta = parent.siteMapMeta
+    .merge(defaultSiteMeta)
+    .about(_.indexLayout(dict((about = layouts.about))))
+    .talks(_.indexLayout(dict((talks = layouts.talks))))
+    .projects(
+      _.indexLayout(dict((projects = layouts.projects)))
+        .pageLayout(dict((project = layouts.project)))
+    )
+    .`match-type-simulator`(_.indexLayout(dict((raw = layouts.raw))))
 
   override type Extra = parent.Extra
   override def extras(using SiteContext): Extra = Record:

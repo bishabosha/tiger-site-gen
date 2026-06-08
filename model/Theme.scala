@@ -14,25 +14,19 @@ trait Theme:
   final type LayoutOf0[Context <: model.Context, Data] =
     model.Layout[Context, model.DocPage[Data]]
 
-  type Layouts <: NamedTuple.AnyNamedTuple: Record.Lookup
-  val layouts: Record[Layouts]
-  final val layoutsByName: model.LayoutRef[Layouts] = model.LayoutRef(thisTheme.layouts)
-
   val templates: TemplateFunctions = TemplateFunctions.Empty
-
-  type Extra
 
   type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema.Of[BaseType]
 
   final def siteMap: SiteMapSchema[BaseType, SiteMap] =
     summon[SiteMapSchema[BaseType, SiteMap]]
-  def siteMapMeta: SiteMapMeta[SiteMap] = SiteMapMeta.default
+  def siteMapMeta: SiteMapMeta[Context, BaseType, SiteMap] = defaultSiteMeta
+  def defaultSiteMeta: SiteMapMeta[Context, BaseType, SiteMap] = SiteMapMeta.default
 
-  def extras(using SiteContext): Extra
+  type Extra
+  def extras(using SiteContext): Extra = ().asInstanceOf[Extra]
 
   type BaseType
-
-  def layoutFor(doc: model.DocPage.View[BaseType]): Option[LayoutOf[BaseType]]
 
   final type Context =
     model.Context.Views.View[model.Context.ContextForTheme[this.type]]
