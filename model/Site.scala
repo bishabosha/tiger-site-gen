@@ -31,8 +31,7 @@ object SiteMapMeta:
   private val Default: SiteMapMeta[AnyNamedTuple] =
     new RawMeta[AnyNamedTuple](Map.empty)
 
-  def default[BaseType, T <: AnyNamedTuple: SiteMapSchema.Of[BaseType]]
-      : SiteMapMeta[T] =
+  def default[BaseType, T <: AnyNamedTuple: SiteMapSchema.Of[BaseType]]: SiteMapMeta[T] =
     Default.asInstanceOf[SiteMapMeta[T]]
 
   private val emptyData: Data = new:

@@ -41,8 +41,7 @@ sealed trait DocCollection[+DI, +D] extends AnyDocCollection:
   def foreach(op: DocPage[D] => Unit): Unit
   def toIterable: Iterable[DocPage[D]]
 
-class Doc[+D](val collName: String, _index: DocPage[D])
-    extends DocCollection[D, D]:
+class Doc[+D](val collName: String, _index: DocPage[D]) extends DocCollection[D, D]:
   def willRender: Boolean = true
   override def index: DocPage[D] =
     Templates.recordDependency(_index.path)

@@ -30,8 +30,7 @@ object Record:
     model.Site.IsSubPrefix[This, Prefix]
 
   inline given [T <: AnyNamedTuple, Prefix <: AnyNamedTuple]
-    => IsSubPrefix[NamedTuple.From[T], Prefix]
-      => DocPage.Conforms[Record[T], Record[Prefix]] {
+    => IsSubPrefix[NamedTuple.From[T], Prefix] => DocPage.Conforms[Record[T], Record[Prefix]] {
     def toBase(doc: DocPage[Record[T]]): DocPage.View[Record[Prefix]] =
       DocPage.View(doc.asInstanceOf[DocPage[Record[Prefix]]])
   }

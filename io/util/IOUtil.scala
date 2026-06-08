@@ -42,8 +42,7 @@ import steps.result.Result.eval.{raise, ok}
 import upickle.default.*
 import steps.result.Result
 
-case class Cache(files: Map[String, String], deps: Map[String, Set[String]])
-    derives ReadWriter
+case class Cache(files: Map[String, String], deps: Map[String, Set[String]]) derives ReadWriter
 object Cache:
   def empty: Cache = Cache(Map.empty, Map.empty)
   def readFrom(path: os.Path): Cache =
@@ -91,8 +90,8 @@ object paths:
           case None => throw Exception("No static directory found")
       case _ => throw Exception(s"Invalid static asset path: $relURL")
 
-  def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(
-      using model.SiteRoot
+  def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(using
+      model.SiteRoot
   ): Unit =
     // Use cache in watch mode; dependency tracking ensures selective re-render
     generateSite(src, out, theme, ignoreCache = false)
@@ -132,10 +131,8 @@ object paths:
     val deleted =
       cache.files.keySet.map(p => os.Path(p, curr)).filterNot(p => os.exists(p))
 
-    if changed.nonEmpty then
-      println(s"Changed: ${changed.mkString("\n  ", "\n  ", "")}")
-    if deleted.nonEmpty then
-      println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
+    if changed.nonEmpty then println(s"Changed: ${changed.mkString("\n  ", "\n  ", "")}")
+    if deleted.nonEmpty then println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
 
     // Determine which doc pages depend on any changed inputs (docs or static assets)
     val changedAbsPaths: Set[String] = changed.map(_.toString).toSet
@@ -471,7 +468,7 @@ object md:
       rawText.match
         case s"---\n```scala\n$son\n```\n---\n$rest" => (son, rest)
         case s"```scala\n$son\n```\n---\n$rest"      => (son, rest)
-        case _ => frontMatterError(" no front matter found")
+        case _                                       => frontMatterError(" no front matter found")
 
     val documentNoSplices = parseDryRun(rawDoc, theme)
     val data: T = Readers.readAs[T](rawSON) match

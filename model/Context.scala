@@ -68,8 +68,7 @@ object Context:
 
     trait Conforms[-Child, +Parent]
     object Conforms {
-      given subtypeConforms
-          : [Parent, Child <: Parent] => Conforms[Child, Parent]()
+      given subtypeConforms: [Parent, Child <: Parent] => Conforms[Child, Parent]()
     }
 
     object Theme:

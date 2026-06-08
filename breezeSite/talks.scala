@@ -50,8 +50,7 @@ val talks = model.Layout[Breeze.Context, FrontMatter.Talks]: doc =>
                   p(
                     small(
                       em(cls := "text-muted", link.frontMatter.subtitle),
-                      (if link.htmlPreview.nonEmpty then
-                         Seq(": ": Frag, raw(link.htmlPreview))
+                      (if link.htmlPreview.nonEmpty then Seq(": ": Frag, raw(link.htmlPreview))
                        else Seq.empty[Frag])
                     )
                   )
