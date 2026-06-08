@@ -11,11 +11,13 @@ object Layout:
       layout: Layout[Ctx, model.DocPage[Data]]
   ): layout.type = layout
 
-class Layouts extends Selectable:
+class LayoutRef[Inner <: NamedTuple.AnyNamedTuple: {Record.Lookup as ref}](layouts: Record[Inner]):
   outer =>
 
-  def selectDynamic(name: String): Any =
-    reflect.Selectable.reflectiveSelectable(this).selectDynamic(name)
+  def lookup(name: String): Any =
+    ref(name) match
+      case i if i > 0 => layouts(i)
+      case _          => throw Exception(s"Layout not found: `$name`")
 
   def apply[
       C <: model.Context,
@@ -27,7 +29,7 @@ class Layouts extends Selectable:
       DC
   ): ConcreteHtmlTag[String] | RawFrag =
     val layout =
-      try selectDynamic(name).asInstanceOf[Layout[C, DocPage[?]]]
+      try lookup(name).asInstanceOf[Layout[C, DocPage[?]]]
       catch
         case err =>
           throw new Exception(
@@ -35,8 +37,8 @@ class Layouts extends Selectable:
           )
     layout(doc)
 
-  def &(additions: Layouts): this.type & additions.type = new Layouts {
-    override def selectDynamic(name: String): Any =
-      try additions.selectDynamic(name)
-      catch case err => outer.selectDynamic(name)
-  }.asInstanceOf[this.type & additions.type]
+  // def &(additions: Layouts): this.type & additions.type = new Layouts {
+  //   override def selectDynamic(name: String): Any =
+  //     try additions.selectDynamic(name)
+  //     catch case err => outer.selectDynamic(name)
+  // }.asInstanceOf[this.type & additions.type]

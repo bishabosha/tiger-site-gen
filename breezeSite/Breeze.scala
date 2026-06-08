@@ -6,6 +6,7 @@ import model.sctx
 import breeze.Breeze as parent
 import model.TemplateFunction
 import model.Record
+import model.Record.Lookup.auto.given
 import model.SiteMapSchema.auto.given
 import model.SiteMapSchema.&++
 import model.SiteMapMeta
@@ -14,12 +15,24 @@ object Breeze extends model.DictionaryTheme:
 
   val metadata = new:
     val name = parent.metadata.name
-    val layouts = parent.metadata.layouts & new:
-      val about = breezeSite.about
-      val talks = breezeSite.talks
-      val projects = breezeSite.projects
-      val project = breezeSite.project
-      val raw = breezeSite.rawTemplate
+
+  type Layouts = parent.Layouts &++
+    (
+        about: LayoutOf[FrontMatter.About],
+        talks: LayoutOf[FrontMatter.Talks],
+        projects: LayoutOf[FrontMatter.Projects],
+        project: LayoutOf[FrontMatter.Project],
+        raw: LayoutOf[FrontMatter.Raw]
+    )
+
+  val layouts = parent.layouts ++
+    (
+      about = breezeSite.about,
+      talks = breezeSite.talks,
+      projects = breezeSite.projects,
+      project = breezeSite.project,
+      raw = breezeSite.rawTemplate
+    )
 
   override val templates = parent.templates & new model.TemplateFunctions:
     val `match-sim-embed` = TemplateFunction(

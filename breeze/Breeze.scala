@@ -1,5 +1,7 @@
 package breeze
 
+import scala.language.experimental.modularity
+
 import model.ctx
 import model.sctx
 import model.Record
@@ -8,16 +10,20 @@ import model.AnyDocCollection
 
 import model.SiteMapMeta
 import model.SiteMapSchema.auto.given
+import model.Record.Lookup.auto.given
 
 object Breeze extends model.DictionaryTheme:
+  self =>
 
-  val metadata = new {
+  override val metadata = new:
     val name = "Breeze"
-    val layouts = new {
-      val article = breeze.articleLayout
-      val articles = breeze.articles
-    }
-  }
+
+  type Layouts = (article: LayoutOf[FrontMatter.Article], articles: LayoutOf[FrontMatter.Articles])
+  val layouts = Record:
+    (
+      article = articleLayout,
+      articles = articles
+    )
 
   override val templates = new model.TemplateFunctions:
     val url = TemplateFunction(
@@ -34,7 +40,15 @@ object Breeze extends model.DictionaryTheme:
       articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
   )
   override val siteMapMeta: SiteMapMeta[SiteMap] =
-    SiteMapMeta.default.about(_.setAsRoot)
+    SiteMapMeta.default
+      .about(_.setAsRoot)
+    // .articles(_.indexLayout((articles = layouts.articles)).pageLayout((article = layouts.article)))
+
+  // val siteLayouts = Record:
+  //   (
+  //     about = Nil,
+  //     articles = (layouts.article :: Nil, layouts.articles :: Nil),
+  //   )
 
   object FrontMatter:
     final type BasePage = BuiltinFrontMatter {

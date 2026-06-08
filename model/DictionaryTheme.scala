@@ -11,8 +11,8 @@ trait DictionaryTheme extends Theme:
     Some(doc.frontMatter.layout)
       .filter(_.nonEmpty)
       .map(layoutKey =>
-        metadata.layouts
-          .selectDynamic(layoutKey)
+        layoutsByName
+          .lookup(layoutKey)
           .asInstanceOf[LayoutOf[BaseType]]
       )
 

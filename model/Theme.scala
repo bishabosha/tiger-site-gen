@@ -4,16 +4,19 @@ import scala.language.experimental.modularity
 
 trait Theme:
   thisTheme =>
-  final type LayoutOf[Data] =
-    model.Layout[Context, model.DocPage[Data]]
-  // object Layout:
-  //   def apply[Data](layout: LayoutOf[Data]): layout.type = layout
-  // def makeLayout[Data](layout: LayoutOf[Data]): layout.type = layout
 
   val metadata: Metadata
-  trait Metadata extends Selectable:
+  trait Metadata extends reflect.Selectable:
     val name: String
-    val layouts: Layouts
+
+  final type LayoutOf[Data] =
+    model.Layout[Context, model.DocPage[Data]]
+  final type LayoutOf0[Context <: model.Context, Data] =
+    model.Layout[Context, model.DocPage[Data]]
+
+  type Layouts <: NamedTuple.AnyNamedTuple: Record.Lookup
+  val layouts: Record[Layouts]
+  final val layoutsByName: model.LayoutRef[Layouts] = model.LayoutRef(thisTheme.layouts)
 
   val templates: TemplateFunctions = TemplateFunctions.Empty
 

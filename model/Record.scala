@@ -1,9 +1,13 @@
 package model
 
+import scala.NamedTuple.NamedTuple
 import scala.NamedTuple.AnyNamedTuple
+import scala.NamedTuple.DropNames
+import scala.NamedTuple.Names
 
 import steps.result.Result, Result.eval.{raise, ok}
 import steps.result.Result.apply as result
+import scala.annotation.publicInBinary
 
 class Record[T <: AnyNamedTuple](
     live: T
@@ -16,6 +20,15 @@ class Record[T <: AnyNamedTuple](
     live.asInstanceOf[Product].productElement(index)
   }
 
+  def ++[Other <: AnyNamedTuple](other: Other)(using
+      ev: Tuple.Disjoint[Names[T], Names[Other]] =:= true
+  ): Record[NamedTuple.Concat[T, Other]] =
+    type T0 = NamedTuple[Names[T], DropNames[T]]
+    type Other0 = NamedTuple[Names[Other], DropNames[Other]]
+    val live0: T0 = live.asInstanceOf[T0]
+    val other0: Other0 = other.asInstanceOf[Other0]
+    Record(live0 ++ other0)
+
   inline def selectDynamic(name: String): Any =
     apply(
       scala.compiletime
@@ -26,6 +39,27 @@ class Record[T <: AnyNamedTuple](
 }
 
 object Record:
+  trait Lookup[T <: AnyNamedTuple] extends Selectable:
+    type Fields <: NamedTuple.Map[T, [_] =>> Int]
+    def apply(name: String): Int
+    def selectDynamic(name: String): Int = apply(name)
+
+  object Lookup:
+    @publicInBinary
+    private[Lookup] def fromNames[T <: AnyNamedTuple](names: Names[T]): Lookup[T] =
+      val fieldsIt = names.productIterator.asInstanceOf[Iterator[String]]
+      new LookupImpl[T](fieldsIt.zipWithIndex.toMap)
+    private class LookupImpl[T <: AnyNamedTuple](val fields: Map[String, Int]) extends Lookup[T]:
+      type Fields = NamedTuple.Map[T, [_] =>> Int]
+      def apply(name: String): Int = fields(name)
+
+    object auto:
+      inline given autoderived[T <: AnyNamedTuple]: Lookup[T] =
+        derived[T]
+
+    inline def derived[T <: AnyNamedTuple]: Lookup[T] =
+      fromNames[T](compiletime.constValueTuple[NamedTuple.Names[T]])
+
   type IsSubPrefix[This <: AnyNamedTuple, Prefix <: AnyNamedTuple] =
     model.Site.IsSubPrefix[This, Prefix]
 

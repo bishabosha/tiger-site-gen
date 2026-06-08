@@ -6,6 +6,7 @@ import model.SiteMapMeta
 import model.Doc
 import model.DocPage
 import model.Record
+import model.Record.Lookup.auto.given
 import steps.result.Result
 
 import scalanotation.Reader.skippable.ofFields
@@ -13,8 +14,14 @@ import scalanotation.Reader.skippable.ofFields
 object Homepage extends model.Theme:
   val metadata = new:
     val name = "Homepage"
-    val layouts = new model.Layouts:
-      val home = homeLayout
+
+  type Layouts = (
+      home: LayoutOf[FrontMatter.About]
+  )
+  val layouts = Record:
+    (
+      home = homeLayout
+    )
 
   type SiteMap = (about: Doc[FrontMatter.About])
 
@@ -47,11 +54,8 @@ object Homepage extends model.Theme:
       doc: DocPage.View[BaseType]
   ): Option[LayoutOf[BaseType]] =
     if doc.frontMatter.layout.getOrElse("") == "home" then
-      // also fields of objects aparently dont infer structural refinements,
-      // so only resort is selectDynamic and cast, so no typesafe way to tie the knot yet.
       Some(
-        metadata.layouts
-          .selectDynamic("home")
+        layouts.home
           .asInstanceOf[LayoutOf[BaseType]]
       )
     else None
