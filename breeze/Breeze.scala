@@ -43,6 +43,17 @@ object Breeze extends model.DictionaryTheme:
     SiteMapMeta.default
       .about(_.setAsRoot)
     // .articles(_.indexLayout((articles = layouts.articles)).pageLayout((article = layouts.article)))
+    //             ^^^^^^^^^^^                                ^^^^^^^^^^
+    //             |                                          |
+    //             | the idea here is that we capture a type safe association between
+    //             | the the index and page slots, and the available layouts for each type.
+    //             | The "generic" layout lookup function only needs to return the string
+    //             | for the name, and then IO can use the siteMapMeta to lookup the name,
+    //             | and will trust it matches.
+    // .articles(_.indexLayout(dict((articles = layouts.articles))).pageLayout(dict((article = layouts.article))))
+    //             | To be more generic, we can instead only ask for a function that will return an optional
+    //             | layout or error, given a doc page of the right type. Then we can provide helpers
+    //             | (e.g. `dict`) for specific types of front matter.
 
   // val siteLayouts = Record:
   //   (
