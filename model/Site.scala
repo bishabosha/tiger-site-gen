@@ -12,18 +12,18 @@ sealed trait SiteMapMeta[C <: model.Context, T <: AnyNamedTuple] extends Selecta
         SiteMapMeta.DocColToMetaOf[C, X] => SiteMapMeta.DocColToMetaOf[C, X]
     ) => SiteMapMeta[C, T]
   ]
-  def update(name: String)(
+  def _update(name: String)(
       in: SiteMapMeta.Data[C] => SiteMapMeta.Data[C]
   ): SiteMapMeta[C, T]
-  def query(name: String): SiteMapMeta.Data[C]
+  def _query(name: String): SiteMapMeta.Data[C]
   final def selectDynamic(
       name: String
   ): (
       SiteMapMeta.Data[C] => SiteMapMeta.Data[C]
   ) => SiteMapMeta[C, T] =
-    update(name)
+    _update(name)
 
-  def merge[C0 <: model.Context, T0 <: AnyNamedTuple](
+  def _mergeFrom[C0 <: model.Context, T0 <: AnyNamedTuple](
       that: SiteMapMeta[C0, T0]
   )(using
       sub: Site.IsSubPrefix[T0, T],
@@ -44,8 +44,8 @@ object SiteMapMeta:
   private class RawMeta[C <: model.Context, T <: AnyNamedTuple] private[SiteMapMeta] (
       private val data: Map[String, Data[C]]
   ) extends SiteMapMeta[C, T]:
-    def query(name: String): Data[C] = data.getOrElse(name, emptyDataOf)
-    def update(
+    def _query(name: String): Data[C] = data.getOrElse(name, emptyDataOf)
+    def _update(
         name: String
     )(in: Data[C] => Data[C]): SiteMapMeta[C, T] =
       RawMeta(data.updatedWith(name) {

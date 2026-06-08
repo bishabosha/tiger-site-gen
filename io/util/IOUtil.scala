@@ -249,7 +249,7 @@ object paths:
     for col <- activeCols do
       given model.AnyDocCollection = col
       os.makeDir.all(dest / col.collName)
-      val colMeta = theme.siteMapMeta.query(col.collName)
+      val colMeta = theme.siteMapMeta._query(col.collName)
       if colMeta.isRoot then optRoots += col
       colMeta match
         case spec: model.SiteMapMeta.DocsData[theme.Context, i0, d0] =>

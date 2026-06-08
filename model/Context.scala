@@ -9,34 +9,30 @@ sealed trait SiteContext:
   val siteRoot: SiteRoot
   val site: model.Site[SiteMap]
 
+object SiteContext:
+  type Of[SiteMap0 <: NamedTuple.AnyNamedTuple] = SiteContext {
+    type SiteMap = SiteMap0
+  }
+
 sealed trait Context extends SiteContext:
   type Extra
   val extra: Extra
 
 object Context:
 
-  given conformsContext: [
-      CS <: AnyNamedTuple,
-      PS <: AnyNamedTuple,
-      CE,
-      PE
-  ]
-    => Conforms[Site[CS], Site[PS]]
-    => Conforms[CE, PE]
-      => Conforms[
-        Context { type SiteMap = CS; type Extra = CE },
-        Context { type SiteMap = PS; type Extra = PE }
-      ]()
+  type Of[SiteMap0 <: NamedTuple.AnyNamedTuple, Extra0 <: Any] = Context {
+    type SiteMap = SiteMap0; type Extra = Extra0
+  }
 
   def fromTheme[T <: Theme](src: os.Path, theme0: T)(using
       root: model.SiteRoot
   ): View[ContextForTheme[theme0.type]] =
-    View[theme0.type](
+    View(
       new Context { self =>
         override type SiteMap = theme0.SiteMap
         override type Extra = theme0.Extra
         val theme: Theme = theme0
-        val siteCtx = SiteView[theme0.type](
+        val siteCtx = SiteView(
           new SiteContext {
             override type SiteMap = theme0.SiteMap
             val theme: Theme = theme0
@@ -56,13 +52,13 @@ object Context:
       }
     )
 
-  final type ContextForTheme[T <: Theme] = Context {
-    type SiteMap = Views.Theme.SiteMap[T]
-    type Extra = Views.Theme.Extra[T]
-  }
-  final type SiteContextForTheme[T <: Theme] = SiteContext {
-    type SiteMap = Views.Theme.SiteMap[T]
-  }
+  final type ContextForTheme[T <: Theme] = Context.Of[
+    Views.Theme.SiteMap[T],
+    Views.Theme.Extra[T]
+  ]
+  final type SiteContextForTheme[T <: Theme] = SiteContext.Of[
+    Views.Theme.SiteMap[T]
+  ]
 
   object Views {
 
@@ -87,19 +83,22 @@ object Context:
 
     opaque type SiteView[+C <: SiteContext] <: C = C
     object SiteView {
-      def apply[T <: Theme](
-          ctx: SiteContextForTheme[T]
-      ): SiteView[SiteContextForTheme[T]] =
+      def apply[C <: SiteContext](
+          ctx: C
+      ): SiteView[C] =
         ctx
 
-      given narrowChild: [
-          CS <: AnyNamedTuple,
-          PS <: AnyNamedTuple
-      ] => (childCtx: SiteView[SiteContext { type SiteMap = CS }])
+      given conformsSiteContextView: [CS <: AnyNamedTuple, PS <: AnyNamedTuple]
         => Conforms[Site[CS], Site[PS]]
-        => SiteView[SiteContext { type SiteMap = PS }] =
-        childCtx
-          .asInstanceOf[SiteView[SiteContext { type SiteMap = PS }]]
+          => Conforms[SiteContext.Of[CS], SiteView[SiteContext.Of[PS]]]()
+
+      given narrowChild: [
+          Child <: SiteContext,
+          Parent <: SiteContext
+      ]
+        => (childCtx: Child)
+        => Conforms[Child, SiteView[Parent]]
+        => SiteView[Parent] = SiteView(childCtx.asInstanceOf[Parent])
     }
 
     opaque type View[+C <: Context] <: C = C
@@ -118,23 +117,25 @@ object Context:
       //   => Context.Boxed[ContextOf[PE, Parent]] =
       //     summon[Context.Boxed[ContextOf[CE, Child]]].asInstanceOf[Context.Boxed[ContextOf[PE, Parent]]]
 
-      def apply[T <: Theme](ctx: ContextForTheme[T]): View[ContextForTheme[T]] =
+      def apply[C <: model.Context](ctx: C): View[C] =
         ctx
 
       given conformsContextView: [
-          Child <: Context,
-          Parent <: Context
+          CS <: AnyNamedTuple,
+          PS <: AnyNamedTuple,
+          CE,
+          PE
       ]
-        => Conforms[Child, Parent] => Conforms[View[Child], View[Parent]]()
+        => Conforms[Site[CS], Site[PS]]
+        => Conforms[CE, PE] => Conforms[Context.Of[CS, CE], View[Context.Of[PS, PE]]]()
 
       given narrowChild: [
           Child <: Context,
           Parent <: Context
       ]
-        => (childCtx: View[Child])
-        => Conforms[Child, Parent]
-        => View[Parent] =
-        childCtx.asInstanceOf[View[Parent]]
+        => (childCtx: Child)
+        => Conforms[Child, View[Parent]]
+        => View[Parent] = View(childCtx.asInstanceOf[Parent])
     }
   }
 

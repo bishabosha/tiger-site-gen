@@ -47,7 +47,7 @@ object Breeze extends model.DictionaryTheme:
   )
 
   override val siteMapMeta = parent.siteMapMeta
-    .merge(defaultSiteMeta)
+    ._mergeFrom(defaultSiteMeta)
     .about(_.indexLayout(dict((about = layouts.about))))
     .talks(_.indexLayout(dict((talks = layouts.talks))))
     .projects(
