@@ -32,8 +32,6 @@ object Homepage extends model.Theme:
       )
     ]
 
-  type BaseType = Record[NamedTuple.Empty]
-
   def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright

@@ -189,7 +189,7 @@ object paths:
               .filter(p => p.ext == "md" || p.ext == "html")
           val name = r.baseName
           theme.siteMap.get(name) match
-            case Some(doc: model.SiteMapSchema.DocsSpec[b, i, t]) =>
+            case Some(doc: model.SiteMapSchema.DocsSpec[i, t]) =>
               given scalanotation.Reader[i] = doc.evI
               given scalanotation.Reader[t] = doc.evA
               val triples = paths.map(p =>
@@ -210,7 +210,7 @@ object paths:
                   md.render[i](-1, n, p, theme)
                 }
               Some(name -> model.Docs[i, t](name, indexOpt, rendered))
-            case Some(doc: model.SiteMapSchema.DocSpec[b, t]) =>
+            case Some(doc: model.SiteMapSchema.DocSpec[t]) =>
               given scalanotation.Reader[t] = doc.ev
               val path = paths.head
               val pName = path.baseName
@@ -252,7 +252,7 @@ object paths:
       val colMeta = theme.siteMapMeta.query(col.collName)
       if colMeta.isRoot then optRoots += col
       colMeta match
-        case spec: model.SiteMapMeta.DocsData[theme.Context, theme.BaseType, i0, d0] =>
+        case spec: model.SiteMapMeta.DocsData[theme.Context, i0, d0] =>
           spec.optPageLayout match
             case Some(fn) =>
               for doc <- col do

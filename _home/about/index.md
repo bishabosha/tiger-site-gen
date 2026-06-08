@@ -1,6 +1,5 @@
 ```scala
 (
-  layout = "home",
   title = "About",
   name = "Jamie Thompson",
   copyright = "Jamie Thompson",

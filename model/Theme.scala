@@ -16,17 +16,14 @@ trait Theme:
 
   val templates: TemplateFunctions = TemplateFunctions.Empty
 
-  type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema.Of[BaseType]
+  type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema
 
-  final def siteMap: SiteMapSchema[BaseType, SiteMap] =
-    summon[SiteMapSchema[BaseType, SiteMap]]
-  def siteMapMeta: SiteMapMeta[Context, BaseType, SiteMap] = defaultSiteMeta
-  def defaultSiteMeta: SiteMapMeta[Context, BaseType, SiteMap] = SiteMapMeta.default
+  final def siteMap: SiteMapSchema[SiteMap] = summon[SiteMapSchema[SiteMap]]
+  def siteMapMeta: SiteMapMeta[Context, SiteMap] = defaultSiteMeta
+  def defaultSiteMeta: SiteMapMeta[Context, SiteMap] = SiteMapMeta.default
 
   type Extra
   def extras(using SiteContext): Extra = ().asInstanceOf[Extra]
-
-  type BaseType
 
   final type Context =
     model.Context.Views.View[model.Context.ContextForTheme[this.type]]
