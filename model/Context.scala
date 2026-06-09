@@ -118,7 +118,7 @@ object Context:
       // }
       // given narrowChild: [CE <: PE, PE, Child <: NamedTuple.AnyNamedTuple, Parent <: NamedTuple.AnyNamedTuple]
       //   => Context.Boxed[ContextOf[CE, Child]]
-      //   => Site.IsSubPrefix[Child, Parent]
+      //   => Record.IsSubPrefix[Child, Parent]
       //   => Context.Boxed[ContextOf[PE, Parent]] =
       //     summon[Context.Boxed[ContextOf[CE, Child]]].asInstanceOf[Context.Boxed[ContextOf[PE, Parent]]]
 

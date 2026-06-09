@@ -7,8 +7,8 @@ import breeze.Breeze as parent
 import model.TemplateFunction
 import model.Record
 import model.Record.Lookup.auto.given
+import model.Record.++
 import model.SiteMapSchema.auto.given
-import model.SiteMapSchema.&++
 import model.SiteMapMeta
 
 object Breeze extends model.DictionaryTheme:
@@ -25,7 +25,7 @@ object Breeze extends model.DictionaryTheme:
       raw = breezeSite.rawTemplate
     )
 
-  type Templates = parent.Templates &++ (
+  type Templates = parent.Templates ++ (
       `match-sim-embed`: TemplateFunction
   )
   override val templates = parent.templates ++ model.TemplateFunctions:
@@ -44,7 +44,7 @@ object Breeze extends model.DictionaryTheme:
       )
     )
 
-  type SiteMap = parent.SiteMap &++ (
+  type SiteMap = parent.SiteMap ++ (
       talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk],
       videos: DocsOf[FrontMatter.Videos, FrontMatter.Video],
       projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],

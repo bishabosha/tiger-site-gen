@@ -55,9 +55,6 @@ class TemplateFunctions[T <: AnyNamedTuple] private[model] (
 object TemplateFunctions:
   type IsAll[T] = [U <: Tuple] =>> Tuple.Union[U] <:< T
 
-  type &++[X <: AnyNamedTuple, Y <: AnyNamedTuple] =
-    SiteMapSchema.&++[X, Y]
-
   inline def apply[N <: Tuple, V <: Tuple: IsAll[
     TemplateFunction
   ]](
@@ -75,5 +72,5 @@ object TemplateFunctions:
     TemplateFunctions(NamedTuple.Empty)
 
   given [C <: AnyNamedTuple, P <: AnyNamedTuple]
-    => Site.IsSubPrefix[C, P]
+    => Record.IsSubPrefix[C, P]
       => Context.Views.Conforms[TemplateFunctions[C], TemplateFunctions[P]]()
