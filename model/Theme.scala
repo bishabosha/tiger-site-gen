@@ -4,34 +4,28 @@ import scala.language.experimental.modularity
 
 trait Theme:
   thisTheme =>
-  final type LayoutOf[Data] =
-    model.Layout[Context, model.DocPage[Data]]
-  // object Layout:
-  //   def apply[Data](layout: LayoutOf[Data]): layout.type = layout
-  // def makeLayout[Data](layout: LayoutOf[Data]): layout.type = layout
 
   val metadata: Metadata
-  trait Metadata extends Selectable:
+  trait Metadata extends reflect.Selectable:
     val name: String
-    val layouts: Layouts
+
+  final type LayoutOf[Data] =
+    model.Layout[Context, model.DocPage[Data]]
+  final type LayoutOf0[Context <: model.Context, Data] =
+    model.Layout[Context, model.DocPage[Data]]
 
   val templates: TemplateFunctions = TemplateFunctions.Empty
 
-  type Extra
+  type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema
 
-  type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema.Of[BaseType]
+  final def siteMap: SiteMapSchema[SiteMap] = summon[SiteMapSchema[SiteMap]]
+  def siteMapMeta: SiteMapMeta[Context, SiteMap] = defaultSiteMeta
+  def defaultSiteMeta: SiteMapMeta[Context, SiteMap] = SiteMapMeta.default
 
-  final def siteMap: SiteMapSchema[BaseType, SiteMap] =
-    summon[SiteMapSchema[BaseType, SiteMap]]
-  def siteMapMeta: SiteMapMeta[SiteMap] = SiteMapMeta.default
-
-  def extras(using SiteContext): Extra
-
-  type BaseType
-
-  def layoutFor(doc: model.DocPage.View[BaseType]): Option[LayoutOf[BaseType]]
+  type Extra <: NamedTuple.AnyNamedTuple
+  def extras(using SiteContext): model.Record[Extra]
 
   final type Context =
-    model.Context.Views.View[model.Context.ContextForTheme[this.type]]
+    model.Context.Views.View[model.Context.Of[SiteMap, Extra]]
   final type SiteContext =
-    model.Context.Views.SiteView[model.Context.SiteContextForTheme[this.type]]
+    model.Context.Views.SiteView[model.SiteContext.Of[SiteMap]]

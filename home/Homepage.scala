@@ -2,29 +2,24 @@ package home
 
 import model.ctx
 import model.SiteMapSchema.auto.given
-import model.SiteMapMeta
 import model.Doc
-import model.DocPage
 import model.Record
 import steps.result.Result
-
-import scalanotation.Reader.skippable.ofFields
 
 object Homepage extends model.Theme:
   val metadata = new:
     val name = "Homepage"
-    val layouts = new model.Layouts:
-      val home = homeLayout
 
   type SiteMap = (about: Doc[FrontMatter.About])
 
-  override val siteMapMeta: SiteMapMeta[SiteMap] =
-    SiteMapMeta.default.about(_.setAsRoot)
+  override val siteMapMeta =
+    defaultSiteMeta.about(
+      _.setAsRoot.indexLayoutAlways(homeLayout)
+    )
 
   object FrontMatter:
     final type About = Record[
       (
-          layout: Option[String],
           title: String,
           name: String,
           copyright: String,
@@ -34,27 +29,12 @@ object Homepage extends model.Theme:
       )
     ]
 
-  type BaseType = Record[(layout: Option[String])]
-
-  type Extra = Unit
-  def extras(using SiteContext): Extra = ()
-
   def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright
 
-  override def layoutFor(
-      doc: DocPage.View[BaseType]
-  ): Option[LayoutOf[BaseType]] =
-    if doc.frontMatter.layout.getOrElse("") == "home" then
-      // also fields of objects aparently dont infer structural refinements,
-      // so only resort is selectDynamic and cast, so no typesafe way to tie the knot yet.
-      Some(
-        metadata.layouts
-          .selectDynamic("home")
-          .asInstanceOf[LayoutOf[BaseType]]
-      )
-    else None
+  type Extra = NamedTuple.Empty
+  def extras(using SiteContext) = Record(NamedTuple.Empty)
 
   case class Links(
       text: String,

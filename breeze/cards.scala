@@ -18,9 +18,8 @@ object cards:
     )
 
   def stride(content: scalatags.Text.Modifier*): scalatags.Text.Modifier =
-    val (col1, col2) = content.zipWithIndex.partitionMap((t, i) =>
-      if i % 2 == 0 then Left(t) else Right(t)
-    )
+    val (col1, col2) =
+      content.zipWithIndex.partitionMap((t, i) => if i % 2 == 0 then Left(t) else Right(t))
     def column(
         col: Seq[scalatags.Text.Modifier]
     ): Option[scalatags.Text.Modifier] =
@@ -88,8 +87,7 @@ object cards:
         p(
           small(
             em(cls := "text-muted", link.frontMatter.subtitle),
-            (if link.htmlPreview.nonEmpty then
-               Seq(": ": Frag, raw(link.htmlPreview))
+            (if link.htmlPreview.nonEmpty then Seq(": ": Frag, raw(link.htmlPreview))
              else Seq.empty[Frag])
           )
         )

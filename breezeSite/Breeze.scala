@@ -1,10 +1,12 @@
 package breezeSite
 
 import model.ctx
+import model.sctx
 
 import breeze.Breeze as parent
 import model.TemplateFunction
 import model.Record
+import model.Record.Lookup.auto.given
 import model.SiteMapSchema.auto.given
 import model.SiteMapSchema.&++
 import model.SiteMapMeta
@@ -13,12 +15,15 @@ object Breeze extends model.DictionaryTheme:
 
   val metadata = new:
     val name = parent.metadata.name
-    val layouts = parent.metadata.layouts & new:
-      val about = breezeSite.about
-      val talks = breezeSite.talks
-      val projects = breezeSite.projects
-      val project = breezeSite.project
-      val raw = breezeSite.rawTemplate
+
+  val layouts = parent.layouts ++
+    (
+      about = breezeSite.about,
+      talks = breezeSite.talks,
+      projects = breezeSite.projects,
+      project = breezeSite.project,
+      raw = breezeSite.rawTemplate
+    )
 
   override val templates = parent.templates & new model.TemplateFunctions:
     val `match-sim-embed` = TemplateFunction(
@@ -40,20 +45,27 @@ object Breeze extends model.DictionaryTheme:
       projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],
       `match-type-simulator`: DocOf[FrontMatter.Raw]
   )
-  // todo: copy from parent
-  override val siteMapMeta: SiteMapMeta[SiteMap] =
-    SiteMapMeta.default.about(_.setAsRoot)
 
-  override type Extra = parent.Extra
-  override def extras(using SiteContext): Extra =
-    Record:
-      (
-        nav = NavExtra.nav,
-        extraHead =
-          HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
-        extraFoot =
-          HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
-      )
+  override val siteMapMeta = parent.siteMapMeta
+    ._mergeFrom(defaultSiteMeta)
+    .about(_.indexLayout(dict((about = layouts.about))))
+    .talks(_.indexLayout(dict((talks = layouts.talks))))
+    .projects(
+      _.indexLayout(dict((projects = layouts.projects)))
+        .pageLayout(dict((project = layouts.project)))
+    )
+    .`match-type-simulator`(_.indexLayout(dict((raw = layouts.raw))))
+
+  type Extra = parent.Extra
+  def extras(using SiteContext) = Record:
+    val p = parent.extras
+    (
+      nav = p.nav :+ sctx.site.projects :+ sctx.site.talks,
+      extraHead =
+        p.extraHead ++ HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
+      extraFoot =
+        p.extraFoot ++ HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
+    )
 
   object FrontMatter:
     export parent.FrontMatter.*

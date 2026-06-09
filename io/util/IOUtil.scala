@@ -42,8 +42,7 @@ import steps.result.Result.eval.{raise, ok}
 import upickle.default.*
 import steps.result.Result
 
-case class Cache(files: Map[String, String], deps: Map[String, Set[String]])
-    derives ReadWriter
+case class Cache(files: Map[String, String], deps: Map[String, Set[String]]) derives ReadWriter
 object Cache:
   def empty: Cache = Cache(Map.empty, Map.empty)
   def readFrom(path: os.Path): Cache =
@@ -91,8 +90,8 @@ object paths:
           case None => throw Exception("No static directory found")
       case _ => throw Exception(s"Invalid static asset path: $relURL")
 
-  def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(
-      using model.SiteRoot
+  def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(using
+      model.SiteRoot
   ): Unit =
     // Use cache in watch mode; dependency tracking ensures selective re-render
     generateSite(src, out, theme, ignoreCache = false)
@@ -132,10 +131,8 @@ object paths:
     val deleted =
       cache.files.keySet.map(p => os.Path(p, curr)).filterNot(p => os.exists(p))
 
-    if changed.nonEmpty then
-      println(s"Changed: ${changed.mkString("\n  ", "\n  ", "")}")
-    if deleted.nonEmpty then
-      println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
+    if changed.nonEmpty then println(s"Changed: ${changed.mkString("\n  ", "\n  ", "")}")
+    if deleted.nonEmpty then println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
 
     // Determine which doc pages depend on any changed inputs (docs or static assets)
     val changedAbsPaths: Set[String] = changed.map(_.toString).toSet
@@ -192,7 +189,7 @@ object paths:
               .filter(p => p.ext == "md" || p.ext == "html")
           val name = r.baseName
           theme.siteMap.get(name) match
-            case Some(doc: model.SiteMapSchema.DocsSpec[b, i, t]) =>
+            case Some(doc: model.SiteMapSchema.DocsSpec[i, t]) =>
               given scalanotation.Reader[i] = doc.evI
               given scalanotation.Reader[t] = doc.evA
               val triples = paths.map(p =>
@@ -213,7 +210,7 @@ object paths:
                   md.render[i](-1, n, p, theme)
                 }
               Some(name -> model.Docs[i, t](name, indexOpt, rendered))
-            case Some(doc: model.SiteMapSchema.DocSpec[b, t]) =>
+            case Some(doc: model.SiteMapSchema.DocSpec[t]) =>
               given scalanotation.Reader[t] = doc.ev
               val path = paths.head
               val pName = path.baseName
@@ -252,42 +249,48 @@ object paths:
     for col <- activeCols do
       given model.AnyDocCollection = col
       os.makeDir.all(dest / col.collName)
-      if theme.siteMapMeta.query(col.collName).isRoot then optRoots += col
-      theme.siteMap(col.collName) match
-        case spec: model.SiteMapSchema.DocsConforms[theme.BaseType, i0, d0] =>
-          for doc <- col do
-            val baseDoc =
-              spec.conformsA.toBase(doc.asInstanceOf[model.DocPage[d0]])
-            theme.layoutFor(baseDoc) match
-              case Some(layout) if changed.contains(doc.path) =>
+      val colMeta = theme.siteMapMeta._query(col.collName)
+      if colMeta.isRoot then optRoots += col
+      colMeta match
+        case spec: model.SiteMapMeta.DocsData[theme.Context, i0, d0] =>
+          for
+            fn <- spec.optPageLayout
+            doc <- col
+          do
+            val d0 = doc.asInstanceOf[model.DocPage[d0]]
+            fn(d0) match
+              case Result.Ok(Some(layout)) if changed.contains(doc.path) =>
                 val (subPage, usedDeps) = Templates.withDependencyCollection {
-                  layout(baseDoc)
+                  layout.run(d0)
                 }
                 os.write.over(
                   dest / col.collName / sanatise.mdNameToHtml(doc.name),
                   scalatags.Text.all.doctype("html")(subPage)
                 )
                 deps += (doc.path.relativeTo(curr).toString -> usedDeps)
-              case _ => // skip unchanged pages or those without a layout
+              case Result.Ok(_)  => // skip unchanged pages or those without a layout
+              case Result.Err(e) => throw e
           end for
           if changed.contains(col.index.path) then
-            val baseIndex =
-              spec.conformsI.toBase(col.index.asInstanceOf[model.DocPage[i0]])
-            val ilayout =
-              theme.layoutFor(baseIndex) match
-                case Some(layout) => layout
-                case None         =>
-                  throw AssertionError(
-                    s"index page ${col.index.path} must have a layout"
-                  )
-            val (indexPage, usedDeps) = Templates.withDependencyCollection {
-              ilayout(baseIndex)
-            }
-            os.write.over(
-              dest / col.collName / "index.html",
-              scalatags.Text.all.doctype("html")(indexPage)
-            )
-            deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
+            for fn <- spec.optIndexLayout do
+              val i0 = col.index.asInstanceOf[model.DocPage[i0]]
+              val ilayout =
+                fn(i0) match
+                  case Result.Ok(Some(layout)) => layout
+                  case Result.Ok(None)         =>
+                    throw AssertionError(
+                      s"index page ${col.index.path} must have a layout"
+                    )
+                  case Result.Err(e) => throw e
+              val (indexPage, usedDeps) = Templates.withDependencyCollection {
+                ilayout.run(i0)
+              }
+              os.write.over(
+                dest / col.collName / "index.html",
+                scalatags.Text.all.doctype("html")(indexPage)
+              )
+              deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
+            end for
           end if
       end match
     end for
@@ -471,7 +474,7 @@ object md:
       rawText.match
         case s"---\n```scala\n$son\n```\n---\n$rest" => (son, rest)
         case s"```scala\n$son\n```\n---\n$rest"      => (son, rest)
-        case _ => frontMatterError(" no front matter found")
+        case _                                       => frontMatterError(" no front matter found")
 
     val documentNoSplices = parseDryRun(rawDoc, theme)
     val data: T = Readers.readAs[T](rawSON) match

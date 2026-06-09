@@ -98,8 +98,7 @@ val project = model.Layout[Breeze.Context, FrontMatter.Project]: doc =>
                     "Project URL"
                   ),
                   b(
-                    if doc.frontMatter.isInProgress then
-                      " this project is still in progress..."
+                    if doc.frontMatter.isInProgress then " this project is still in progress..."
                     else " this project is completed."
                   )
                 ),

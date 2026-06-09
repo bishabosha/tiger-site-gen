@@ -31,6 +31,16 @@ object DocPage:
         ev.liftCo(doc)
       )
     }
+  trait ConformsAll[Layouts <: Tuple, BaseType]
+  object ConformsAll:
+    given [BaseType]: ConformsAll[EmptyTuple, BaseType]()
+    given [H, T <: Tuple, BaseType](using
+        evH: Conforms[H, BaseType],
+        ev: ConformsAll[T, BaseType]
+    ): ConformsAll[
+      H *: T,
+      BaseType
+    ]()
 
 sealed trait AnyDocCollection:
   def collName: String
@@ -41,8 +51,7 @@ sealed trait DocCollection[+DI, +D] extends AnyDocCollection:
   def foreach(op: DocPage[D] => Unit): Unit
   def toIterable: Iterable[DocPage[D]]
 
-class Doc[+D](val collName: String, _index: DocPage[D])
-    extends DocCollection[D, D]:
+class Doc[+D](val collName: String, _index: DocPage[D]) extends DocCollection[D, D]:
   def willRender: Boolean = true
   override def index: DocPage[D] =
     Templates.recordDependency(_index.path)

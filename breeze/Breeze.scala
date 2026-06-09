@@ -1,5 +1,7 @@
 package breeze
 
+import scala.language.experimental.modularity
+
 import model.ctx
 import model.sctx
 import model.Record
@@ -8,16 +10,19 @@ import model.AnyDocCollection
 
 import model.SiteMapMeta
 import model.SiteMapSchema.auto.given
+import model.Record.Lookup.auto.given
 
 object Breeze extends model.DictionaryTheme:
+  self =>
 
-  val metadata = new {
+  override val metadata = new:
     val name = "Breeze"
-    val layouts = new {
-      val article = breeze.articleLayout
-      val articles = breeze.articles
-    }
-  }
+
+  val layouts = Record:
+    (
+      article = articleLayout,
+      articles = articles
+    )
 
   override val templates = new model.TemplateFunctions:
     val url = TemplateFunction(
@@ -33,8 +38,12 @@ object Breeze extends model.DictionaryTheme:
       about: DocOf[FrontMatter.About],
       articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
   )
-  override val siteMapMeta: SiteMapMeta[SiteMap] =
-    SiteMapMeta.default.about(_.setAsRoot)
+  override val siteMapMeta = defaultSiteMeta
+    .about(_.setAsRoot)
+    .articles(
+      _.indexLayout(dict((articles = layouts.articles)))
+        .pageLayout(dict((article = layouts.article)))
+    )
 
   object FrontMatter:
     final type BasePage = BuiltinFrontMatter {
@@ -59,14 +68,12 @@ object Breeze extends model.DictionaryTheme:
       val published: String
     }
 
-  type Extra = Record[
-    (
-        nav: List[AnyDocCollection],
-        extraHead: Seq[scalatags.Text.all.Modifier],
-        extraFoot: Seq[scalatags.Text.all.Modifier]
-    )
-  ]
-  def extras(using SiteContext): Extra = Record:
+  type Extra = (
+      nav: List[AnyDocCollection],
+      extraHead: Seq[scalatags.Text.all.Modifier],
+      extraFoot: Seq[scalatags.Text.all.Modifier]
+  )
+  def extras(using SiteContext) = Record:
     (
       nav = List(sctx.site.about, sctx.site.articles),
       extraHead = Seq.empty,

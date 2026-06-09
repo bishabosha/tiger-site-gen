@@ -26,9 +26,7 @@ object sidebar:
       collapsable: Boolean = true
   )(using Context): scalatags.Text.Modifier =
     div(
-      cls := s"bio-box jumbotron sidebar shadow py-lg-4 py-3 ${
-          if top then "bio-box__top" else ""
-        }",
+      cls := s"bio-box jumbotron sidebar shadow py-lg-4 py-3 ${if top then "bio-box__top" else ""}",
       bio(ctx.site.about.index, hideable, collapsable)
     )
 
