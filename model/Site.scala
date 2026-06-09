@@ -97,16 +97,22 @@ object SiteMapMeta:
 
   type SelLayout[C <: model.Context, A] =
     model.DocPage[A] => Result[Option[model.Layout[C, model.DocPage[A]]], Exception]
+  type LayoutAlways[C <: model.Context, A] =
+    model.Layout[C, model.DocPage[A]]
 
   sealed trait DocData[C <: model.Context, I] extends Data[C]:
     override def setAsRoot: DocData[C, I]
     def optIndexLayout: Option[SelLayout[C, I]]
     def indexLayout(fn: SelLayout[C, I]): DocData[C, I]
+    def indexLayoutAlways(layout: LayoutAlways[C, I]): DocData[C, I] =
+      indexLayout(Function.const(Result.Ok(Some(layout))))
   sealed trait DocsData[C <: model.Context, I, A] extends DocData[C, I]:
     override def setAsRoot: DocsData[C, I, A]
     override def indexLayout(fn: SelLayout[C, I]): DocsData[C, I, A]
-    def pageLayout(fn: SelLayout[C, A]): DocsData[C, I, A]
     def optPageLayout: Option[SelLayout[C, A]]
+    def pageLayout(fn: SelLayout[C, A]): DocsData[C, I, A]
+    def pageLayoutAlways(layout: LayoutAlways[C, A]): DocsData[C, I, A] =
+      pageLayout(Function.const(Result.Ok(Some(layout))))
 
 sealed trait SiteMapSchema[T <: AnyNamedTuple] extends Selectable:
   type Fields = NamedTuple.Map[T, SiteMapSchema.DocColToSchema]

@@ -2,11 +2,8 @@ package home
 
 import model.ctx
 import model.SiteMapSchema.auto.given
-import model.SiteMapMeta
 import model.Doc
-import model.DocPage
 import model.Record
-import model.Record.Lookup.auto.given
 import steps.result.Result
 
 object Homepage extends model.Theme:
@@ -17,7 +14,7 @@ object Homepage extends model.Theme:
 
   override val siteMapMeta =
     defaultSiteMeta.about(
-      _.setAsRoot.indexLayout(Function.const(Result.Ok(Some(homeLayout))))
+      _.setAsRoot.indexLayoutAlways(homeLayout)
     )
 
   object FrontMatter:
