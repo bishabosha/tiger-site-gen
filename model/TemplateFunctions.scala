@@ -16,15 +16,18 @@ object TemplateFunction:
 class TemplateFunctions extends Selectable:
   outer =>
 
-  def selectDynamic(name: String): Any =
-    reflect.Selectable.reflectiveSelectable(this).selectDynamic(name)
+  def selectDynamic(name: String): TemplateFunction =
+    reflect.Selectable
+      .reflectiveSelectable(this)
+      .selectDynamic(name)
+      .asInstanceOf[TemplateFunction]
 
   private def split(expr: String): (String, String) =
     expr.span(!_.isWhitespace) match
       case (name, args) => (name, args.trim)
 
   private def templateFunction(name: String, expr: String): TemplateFunction =
-    try selectDynamic(name).asInstanceOf[TemplateFunction]
+    try selectDynamic(name)
     catch
       case err =>
         throw new Exception(s"Template function not found: `{{${expr}}}`", err)
@@ -39,7 +42,7 @@ class TemplateFunctions extends Selectable:
 
   def &(additions: TemplateFunctions): this.type & additions.type =
     new TemplateFunctions:
-      override def selectDynamic(name: String): Any =
+      override def selectDynamic(name: String): TemplateFunction =
         try additions.selectDynamic(name)
         catch case err => outer.selectDynamic(name)
     .asInstanceOf[this.type & additions.type]

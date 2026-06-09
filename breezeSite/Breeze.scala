@@ -25,7 +25,10 @@ object Breeze extends model.DictionaryTheme:
       raw = breezeSite.rawTemplate
     )
 
-  override val templates = parent.templates & new model.TemplateFunctions:
+  type Templates = parent.Templates {
+    val `match-sim-embed`: TemplateFunction
+  }
+  override val templates = parent.templates & new:
     val `match-sim-embed` = TemplateFunction(
       args =>
         args match

@@ -5,7 +5,7 @@ import Context.Views.{Conforms, View, SiteView}
 
 sealed trait SiteContext:
   type SiteMap <: NamedTuple.AnyNamedTuple
-  val theme: Theme // never widen
+  val metadata: Theme.Metadata
   val siteRoot: SiteRoot
   val site: model.Site[SiteMap]
 
@@ -16,26 +16,33 @@ object SiteContext:
 
 sealed trait Context extends SiteContext:
   type Extra <: NamedTuple.AnyNamedTuple
+  type Templates <: TemplateFunctions
   val extra: model.Record[Extra]
+  val templates: Templates
 
 object Context:
 
-  type Of[SiteMap0 <: NamedTuple.AnyNamedTuple, Extra0 <: Any] = Context {
-    type SiteMap = SiteMap0; type Extra = Extra0
+  type Of[
+      SiteMap0 <: NamedTuple.AnyNamedTuple,
+      Extra0 <: Any,
+      Templates0 <: TemplateFunctions
+  ] = Context {
+    type SiteMap = SiteMap0; type Extra = Extra0; type Templates = Templates0
   }
 
   def fromTheme[T <: Theme](src: os.Path, theme0: T)(using
       root: model.SiteRoot
-  ): View[Context.Of[theme0.SiteMap, theme0.Extra]] =
+  ): View[Context.Of[theme0.SiteMap, theme0.Extra, theme0.Templates]] =
     View(
       new Context { self =>
         override type SiteMap = theme0.SiteMap
         override type Extra = theme0.Extra
-        val theme: Theme = theme0
+        override type Templates = theme0.Templates
+        val metadata: Theme.Metadata = theme0.metadata
         val siteCtx = SiteView(
           new SiteContext {
             override type SiteMap = theme0.SiteMap
-            val theme: Theme = theme0
+            val metadata: Theme.Metadata = theme0.metadata
             override val siteRoot: SiteRoot = root
             override val site: model.Site[theme0.SiteMap] =
               io.util.paths.buildSiteDb(src, theme0)
@@ -49,6 +56,7 @@ object Context:
           given SiteView[SiteContext.Of[theme0.SiteMap]] = siteCtx
           theme0.extras
         }
+        override val templates: Templates = theme0.templates
       }
     )
 
@@ -64,6 +72,8 @@ object Context:
         case Accessors.Theme__SiteMap[t] => t
       type Extra[T <: Theme] = T match
         case Accessors.Theme__Extra[t] => t
+      type Templates[T <: Theme] = T match
+        case Accessors.Theme__Templates[t] => t
 
     object Accessors:
       type Theme__SiteMap[T <: NamedTuple.AnyNamedTuple] = Theme {
@@ -71,6 +81,9 @@ object Context:
       }
       type Theme__Extra[T <: NamedTuple.AnyNamedTuple] = Theme {
         type Extra = T
+      }
+      type Theme__Templates[T <: TemplateFunctions] = Theme {
+        type Templates = T
       }
 
     opaque type SiteView[+C <: SiteContext] <: C = C
@@ -116,10 +129,13 @@ object Context:
           CS <: AnyNamedTuple,
           PS <: AnyNamedTuple,
           CE,
-          PE
+          PE,
+          CT <: TemplateFunctions,
+          PT <: TemplateFunctions
       ]
         => Conforms[Site[CS], Site[PS]]
-        => Conforms[CE, PE] => Conforms[Context.Of[CS, CE], View[Context.Of[PS, PE]]]()
+        => Conforms[CE, PE]
+        => Conforms[CT, PT] => Conforms[Context.Of[CS, CE, CT], View[Context.Of[PS, PE, PT]]]()
 
       given narrowChild: [
           Child <: Context,

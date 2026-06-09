@@ -24,7 +24,11 @@ object Breeze extends model.DictionaryTheme:
       articles = articles
     )
 
-  override val templates = new model.TemplateFunctions:
+  type Templates = model.TemplateFunctions {
+    val url: TemplateFunction
+    val icon: TemplateFunction
+  }
+  override val templates = new:
     val url = TemplateFunction(
       io.util.paths.resolveStaticAsset,
       _ => "http://example.com"
