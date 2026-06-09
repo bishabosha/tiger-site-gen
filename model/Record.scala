@@ -10,7 +10,7 @@ import steps.result.Result.apply as result
 import scala.annotation.publicInBinary
 
 class Record[T <: AnyNamedTuple](
-    live: T
+    private[model] val live: T
 ) extends Selectable {
   type Fields = T
 
@@ -28,6 +28,11 @@ class Record[T <: AnyNamedTuple](
     val live0: T0 = live.asInstanceOf[T0]
     val other0: Other0 = other.asInstanceOf[Other0]
     Record(live0 ++ other0)
+
+  def ++[Other <: AnyNamedTuple](other: Record[Other])(using
+      ev: Tuple.Disjoint[Names[T], Names[Other]] =:= true
+  ): Record[NamedTuple.Concat[T, Other]] =
+    this ++ other.live
 
   inline def selectDynamic(name: String): Any =
     apply(
@@ -58,8 +63,23 @@ object Record:
     inline def derived[T <: AnyNamedTuple]: Lookup[T] =
       fromNames[T](compiletime.constValueTuple[NamedTuple.Names[T]])
 
+  type ++[X <: AnyNamedTuple, Y <: AnyNamedTuple] <: AnyNamedTuple =
+    Tuple.Disjoint[Names[X], Names[Y]] match
+      case true  => NamedTuple.Concat[X, Y]
+      case false => AnyNamedTuple
+
   type IsSubPrefix[This <: AnyNamedTuple, Prefix <: AnyNamedTuple] =
-    model.Site.IsSubPrefix[This, Prefix]
+    CompatiblePrefix[This, Prefix] =:= Prefix
+
+  type CompatiblePrefix[This <: AnyNamedTuple, Prefix <: AnyNamedTuple] =
+    NamedTuple.Take[This, PrefixLength[Names[This], Names[Prefix], 0]]
+
+  type PrefixLength[T <: Tuple, U <: Tuple, Acc <: Int] <: Int = (T, U) match
+    case (t *: ts, u *: us) =>
+      compiletime.ops.any.==[t, u] match
+        case true  => PrefixLength[ts, us, compiletime.ops.int.S[Acc]]
+        case false => Acc
+    case _ => Acc
 
   inline given [T <: AnyNamedTuple, Prefix <: AnyNamedTuple]
     => IsSubPrefix[NamedTuple.From[T], Prefix] => DocPage.Conforms[Record[T], Record[Prefix]] {

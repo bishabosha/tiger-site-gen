@@ -1,20 +1,24 @@
 package model
 
 import scala.language.experimental.modularity
+import Theme.Metadata
+
+object Theme:
+  trait Metadata:
+    val name: String
 
 trait Theme:
   thisTheme =>
 
   val metadata: Metadata
-  trait Metadata extends reflect.Selectable:
-    val name: String
+
+  type Templates <: NamedTuple.AnyNamedTuple
+  val templates: TemplateFunctions[Templates]
 
   final type LayoutOf[Data] =
     model.Layout[Context, model.DocPage[Data]]
   final type LayoutOf0[Context <: model.Context, Data] =
     model.Layout[Context, model.DocPage[Data]]
-
-  val templates: TemplateFunctions = TemplateFunctions.Empty
 
   type SiteMap <: NamedTuple.AnyNamedTuple: SiteMapSchema
 
@@ -26,6 +30,6 @@ trait Theme:
   def extras(using SiteContext): model.Record[Extra]
 
   final type Context =
-    model.Context.Views.View[model.Context.Of[SiteMap, Extra]]
+    model.Context.Views.View[model.Context.Of[SiteMap, Extra, Templates]]
   final type SiteContext =
     model.Context.Views.SiteView[model.SiteContext.Of[SiteMap]]

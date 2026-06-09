@@ -10,6 +10,9 @@ object Homepage extends model.Theme:
   val metadata = new:
     val name = "Homepage"
 
+  type Templates = NamedTuple.Empty
+  override val templates = model.TemplateFunctions.Empty
+
   type SiteMap = (about: Doc[FrontMatter.About])
 
   override val siteMapMeta =

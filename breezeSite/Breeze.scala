@@ -7,8 +7,8 @@ import breeze.Breeze as parent
 import model.TemplateFunction
 import model.Record
 import model.Record.Lookup.auto.given
+import model.Record.++
 import model.SiteMapSchema.auto.given
-import model.SiteMapSchema.&++
 import model.SiteMapMeta
 
 object Breeze extends model.DictionaryTheme:
@@ -25,21 +25,26 @@ object Breeze extends model.DictionaryTheme:
       raw = breezeSite.rawTemplate
     )
 
-  override val templates = parent.templates & new model.TemplateFunctions:
-    val `match-sim-embed` = TemplateFunction(
-      args =>
-        args match
-          case s"""$size "$query"""" =>
-            val height = if size == "S" then "400px" else size
-            s"""<iframe src="/match-type-simulator/$query&stamp=${io.util.Templates.stamp}" width="100%" height="$height"></iframe>"""
-          case _ =>
-            throw new Exception(
-              s"Invalid match-sim-embed template arguments: $args"
-            ),
-      _ => """<div></div>"""
+  type Templates = parent.Templates ++ (
+      `match-sim-embed`: TemplateFunction
+  )
+  override val templates = parent.templates ++ model.TemplateFunctions:
+    (
+      `match-sim-embed` = TemplateFunction(
+        args =>
+          args match
+            case s"""$size "$query"""" =>
+              val height = if size == "S" then "400px" else size
+              s"""<iframe src="/match-type-simulator/$query&stamp=${io.util.Templates.stamp}" width="100%" height="$height"></iframe>"""
+            case _ =>
+              throw new Exception(
+                s"Invalid match-sim-embed template arguments: $args"
+              ),
+        _ => """<div></div>"""
+      )
     )
 
-  type SiteMap = parent.SiteMap &++ (
+  type SiteMap = parent.SiteMap ++ (
       talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk],
       videos: DocsOf[FrontMatter.Videos, FrontMatter.Video],
       projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],

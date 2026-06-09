@@ -47,7 +47,7 @@ object Templates:
     buf.result()
 
   def interpolate(template: String)(using model.Context): String =
-    interpolateWith(template, ctx.theme.templates(_))
+    interpolateWith(template, ctx.templates(_))
 
   def interpolateDefault(template: String, theme: model.Theme): String =
     interpolateWith(template, theme.templates.renderDefault)

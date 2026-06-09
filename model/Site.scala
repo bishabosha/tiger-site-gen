@@ -26,7 +26,7 @@ sealed trait SiteMapMeta[C <: model.Context, T <: AnyNamedTuple] extends Selecta
   def _mergeFrom[C0 <: model.Context, T0 <: AnyNamedTuple](
       that: SiteMapMeta[C0, T0]
   )(using
-      sub: Site.IsSubPrefix[T0, T],
+      sub: Record.IsSubPrefix[T0, T],
       conformsCtx: model.Context.Views.Conforms[C0, C]
   ): SiteMapMeta[C0, T0] =
     (this, that) match
@@ -130,11 +130,6 @@ object SiteMapSchema:
     case model.Doc[a]     => SiteMapSchema.DocSpec[a]
     case model.Docs[i, a] => SiteMapSchema.DocsSpec[i, a]
 
-  type &++[X <: AnyNamedTuple, Y <: AnyNamedTuple] <: AnyNamedTuple =
-    Tuple.Disjoint[NamedTuple.Names[X], NamedTuple.Names[Y]] match
-      case true  => NamedTuple.Concat[X, Y]
-      case false => AnyNamedTuple
-
   inline def derived[N <: Tuple, V <: Tuple: IsAll[
     model.DocCollection[?, ?]
   ]]: SiteMapSchema[NamedTuple[N, V]] =
@@ -199,22 +194,8 @@ final class Site[T <: AnyNamedTuple] private (
   def allDocs: Iterable[DocCollection[?, ?]] = data.values
 
 object Site:
-  type IsSubPrefix[This <: AnyNamedTuple, That <: AnyNamedTuple] =
-    CompatiblePrefix[This, That] =:= That
-  type CompatiblePrefix[This <: AnyNamedTuple, That <: AnyNamedTuple] =
-    NamedTuple.Take[This, PrefixLength[NamedTuple.Names[This], NamedTuple.Names[
-      That
-    ], 0]]
-
-  type PrefixLength[T <: Tuple, U <: Tuple, Acc <: Int] <: Int = (T, U) match
-    case (t *: ts, u *: us) =>
-      compiletime.ops.any.==[t, u] match
-        case true  => PrefixLength[ts, us, compiletime.ops.int.S[Acc]]
-        case false => Acc
-    case _ => Acc
-
   given [C <: AnyNamedTuple, P <: AnyNamedTuple]
-    => IsSubPrefix[C, P] => Context.Views.Conforms[Site[C], Site[P]]()
+    => Record.IsSubPrefix[C, P] => Context.Views.Conforms[Site[C], Site[P]]()
 
   def read[T <: AnyNamedTuple](
       optStatic: Option[os.Path],
