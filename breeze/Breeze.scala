@@ -24,18 +24,20 @@ object Breeze extends model.DictionaryTheme:
       articles = articles
     )
 
-  type Templates = model.TemplateFunctions {
-    val url: TemplateFunction
-    val icon: TemplateFunction
-  }
-  override val templates = new:
-    val url = TemplateFunction(
-      io.util.paths.resolveStaticAsset,
-      _ => "http://example.com"
-    )
-    val icon = TemplateFunction(
-      cls => s"""<i class="fa-regular $cls"></i>""",
-      cls => s"""<i class="fa-regular $cls"></i>"""
+  type Templates = (
+      url: TemplateFunction,
+      icon: TemplateFunction
+  )
+  override val templates = model.TemplateFunctions:
+    (
+      url = TemplateFunction(
+        io.util.paths.resolveStaticAsset,
+        _ => "http://example.com"
+      ),
+      icon = TemplateFunction(
+        cls => s"""<i class="fa-regular $cls"></i>""",
+        cls => s"""<i class="fa-regular $cls"></i>"""
+      )
     )
 
   type SiteMap = (

@@ -12,8 +12,8 @@ trait Theme:
 
   val metadata: Metadata
 
-  type Templates <: TemplateFunctions
-  val templates: Templates
+  type Templates <: NamedTuple.AnyNamedTuple
+  val templates: TemplateFunctions[Templates]
 
   final type LayoutOf[Data] =
     model.Layout[Context, model.DocPage[Data]]

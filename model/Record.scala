@@ -10,7 +10,7 @@ import steps.result.Result.apply as result
 import scala.annotation.publicInBinary
 
 class Record[T <: AnyNamedTuple](
-    live: T
+    private[model] val live: T
 ) extends Selectable {
   type Fields = T
 
@@ -28,6 +28,11 @@ class Record[T <: AnyNamedTuple](
     val live0: T0 = live.asInstanceOf[T0]
     val other0: Other0 = other.asInstanceOf[Other0]
     Record(live0 ++ other0)
+
+  def ++[Other <: AnyNamedTuple](other: Record[Other])(using
+      ev: Tuple.Disjoint[Names[T], Names[Other]] =:= true
+  ): Record[NamedTuple.Concat[T, Other]] =
+    this ++ other.live
 
   inline def selectDynamic(name: String): Any =
     apply(

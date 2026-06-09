@@ -16,16 +16,16 @@ object SiteContext:
 
 sealed trait Context extends SiteContext:
   type Extra <: NamedTuple.AnyNamedTuple
-  type Templates <: TemplateFunctions
+  type Templates <: NamedTuple.AnyNamedTuple
   val extra: model.Record[Extra]
-  val templates: Templates
+  val templates: TemplateFunctions[Templates]
 
 object Context:
 
   type Of[
       SiteMap0 <: NamedTuple.AnyNamedTuple,
       Extra0 <: Any,
-      Templates0 <: TemplateFunctions
+      Templates0 <: NamedTuple.AnyNamedTuple
   ] = Context {
     type SiteMap = SiteMap0; type Extra = Extra0; type Templates = Templates0
   }
@@ -56,7 +56,7 @@ object Context:
           given SiteView[SiteContext.Of[theme0.SiteMap]] = siteCtx
           theme0.extras
         }
-        override val templates: Templates = theme0.templates
+        override val templates: TemplateFunctions[Templates] = theme0.templates
       }
     )
 
@@ -82,7 +82,7 @@ object Context:
       type Theme__Extra[T <: NamedTuple.AnyNamedTuple] = Theme {
         type Extra = T
       }
-      type Theme__Templates[T <: TemplateFunctions] = Theme {
+      type Theme__Templates[T <: NamedTuple.AnyNamedTuple] = Theme {
         type Templates = T
       }
 
@@ -130,12 +130,13 @@ object Context:
           PS <: AnyNamedTuple,
           CE,
           PE,
-          CT <: TemplateFunctions,
-          PT <: TemplateFunctions
+          CT <: AnyNamedTuple,
+          PT <: AnyNamedTuple
       ]
         => Conforms[Site[CS], Site[PS]]
         => Conforms[CE, PE]
-        => Conforms[CT, PT] => Conforms[Context.Of[CS, CE, CT], View[Context.Of[PS, PE, PT]]]()
+        => Conforms[TemplateFunctions[CT], TemplateFunctions[PT]]
+        => Conforms[Context.Of[CS, CE, CT], View[Context.Of[PS, PE, PT]]]()
 
       given narrowChild: [
           Child <: Context,

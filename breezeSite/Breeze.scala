@@ -25,21 +25,23 @@ object Breeze extends model.DictionaryTheme:
       raw = breezeSite.rawTemplate
     )
 
-  type Templates = parent.Templates {
-    val `match-sim-embed`: TemplateFunction
-  }
-  override val templates = parent.templates & new:
-    val `match-sim-embed` = TemplateFunction(
-      args =>
-        args match
-          case s"""$size "$query"""" =>
-            val height = if size == "S" then "400px" else size
-            s"""<iframe src="/match-type-simulator/$query&stamp=${io.util.Templates.stamp}" width="100%" height="$height"></iframe>"""
-          case _ =>
-            throw new Exception(
-              s"Invalid match-sim-embed template arguments: $args"
-            ),
-      _ => """<div></div>"""
+  type Templates = parent.Templates &++ (
+      `match-sim-embed`: TemplateFunction
+  )
+  override val templates = parent.templates ++ model.TemplateFunctions:
+    (
+      `match-sim-embed` = TemplateFunction(
+        args =>
+          args match
+            case s"""$size "$query"""" =>
+              val height = if size == "S" then "400px" else size
+              s"""<iframe src="/match-type-simulator/$query&stamp=${io.util.Templates.stamp}" width="100%" height="$height"></iframe>"""
+            case _ =>
+              throw new Exception(
+                s"Invalid match-sim-embed template arguments: $args"
+              ),
+        _ => """<div></div>"""
+      )
     )
 
   type SiteMap = parent.SiteMap &++ (

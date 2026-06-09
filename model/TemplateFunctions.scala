@@ -1,5 +1,8 @@
 package model
 
+import NamedTuple.{AnyNamedTuple, NamedTuple}
+import scala.NamedTuple.Names
+
 trait TemplateFunction:
   def render(args: String)(using Context): String
   def renderDefault(args: String): String
@@ -13,21 +16,21 @@ object TemplateFunction:
       renderFn(using ctx)(args)
     def renderDefault(args: String): String = defaultFn(args)
 
-class TemplateFunctions extends Selectable:
-  outer =>
+class TemplateFunctions[T <: AnyNamedTuple] private[model] (
+    private val functions: Record[T]
+)(using lookup: Record.Lookup[T])
+    extends Selectable:
+  type Fields = T
 
-  def selectDynamic(name: String): TemplateFunction =
-    reflect.Selectable
-      .reflectiveSelectable(this)
-      .selectDynamic(name)
-      .asInstanceOf[TemplateFunction]
+  inline def selectDynamic(name: String): Any =
+    functions.selectDynamic(name)
 
   private def split(expr: String): (String, String) =
     expr.span(!_.isWhitespace) match
       case (name, args) => (name, args.trim)
 
   private def templateFunction(name: String, expr: String): TemplateFunction =
-    try selectDynamic(name)
+    try functions(lookup(name)).asInstanceOf[TemplateFunction]
     catch
       case err =>
         throw new Exception(s"Template function not found: `{{${expr}}}`", err)
@@ -40,12 +43,37 @@ class TemplateFunctions extends Selectable:
     val (name, args) = split(expr)
     templateFunction(name, expr).renderDefault(args)
 
-  def &(additions: TemplateFunctions): this.type & additions.type =
-    new TemplateFunctions:
-      override def selectDynamic(name: String): TemplateFunction =
-        try additions.selectDynamic(name)
-        catch case err => outer.selectDynamic(name)
-    .asInstanceOf[this.type & additions.type]
+  inline def ++[Additions <: AnyNamedTuple](
+      additions: TemplateFunctions[Additions]
+  )(using
+      Tuple.Disjoint[Names[T], Names[Additions]] =:= true
+  ): TemplateFunctions[NamedTuple.Concat[T, Additions]] =
+    given Record.Lookup[NamedTuple.Concat[T, Additions]] =
+      Record.Lookup.derived
+    TemplateFunctions.fromRecord(functions ++ additions.functions)
 
 object TemplateFunctions:
-  val Empty: TemplateFunctions = new TemplateFunctions()
+  type IsAll[T] = [U <: Tuple] =>> Tuple.Union[U] <:< T
+
+  type &++[X <: AnyNamedTuple, Y <: AnyNamedTuple] =
+    SiteMapSchema.&++[X, Y]
+
+  inline def apply[N <: Tuple, V <: Tuple: IsAll[
+    TemplateFunction
+  ]](
+      functions: NamedTuple[N, V]
+  ): TemplateFunctions[NamedTuple[N, V]] =
+    given Record.Lookup[NamedTuple[N, V]] = Record.Lookup.derived
+    fromRecord(Record(functions))
+
+  private[model] def fromRecord[T <: AnyNamedTuple](
+      functions: Record[T]
+  )(using Record.Lookup[T]): TemplateFunctions[T] =
+    new TemplateFunctions(functions)
+
+  val Empty: TemplateFunctions[NamedTuple.Empty] =
+    TemplateFunctions(NamedTuple.Empty)
+
+  given [C <: AnyNamedTuple, P <: AnyNamedTuple]
+    => Site.IsSubPrefix[C, P]
+      => Context.Views.Conforms[TemplateFunctions[C], TemplateFunctions[P]]()
