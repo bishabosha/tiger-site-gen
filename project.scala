@@ -8,4 +8,4 @@
 //> using dependency "com.vladsch.flexmark:flexmark-all:0.64.8"
 //> using dependency "org.virtuslab::scala-yaml:0.3.1"
 //> using dependency "com.lihaoyi::upickle:4.4.3"
-//> using dependency "io.github.bishabosha::scala-object-notation::0.3.3"
+//> using dependency "io.github.bishabosha::scala-object-notation::0.3.4"
