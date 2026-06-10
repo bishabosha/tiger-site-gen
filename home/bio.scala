@@ -39,8 +39,7 @@ def bio(
     // ),
     ul(
       cls := "list-inline",
-      (for case Links(linkText, kind, iconCls, link) <-
-          me.frontMatter.linkss
+      (for (linkText, kind, iconCls, link) <- me.frontMatter.linkss
       yield li(
         cls := "list-inline-item",
         p(

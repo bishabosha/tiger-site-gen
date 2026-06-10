@@ -28,7 +28,14 @@ object Homepage extends model.Theme:
           copyright: String,
           description: String,
           avatar: String,
-          linkss: List[Links]
+          linkss: Vector[
+            (
+                String,
+                Option[String],
+                String,
+                String
+            )
+          ]
       )
     ]
 
@@ -38,23 +45,3 @@ object Homepage extends model.Theme:
 
   type Extra = NamedTuple.Empty
   def extras(using SiteContext) = Record(NamedTuple.Empty)
-
-  case class Links(
-      text: String,
-      kind: Option[String],
-      iconCls: String,
-      link: String
-  )
-  given scalanotation.Reader[Links] =
-    summon[scalanotation.Reader[Vector[Option[String]]]].mapResult { vec =>
-      // TODO: it would be nicer to support tuple syntax directly
-      vec match
-        case Vector(Some(text), kind, Some(iconCls), Some(link)) =>
-          Result.Ok(Links(text, kind, iconCls, link))
-        case _ =>
-          Result.Err(
-            scalanotation.DecodeError.Custom(
-              s"Expected a list of 4 items: text, optional kind, icon class, and link"
-            )
-          )
-    }
