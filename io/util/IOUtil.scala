@@ -471,13 +471,14 @@ object md:
       throw new Exception(s"failed to read front matter of $path:$msg")
     val rawText = os.read(path)
     val (rawSON, rawDoc) =
+      val imports = "import language.experimental.dedentedStringLiterals\n"
       rawText.match
-        case s"---\n```scala\n$son\n```\n---\n$rest" => (son, rest)
-        case s"```scala\n$son\n```\n---\n$rest"      => (son, rest)
+        case s"---\n```scala\n$son\n```\n---\n$rest" => (imports + son, rest)
+        case s"```scala\n$son\n```\n---\n$rest"      => (imports + son, rest)
         case _                                       => frontMatterError(" no front matter found")
 
     val documentNoSplices = parseDryRun(rawDoc, theme)
-    val data: T = Readers.readAs[T](rawSON) match
+    val data: T = Readers.experimental.readAs[T](rawSON) match
       case Result.Ok(value)  => value
       case Result.Err(error) => frontMatterError(error.format)
     val (sample, wordCount, headings) =

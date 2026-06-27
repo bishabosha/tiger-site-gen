@@ -2,7 +2,9 @@
 (
   layout = "article",
   title = "Coding with Pizza in 2024",
-  description = "An experiment to try Pizza language in 2024, will it run?",
+  description = '''
+    An experiment to try Pizza language in 2024, will it run?
+    ''',
   published = "09-Nov-2024"
 )
 ```

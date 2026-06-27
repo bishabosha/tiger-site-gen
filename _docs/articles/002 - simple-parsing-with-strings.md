@@ -2,8 +2,10 @@
 (
   layout = "article",
   title = "Enhanced Simple Parsing for Scala",
-  description = "Describes a new string interpolator for Scala that can be used for " +
-    "simple parsing of structured data.",
+  description = '''
+    Describes a new string interpolator for Scala that can be used for
+    simple parsing of structured data.
+    ''',
   published = "01-Feb-2024"
 )
 ```

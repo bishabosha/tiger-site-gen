@@ -2,7 +2,9 @@
 (
   layout = "article",
   title = "Understanding Match Types in Scala 3",
-  description = "What are Scala 3 match types for and how do they work.",
+  description = '''
+    What are Scala 3 match types for and how do they work.
+    ''',
   published = "30-Aug-2025"
 )
 ```
