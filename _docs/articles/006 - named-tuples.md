@@ -2,8 +2,10 @@
 (
   layout = "article",
   title = "Scala's New Named Tuples: why you should embrace structural types",
-  description = "Explaining the motivation behind named tuples, how they work, their relationship to " +
-    "structural types, and their practical applications, along with their current limitations.",
+  description = '''
+    Explaining the motivation behind named tuples, how they work, their relationship to
+    structural types, and their practical applications, along with their current limitations
+    ''',
   published = "14-Apr-2025"
 )
 ```

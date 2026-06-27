@@ -2,7 +2,9 @@
 (
   layout = "project",
   title = "Add method unrolling to Scala 3",
-  description = "Enhance the Scala language to support binary compatible addition of parameters.",
+  description = '''
+    Enhance the Scala language to support binary compatible addition of parameters.
+    ''',
   url = "https://github.com/scala/scala3/pull/21693",
   avatar = "https://dotty.epfl.ch/project-logo/logo_dark.svg",
   startDate = "01-Oct-2024",

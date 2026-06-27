@@ -2,7 +2,9 @@
 (
   layout = "article",
   title = "Making ScalaSql boring again (with interesting new internals)",
-  description = "Explaining the motivation for the new SimpleTable feature for the ScalaSql library.",
+  description = '''
+    Explaining the motivation for the new SimpleTable feature for the ScalaSql library.
+    ''',
   published = "31-May-2025"
 )
 ```

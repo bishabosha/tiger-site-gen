@@ -2,8 +2,10 @@
 (
   layout = "article",
   title = "How to write a website generator in Scala, Part 1",
-  description = "Introduction to using Scala CLI as a tool to aid generating " +
-    "a personal website, and a description of the framework used.",
+  description = '''
+    Introduction to using Scala CLI as a tool to aid generating 
+    a personal website, and a description of the framework used.
+    ''',
   published = "01-Aug-2022"
 )
 ```
