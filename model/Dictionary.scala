@@ -60,26 +60,21 @@ object Dictionary:
           x: scalanotation.Expr
       ): Result[String, DecodeError] = result:
         x match
-          case e.StringConstant(value)  => value
-          case e.BooleanConstant(value) => value.toString()
-          case e.IntConstant(value)     => value.toString()
-          case e.LongConstant(value)    => value.toString()
-          case e.FloatConstant(value)   => value.toString()
-          case e.DoubleConstant(value)  => value.toString()
-          case e.CharConstant(value)    => value.toString()
-          case e.NullConstant           => ""
-          case e.NamedTupleExpr(_)      =>
+          case e.StringConstant(value)                                => value
+          case e.BooleanConstant(value)                               => value.toString()
+          case e.IntConstant(value)                                   => value.toString()
+          case e.LongConstant(value)                                  => value.toString()
+          case e.FloatConstant(value)                                 => value.toString()
+          case e.DoubleConstant(value)                                => value.toString()
+          case e.CharConstant(value)                                  => value.toString()
+          case e.NullConstant                                         => ""
+          case _: e.NamedTupleExpr | _: e.VectorExpr | _: e.TupleExpr =>
             raise(
               DecodeError.Custom(
                 s"at path $innerpath, expected scalar, got ${x.render}"
               )
             )
-          case e.VectorExpr(_) =>
-            raise(
-              DecodeError.Custom(
-                s"at path $innerpath, expected scalar, got ${x.render}"
-              )
-            )
+
       result:
         model.Dictionary(m.elements.map { case (name = k, value = vs) =>
           if k.startsWith("is") then
