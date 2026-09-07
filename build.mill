@@ -1,0 +1,49 @@
+package build
+
+import mill.*
+import mill.scalalib.*
+import mill.javalib.publish.{Developer, License, PomSettings, VersionControl}
+
+trait TigerModule extends ScalaModule:
+  def scalaVersion = "3.8.3"
+  def scalacOptions = Seq("-experimental", "-preview", "-Wsafe-init")
+
+trait PublishedModule extends TigerModule, PublishModule:
+  def versionFile = Task.Source(mill.api.BuildCtx.workspaceRoot / "version")
+  def publishVersion = Task { os.read(versionFile().path).trim }
+  def pomSettings = PomSettings(
+    description = "Typed static site generation and composable themes",
+    organization = "io.github.bishabosha",
+    url = "https://github.com/bishabosha/tiger-site-gen",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl.github("bishabosha", "tiger-site-gen"),
+    developers = Seq(Developer("bishabosha", "Jamie Thompson", "https://bishabosha.github.io"))
+  )
+
+object core extends PublishedModule:
+  def artifactName = "tiger-site-gen-core"
+  def mvnDeps = Seq(
+    mvn"com.lihaoyi::os-lib:0.11.8",
+    mvn"com.lihaoyi::scalatags:0.13.1",
+    mvn"com.lihaoyi::os-lib-watch:0.11.8",
+    mvn"com.lihaoyi::sourcecode:0.4.4",
+    mvn"com.vladsch.flexmark:flexmark-all:0.64.8",
+    mvn"org.virtuslab::scala-yaml:0.3.2",
+    mvn"com.lihaoyi::upickle:4.4.3",
+    mvn"io.github.bishabosha::scala-object-notation:0.4.1"
+  )
+
+object revealTheme extends PublishedModule:
+  def artifactName = "tiger-site-gen-reveal"
+  def moduleDeps = Seq(core)
+  object test extends ScalaTests, TestModule.Munit:
+    def munitVersion = "1.3.3"
+
+object breeze extends PublishedModule:
+  def artifactName = "tiger-site-gen-breeze"
+  def moduleDeps = Seq(core)
+
+object examples extends TigerModule:
+  def moduleDeps = Seq(revealTheme)
+  object test extends ScalaTests, TestModule.Munit:
+    def munitVersion = "1.3.3"

@@ -1,0 +1,12 @@
+assets/FONT-LICENSE
+assets/source-sans-pro-regular.woff
+assets/source-sans-pro-semibold.woff
+deck.js
+embed.css
+embed.mjs
+fullscreen.mjs
+notes.css
+pdf-explorer.css
+pdf-explorer.mjs
+slide-fit.mjs
+theme.css

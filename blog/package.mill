@@ -1,0 +1,17 @@
+package build.blog
+
+import mill.*
+import mill.scalalib.*
+
+object `package` extends build.TigerModule:
+  def moduleDeps = Seq(breezeSite, home)
+  def mainClass = Some("blog.makeSite")
+
+  object breezeSite extends build.TigerModule:
+    def moduleDeps = Seq(build.breeze)
+
+  object home extends build.TigerModule:
+    def moduleDeps = Seq(build.core)
+
+  object test extends ScalaTests, TestModule.Munit:
+    def munitVersion = "1.3.3"

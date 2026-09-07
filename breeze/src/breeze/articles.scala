@@ -1,0 +1,45 @@
+package breeze
+
+import scalatags.Text.all.*
+
+import model.ctx
+
+import Breeze.*
+
+val articles = model.Layout[Breeze.Context, FrontMatter.Articles]: doc =>
+  breeze.page.wrap(doc, ctx.site.articles, title = s"Articles | $whoAmI")(
+    div(
+      cls := "container",
+      div(
+        cls := "row",
+        sidebar.ofBio(collapsable = false),
+        div(
+          cls := "col-lg-8",
+          div(
+            cls := "jumbotron bg-light py-lg-5 py-3",
+            h1(cls := "display-5", "Articles"),
+            hr(),
+            for doc <- ctx.site.articles.posts yield
+              val published = doc.frontMatter.published
+              val title = doc.frontMatter.title
+              val sample = doc.htmlPreview
+              div(
+                cls := "row",
+                div(
+                  cls := "col-lg-12",
+                  h3(
+                    a(
+                      href := doc.url,
+                      title
+                    )
+                  ),
+                  subtitles.article(doc),
+                  p(raw(sample))
+                )
+              )
+          )
+        )
+      )
+    )
+  )
+end articles
