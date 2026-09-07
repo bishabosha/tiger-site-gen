@@ -5,6 +5,24 @@ import steps.result.Result
 
 sealed trait SiteMapMeta[C <: Context, T <: AnyNamedTuple] extends Selectable:
   type Fields = NamedTuple.Map[T, [X] =>> (SiteMapMeta.MetaOf[C, X] => SiteMapMeta.MetaOf[C, X]) => SiteMapMeta[C, T]]
+  private[model] def entries: Map[String, SiteMapMeta.Data[C]]
+
+  /** Inherit this prefix's metadata when the host context conforms to the base context.
+    * The host may then customise inherited fields or configure its additional fields.
+    */
+  final def extend[Host <: Context, U <: AnyNamedTuple](defaults: SiteMapMeta[Host, U])(using
+      Record.IsSubPrefix[U, T], Context.Views.Conforms[Host, C]
+  ): SiteMapMeta[Host, U] =
+    // The same structural-view proof used by Context.Views.View.narrowChild.
+    extendWithContext(defaults)(_.asInstanceOf[C])
+
+  final def extendWithContext[Host <: Context, U <: AnyNamedTuple](defaults: SiteMapMeta[Host, U])(
+      project: Host => C
+  )(using Record.IsSubPrefix[U, T]): SiteMapMeta[Host, U] =
+    entries.foldLeft(defaults) { case (metadata, (name, data)) =>
+      metadata._update(name)(_ => SiteMapMeta.adapt(data, project))
+    }
+
   def _query(name: String): SiteMapMeta.Data[C]
   def _update(name: String)(f: SiteMapMeta.Data[C] => SiteMapMeta.Data[C]): SiteMapMeta[C, T]
   final def selectDynamic(name: String): (SiteMapMeta.Data[C] => SiteMapMeta.Data[C]) => SiteMapMeta[C, T] =
@@ -48,11 +66,28 @@ object SiteMapMeta:
     def selectDynamic(name: String): (Data[C] => Data[C]) => DirectoryData[C, T] =
       f => DirectoryData(children._update(name)(f))
 
-  private class RawMeta[C <: Context, T <: AnyNamedTuple](data: Map[String, Data[C]])
+  private class RawMeta[C <: Context, T <: AnyNamedTuple](val entries: Map[String, Data[C]])
       extends SiteMapMeta[C, T]:
-    def _query(name: String): Data[C] = data(name)
+    def _query(name: String): Data[C] = entries(name)
     def _update(name: String)(f: Data[C] => Data[C]): SiteMapMeta[C, T] =
-      RawMeta(data.updated(name, f(data(name))))
+      RawMeta(entries.updated(name, f(entries(name))))
+
+  private def adapt[C <: Context, Host <: Context](data: Data[C], project: Host => C): Data[Host] =
+    data match
+      case doc: DocData[C, a] =>
+        DocData[Host, a](
+          isRoot = doc.isRoot,
+          optLayout = doc.optLayout.map(selector => page =>
+            selector(page).map(_.map(_.contramapContext(project)))),
+          isIndexed = doc.isIndexed
+        )
+      case docs: DocsData[C, a] =>
+        DocsData[Host, a](docs.optLayout.map(selector => page =>
+          selector(page).map(_.map(_.contramapContext(project)))))
+      case directory: DirectoryData[C, t] =>
+        DirectoryData(new RawMeta[Host, t](directory.children.entries.map { (name, child) =>
+          name -> adapt(child, project)
+        }))
 
   def default[C <: Context, T <: AnyNamedTuple](using schema: SiteMapSchema[T]): SiteMapMeta[C, T] =
     fromSchema(schema)

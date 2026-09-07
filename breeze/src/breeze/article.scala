@@ -22,7 +22,7 @@ val articleLayout = model.Layout[Breeze.Context, FrontMatter.Article]: doc =>
             (for pdoc <- prev
             yield small(
               a(
-                href := s"/articles/${io.util.sanatise.mdNameToHtml(pdoc.name)}",
+                href := pdoc.url,
                 i(cls := "fa-solid fa-angle-left"),
                 s" ${pdoc.frontMatter.title}"
               )
@@ -34,7 +34,7 @@ val articleLayout = model.Layout[Breeze.Context, FrontMatter.Article]: doc =>
             yield small(
               cls := "float-end",
               a(
-                href := s"/articles/${io.util.sanatise.mdNameToHtml(ndoc.name)}",
+                href := ndoc.url,
                 s"${ndoc.frontMatter.title} ",
                 i(cls := "fa-solid fa-angle-right")
               )
@@ -72,7 +72,7 @@ val articleLayout = model.Layout[Breeze.Context, FrontMatter.Article]: doc =>
                 doc,
                 small(
                   a(
-                    href := "/articles/",
+                    href := ctx.site.articles.url,
                     i(cls := "fa-solid fa-angle-up"),
                     " all articles"
                   )

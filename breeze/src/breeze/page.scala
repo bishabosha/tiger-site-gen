@@ -81,7 +81,6 @@ object page:
       meta(name := "description", content := page.frontMatter.description),
       meta(name := "twitter:card", content := "summary"),
       meta(name := "twitter:title", content := title),
-      meta(name := "twitter:site", content := "@bishabosha"),
       meta(
         name := "twitter:description",
         content := page.frontMatter.description

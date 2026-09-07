@@ -29,7 +29,7 @@ val articles = model.Layout[Breeze.Context, FrontMatter.Articles]: doc =>
                   cls := "col-lg-12",
                   h3(
                     a(
-                      href := s"/articles/${io.util.sanatise.mdNameToHtml(doc.name)}",
+                      href := doc.url,
                       title
                     )
                   ),

@@ -97,6 +97,54 @@ From the repository root, the corresponding Mill entry points are:
 The simulator source is now `blog/_docs/match-type-simulator/index.md`; its raw HTML
 layout and `/match-type-simulator/` URL are unchanged.
 
+## Extending Breeze
+
+Breeze is a complete About/Articles theme. It owns the base content schemas,
+root selection, indexed articles, default layouts, navigation, and page shell.
+`blog/breezeSite` adds projects, talks, videos and the simulator, replaces the
+About page content, and adds navigation and syntax/math/admonition dependencies.
+The reusable `breeze` module has no dependency on these specialisations.
+
+A derived theme extends the base named-tuple schemas and template functions,
+then inherits its metadata before applying overrides:
+
+```scala
+import breeze.Breeze as parent
+import model.Record.++
+
+type SiteMap = parent.SiteMap ++ (
+  projects: model.Directory[(
+    index: DocOf[FrontMatter.Projects], posts: VarArgDocsOf[FrontMatter.Project]
+  )]
+)
+// Define Templates, Extra and layouts as usual.
+override val siteMapMeta = parent.siteMapMeta.extend(defaultSiteMeta)
+  .about(_.index(_.layout(dict((about = layouts.about)))))
+  .projects(_.index(_.indexed.layout(dict((projects = layouts.projects))))
+    .posts(_.layout(dict((project = layouts.project)))))
+```
+
+`SiteMapMeta.extend` checks that the original schema is an exact prefix and the
+host context conforms to the base context. It recursively retains layouts,
+indexed-source flags and root selection. Inherited layouts use the host's
+context, including its extended navigation and page dependencies. No base
+metadata is mutated. `extendWithContext` supports an explicit context adapter.
+
+BreezeSite reuses the base extras while adding its own values:
+
+```scala
+type Extra = parent.Extra
+def extras(using SiteContext): Record[Extra] = parent.extendExtras(
+  nav = Seq(sctx.site.projects, sctx.site.talks),
+  head = HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
+  foot = HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
+)
+```
+
+`breeze.aboutPage.wrap` supplies the shared homepage structure, biography,
+navigation and page dependencies while the host supplies its own content cards.
+Shared article links follow their documents' and collections' URLs.
+
 ## Reusable Reveal theme
 
 `revealTheme/src/revealTheme/` contains `revealTheme.RevealTheme`, Scala layouts, slide validation, timing

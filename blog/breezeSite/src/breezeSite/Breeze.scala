@@ -1,22 +1,20 @@
 package breezeSite
 
-import model.ctx
 import model.sctx
+import scalatags.Text.all.*
 
 import breeze.Breeze as parent
 import model.TemplateFunction
 import model.Record
-import model.Record.Lookup.auto.given
 import model.Record.++
 import model.SiteMapSchema.auto.given
-import model.SiteMapMeta
 
 object Breeze extends model.DictionaryTheme:
 
   val metadata = new:
     val name = parent.metadata.name
 
-  val layouts = parent.layouts ++
+  val layouts = Record:
     (
       about = breezeSite.about,
       talks = breezeSite.talks,
@@ -45,31 +43,33 @@ object Breeze extends model.DictionaryTheme:
     )
 
   type SiteMap = parent.SiteMap ++ (
-      talks: model.Directory[(index: DocOf[FrontMatter.Talks], posts: VarArgDocsOf[FrontMatter.Talk])],
+      talks: model.Directory[
+        (index: DocOf[FrontMatter.Talks], posts: VarArgDocsOf[FrontMatter.Talk])
+      ],
       videos: DocsOf[FrontMatter.Video],
-      projects: model.Directory[(index: DocOf[FrontMatter.Projects], posts: VarArgDocsOf[FrontMatter.Project])],
+      projects: model.Directory[
+        (index: DocOf[FrontMatter.Projects], posts: VarArgDocsOf[FrontMatter.Project])
+      ],
       `match-type-simulator`: model.Directory[(index: DocOf[FrontMatter.Raw])]
   )
 
-  override val siteMapMeta = defaultSiteMeta
-    .about(_.index(_.setAsRoot.layout(dict((about = layouts.about)))))
-    .articles(_.index(_.indexed.layout(dict((articles = layouts.articles))))
-      .posts(_.layout(dict((article = layouts.article)))))
+  override val siteMapMeta = parent.siteMapMeta
+    .extend(defaultSiteMeta)
+    .about(_.index(_.layout(dict((about = layouts.about)))))
     .talks(_.index(_.indexed.layout(dict((talks = layouts.talks)))))
-    .projects(_.index(_.indexed.layout(dict((projects = layouts.projects))))
-      .posts(_.layout(dict((project = layouts.project)))))
+    .projects(
+      _.index(_.indexed.layout(dict((projects = layouts.projects))))
+        .posts(_.layout(dict((project = layouts.project))))
+    )
     .`match-type-simulator`(_.index(_.layout(dict((raw = layouts.raw)))))
 
   type Extra = parent.Extra
-  def extras(using SiteContext) = Record:
-    val p = parent.extras
-    (
-      nav = p.nav :+ sctx.site.projects :+ sctx.site.talks,
-      extraHead =
-        p.extraHead ++ HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
-      extraFoot =
-        p.extraFoot ++ HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
-    )
+  def extras(using SiteContext): Record[Extra] = parent.extendExtras(
+    extraNav = Seq(sctx.site.projects, sctx.site.talks),
+    extraHead = Seq(meta(name := "twitter:site", content := "@bishabosha")) ++
+      HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
+    extraFoot = HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
+  )
 
   object FrontMatter:
     export parent.FrontMatter.*

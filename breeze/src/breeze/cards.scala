@@ -62,7 +62,7 @@ object cards:
       ),
       p(
         a(
-          href := s"/${kind.toLowerCase}/",
+          href := posts.url,
           strong(s"View all ${kind.toLowerCase}")
         )
       )
@@ -96,7 +96,7 @@ object cards:
       (if showAll then
          p(
            a(
-             href := s"/${kind.toLowerCase}/",
+             href := links.url,
              strong(s"View all ${kind.toLowerCase}")
            )
          )
