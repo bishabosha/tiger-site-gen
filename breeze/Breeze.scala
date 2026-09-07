@@ -6,7 +6,7 @@ import model.ctx
 import model.sctx
 import model.Record
 import model.TemplateFunction
-import model.AnyDocCollection
+import model.ContentNode
 
 import model.SiteMapMeta
 import model.SiteMapSchema.auto.given
@@ -41,15 +41,12 @@ object Breeze extends model.DictionaryTheme:
     )
 
   type SiteMap = (
-      about: DocOf[FrontMatter.About],
-      articles: DocsOf[FrontMatter.Articles, FrontMatter.Article]
+      about: model.Directory[(index: DocOf[FrontMatter.About])],
+      articles: model.Directory[(index: DocOf[FrontMatter.Articles], posts: VarArgDocsOf[FrontMatter.Article])]
   )
   override val siteMapMeta = defaultSiteMeta
-    .about(_.setAsRoot)
-    .articles(
-      _.indexLayout(dict((articles = layouts.articles)))
-        .pageLayout(dict((article = layouts.article)))
-    )
+    .articles(_.index(_.indexed.layout(dict((articles = layouts.articles))))
+      .posts(_.layout(dict((article = layouts.article)))))
 
   object FrontMatter:
     final type BasePage = BuiltinFrontMatter {
@@ -75,7 +72,7 @@ object Breeze extends model.DictionaryTheme:
     }
 
   type Extra = (
-      nav: List[AnyDocCollection],
+      nav: List[ContentNode],
       extraHead: Seq[scalatags.Text.all.Modifier],
       extraFoot: Seq[scalatags.Text.all.Modifier]
   )

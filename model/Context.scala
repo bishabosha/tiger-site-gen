@@ -7,7 +7,9 @@ sealed trait SiteContext:
   type SiteMap <: NamedTuple.AnyNamedTuple
   val metadata: Theme.Metadata
   val siteRoot: SiteRoot
+  val buildSession: BuildSession
   val site: model.Site[SiteMap]
+  private[model] val renderHooks: Context.RenderHooks
 
 object SiteContext:
   type Of[SiteMap0 <: NamedTuple.AnyNamedTuple] = SiteContext {
@@ -21,6 +23,31 @@ sealed trait Context extends SiteContext:
   val templates: TemplateFunctions[Templates]
 
 object Context:
+  type HasExtra[E <: AnyNamedTuple] = Context { type Extra = E }
+  type ExtraOf[C <: Context] <: AnyNamedTuple = C match
+    case HasExtra[e] => e
+
+  /** Evidence that a host's extras contain exactly one value of the requested type. */
+  @scala.annotation.implicitNotFound("The extras of ${C} must contain exactly one field of type ${A}.")
+  trait ExtraValue[C <: Context, A]:
+    def apply(context: C): A
+
+  object ExtraValue:
+    given [C <: Context, A](using select: Record.SelectByType[ExtraOf[C], A]): ExtraValue[C, A] with
+      def apply(context: C): A =
+        select(context.extra.asInstanceOf[Record[ExtraOf[C]]])
+
+
+  /** Registration belongs to a prepared context, never to a shared theme object. */
+  private[model] final class RenderHooks:
+    private val hooks = scala.collection.mutable.LinkedHashMap.empty[AnyRef, os.Path => Unit]
+    def register(owner: AnyRef)(hook: os.Path => Unit): Unit = hooks.update(owner, hook)
+    def run(outputRoot: os.Path): Unit = hooks.valuesIterator.toVector.foreach(_(outputRoot))
+
+  /** Mounted output completes before the host's own final output hook. */
+  def afterRender(theme: Theme, outputRoot: os.Path)(using context: theme.Context): Unit =
+    context.renderHooks.run(outputRoot)
+    theme.afterRender(outputRoot)
 
   type Of[
       SiteMap0 <: NamedTuple.AnyNamedTuple,
@@ -30,7 +57,17 @@ object Context:
     type SiteMap = SiteMap0; type Extra = Extra0; type Templates = Templates0
   }
 
-  def fromTheme[T <: Theme](src: os.Path, theme0: T)(using
+  def fromTheme[T <: Theme](src: os.Path, theme0: T, session: BuildSession = new BuildSession)(using
+      root: model.SiteRoot
+  ): View[Context.Of[theme0.SiteMap, theme0.Extra, theme0.Templates]] =
+    session.synchronized {
+      fromSite(theme0)(io.util.paths.buildSiteDb(src, theme0, session), session)
+    }
+
+  /** Build a fresh context over existing collections, including projected aliases.
+    * Extras are evaluated once and share the same Site as the layouts.
+    */
+  def fromSite[T <: Theme](theme0: T)(site0: model.Site[theme0.SiteMap], session: BuildSession = new BuildSession)(using
       root: model.SiteRoot
   ): View[Context.Of[theme0.SiteMap, theme0.Extra, theme0.Templates]] =
     View(
@@ -38,19 +75,23 @@ object Context:
         override type SiteMap = theme0.SiteMap
         override type Extra = theme0.Extra
         override type Templates = theme0.Templates
+        val buildSession = session
         val metadata: Theme.Metadata = theme0.metadata
+        private[model] val renderHooks = new RenderHooks
         val siteCtx = SiteView(
           new SiteContext {
             override type SiteMap = theme0.SiteMap
+            val buildSession = session
             val metadata: Theme.Metadata = theme0.metadata
+            private[model] val renderHooks = self.renderHooks
             override val siteRoot: SiteRoot = root
             override val site: model.Site[theme0.SiteMap] =
-              io.util.paths.buildSiteDb(src, theme0)
+              site0
           }
         )
         override val siteRoot: SiteRoot = root
         override val site: model.Site[theme0.SiteMap] =
-          io.util.paths.buildSiteDb(src, theme0)
+          site0
 
         override val extra: model.Record[Extra] = {
           given SiteView[SiteContext.Of[theme0.SiteMap]] = siteCtx

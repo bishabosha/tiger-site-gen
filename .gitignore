@@ -10,3 +10,6 @@ _journal
 out
 out_home
 .DS_Store
+
+node_modules/
+dist/

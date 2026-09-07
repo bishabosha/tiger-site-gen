@@ -11,7 +11,7 @@ import Breeze.*
 
 val project = model.Layout[Breeze.Context, FrontMatter.Project]: doc =>
   val (prev, next) =
-    ctx.site.projects.prevNext(doc).swap // projects are in reverse order
+    ctx.site.projects.posts.prevNext(doc).swap // projects are in reverse order
   val projectNav = (
     Option.when(prev.orElse(next).isDefined)(
       div(

@@ -9,7 +9,7 @@ import model.ctx
 import Breeze.*
 
 val talks = model.Layout[Breeze.Context, FrontMatter.Talks]: doc =>
-  val siteTalks = ctx.site.talks
+  val siteTalks = ctx.site.talks.posts
   val orderedTalks =
     siteTalks.toIterable.toSeq.sortBy(page =>
       utils.Ordered

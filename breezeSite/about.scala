@@ -44,14 +44,14 @@ val about = model.Layout[Breeze.Context, FrontMatter.About]: doc =>
             cls := "row",
             div(
               cls := "col-lg",
-              cards.recentPosts("Articles", ctx.site.articles)
+              cards.recentPosts("Articles", ctx.site.articles.posts)
             )
           ),
           div(
             cls := "row",
             div(
               cls := "col-lg",
-              cardExtensions.projects("Commercial Projects", ctx.site.projects)
+              cardExtensions.projects("Commercial Projects", ctx.site.projects.posts)
             )
           ),
           div(
@@ -59,7 +59,7 @@ val about = model.Layout[Breeze.Context, FrontMatter.About]: doc =>
             div(
               cls := "col-lg",
               cards
-                .links("Conference Talks and Meetups", "talks", ctx.site.talks)
+                .links("Conference Talks and Meetups", "talks", ctx.site.talks.posts, showAll = true)
             )
           ),
           div(

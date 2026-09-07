@@ -42,6 +42,29 @@ class Record[T <: AnyNamedTuple](
 }
 
 object Record:
+  /** Select one statically known field by type, independently of its name. */
+  trait SelectByType[T <: AnyNamedTuple, A]:
+    def apply(record: Record[T]): A
+
+  object SelectByType:
+    import scala.util.NotGiven
+
+    sealed trait Absent[V <: Tuple, A]
+    object Absent:
+      given [A]: Absent[EmptyTuple, A] with {}
+      given [H, T <: Tuple, A](using NotGiven[H =:= A], Absent[T, A]): Absent[H *: T, A] with {}
+
+    sealed trait Position[V <: Tuple, A]:
+      def index: Int
+    object Position:
+      given head[H, T <: Tuple, A](using H =:= A, Absent[T, A]): Position[H *: T, A] with
+        val index = 0
+      given tail[H, T <: Tuple, A](using different: NotGiven[H =:= A], rest: Position[T, A]): Position[H *: T, A] with
+        val index = rest.index + 1
+
+    given [T <: AnyNamedTuple, A](using position: Position[DropNames[T], A]): SelectByType[T, A] with
+      def apply(record: Record[T]): A = record(position.index).asInstanceOf[A]
+
   trait Lookup[T <: AnyNamedTuple] extends Selectable:
     type Fields <: NamedTuple.Map[T, [_] =>> Int]
     def apply(name: String): Int
@@ -82,9 +105,9 @@ object Record:
     case _ => Acc
 
   inline given [T <: AnyNamedTuple, Prefix <: AnyNamedTuple]
-    => IsSubPrefix[NamedTuple.From[T], Prefix] => DocPage.Conforms[Record[T], Record[Prefix]] {
-    def toBase(doc: DocPage[Record[T]]): DocPage.View[Record[Prefix]] =
-      DocPage.View(doc.asInstanceOf[DocPage[Record[Prefix]]])
+    => IsSubPrefix[NamedTuple.From[T], Prefix] => Doc.Conforms[Record[T], Record[Prefix]] {
+    def toBase(doc: Doc[Record[T]]): Doc.View[Record[Prefix]] =
+      Doc.View(doc.asInstanceOf[Doc[Record[Prefix]]])
   }
 
   type IndexOf[FieldName <: String, Names <: Tuple, Acc <: Int] <: Int =

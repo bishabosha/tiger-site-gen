@@ -1,33 +1,70 @@
 package model
 
-import com.vladsch.flexmark.util.ast.Document
 import io.util.Templates
 import scala.annotation.unchecked.uncheckedVariance
 
-final case class DocPage[+Data](
-    name: String,
-    path: os.Path,
-    frontMatter: Data,
-    wordCount: Int,
-    headings: List[(String, String, Int)],
-    htmlPreview: String,
-    rawContent: String,
+/** One document, whether selected directly or through a collection.
+  * Content reads retain dependency tracking even when a document is held in extras.
+  */
+final class Doc[+Data] private (
+    private val nameValue: String,
+    private val pathValue: os.Path,
+    private val outputPathValue: os.RelPath,
+    private val frontMatterValue: Data,
+    private val wordCountValue: Int,
+    private val headingsValue: List[(String, String, Int)],
+    private val htmlPreviewValue: String,
+    private val rawContentValue: String,
     private[model] val idx: Int
-)
+) extends ContentNode:
+  def atIndex(index: Int): Doc[Data] =
+    if index == idx then this
+    else new Doc(nameValue, pathValue, outputPathValue, frontMatterValue,
+      wordCountValue, headingsValue, htmlPreviewValue, rawContentValue, index)
 
-object DocPage:
-  opaque type View[D] <: DocPage[D] = DocPage[D]
+  private def read[A](value: A): A =
+    Templates.recordDependency(pathValue)
+    value
+  def name: String = read(nameValue)
+  def path: os.Path = read(pathValue)
+  def sourcePath: os.Path = path
+  def outputPath: os.RelPath = read(outputPathValue)
+  def frontMatter: Data = read(frontMatterValue)
+  def wordCount: Int = read(wordCountValue)
+  def headings: List[(String, String, Int)] = read(headingsValue)
+  def htmlPreview: String = read(htmlPreviewValue)
+  def rawContent: String = read(rawContentValue)
+  def url: String =
+    if outputPath.last == "index.html" then
+      "/" + outputPath.segments.dropRight(1).mkString("/") + (if outputPath.segments.size > 1 then "/" else "")
+    else "/" + outputPath.toString
+
+object Doc:
+  def apply[A](
+      name: String,
+      path: os.Path,
+      outputPath: os.RelPath,
+      frontMatter: A,
+      wordCount: Int,
+      headings: List[(String, String, Int)],
+      htmlPreview: String,
+      rawContent: String,
+      idx: Int
+  ): Doc[A] =
+    new Doc(name, path, outputPath, frontMatter, wordCount, headings, htmlPreview, rawContent, idx)
+
+  opaque type View[D] <: Doc[D] = Doc[D]
   object View:
-    def apply[D](doc: DocPage[D]): View[D] = doc
+    def apply[D](doc: Doc[D]): View[D] = doc
 
   trait Conforms[Data, BaseType]:
-    def toBase(doc: DocPage[Data]): View[BaseType]
+    def toBase(doc: Doc[Data]): View[BaseType]
   object Conforms:
     given [Data, BaseType](using ev: Data <:< BaseType): Conforms[
       Data,
       BaseType
     ] with {
-      def toBase(doc: DocPage[Data]): View[BaseType] = View(
+      def toBase(doc: Doc[Data]): View[BaseType] = View(
         ev.liftCo(doc)
       )
     }
@@ -42,62 +79,66 @@ object DocPage:
       BaseType
     ]()
 
-sealed trait AnyDocCollection:
-  def collName: String
-  def willRender: Boolean
 
-sealed trait DocCollection[+DI, +D] extends AnyDocCollection:
-  def index: DocPage[DI]
-  def foreach(op: DocPage[D] => Unit): Unit
-  def toIterable: Iterable[DocPage[D]]
+/** A physical source node; projections preserve its source and output paths. */
+sealed trait ContentNode:
+  def sourcePath: os.Path
+  def outputPath: os.RelPath
+  def url: String
 
-class Doc[+D](val collName: String, _index: DocPage[D]) extends DocCollection[D, D]:
-  def willRender: Boolean = true
-  override def index: DocPage[D] =
-    Templates.recordDependency(_index.path)
-    _index
-  def foreach(op: DocPage[D] => Unit): Unit =
-    Templates.recordDependency(_index.path)
-    op(_index)
-  def toIterable: Iterable[DocPage[D]] = Iterable.empty
+class Directory[T <: NamedTuple.AnyNamedTuple](
+    val sourcePath: os.Path,
+    val outputPath: os.RelPath,
+    val children: Site[T]
+) extends ContentNode, Selectable:
+  type Fields = T
+  def selectDynamic(name: String): ContentNode = children.selectDynamic(name)
+  def url: String = if outputPath.segments.isEmpty then "/" else "/" + outputPath.toString + "/"
 
-class Docs[+DI, +D](
-    val collName: String,
-    optIndex: Option[DocPage[DI]],
-    data: IndexedSeq[DocPage[D]]
-) extends DocCollection[DI, D]:
+sealed abstract class DocumentCollection[+D](
+    val sourcePath: os.Path,
+    val outputPath: os.RelPath,
+    data: IndexedSeq[Doc[D]]
+) extends ContentNode:
   self =>
-  export data.size
-
-  def apply(idx: Int): DocPage[D] =
-    Templates.recordDependency(data(idx).path)
+  def url: String = if outputPath.segments.isEmpty then "/" else "/" + outputPath.toString + "/"
+  private def record(taken: Int = -1, idx: Int = -1): Unit =
+    Templates.recordDependency(sourcePath)
+    if idx >= 0 then Templates.recordDependency(data(idx).path)
+    else
+      val data0 = if taken >= 0 then data.take(taken) else data
+      Templates.recordMultiDependency(data0.map(_.path))
+  def size: Int =
+    record()
+    data.size
+  def apply(idx: Int): Doc[D] =
+    record(idx = idx)
     data(idx)
-
-  def willRender: Boolean = optIndex.isDefined
-
-  override def index: DocPage[DI] = optIndex.get
-
-  def take(n: Int): Docs[DI, D] =
-    Templates.recordMultiDependency(data.take(n).map(_.path))
-    Docs(collName, optIndex, data.take(n))
-
-  // Intercept map used by for-yield comprehensions to record dependencies
-  def map[B](f: DocPage[D] => B): IndexedSeq[B] =
-    Templates.recordMultiDependency(data.map(_.path))
+  protected def takeData(n: Int): IndexedSeq[Doc[D]] =
+    record(taken = n)
+    data.take(n)
+  def take(n: Int): DocumentCollection[D]
+  def map[B](f: Doc[D] => B): IndexedSeq[B] =
+    record()
     data.map(f)
-
-  def prevNext(
-      doc: DocPage[D @uncheckedVariance]
-  ): (Option[DocPage[D]], Option[DocPage[D]]) =
+  def prevNext(doc: Doc[D @uncheckedVariance]): (Option[Doc[D]], Option[Doc[D]]) =
     val prev = if doc.idx > 0 then Some(self(doc.idx - 1)) else None
-    val next =
-      if doc.idx >= 0 && doc.idx < size - 1 then Some(self(doc.idx + 1))
-      else None
+    val next = if doc.idx >= 0 && doc.idx < size - 1 then Some(self(doc.idx + 1)) else None
     (prev, next)
-
-  def foreach(op: DocPage[D] => Unit): Unit =
-    Templates.recordMultiDependency(data.map(_.path))
+  def foreach(op: Doc[D] => Unit): Unit =
+    record()
     data.foreach(op)
-  def toIterable: Iterable[DocPage[D]] =
-    Templates.recordMultiDependency(data.map(_.path))
+  def toIterable: Iterable[Doc[D]] =
+    record()
     data
+
+
+/** A homogeneous collection in its own named subdirectory. */
+final class Docs[+D](source: os.Path, output: os.RelPath, data: IndexedSeq[Doc[D]])
+    extends DocumentCollection[D](source, output, data):
+  def take(n: Int): Docs[D] = Docs(sourcePath, outputPath, takeData(n))
+
+/** Remaining numbered documents beside the directory's declared singleton documents. */
+final class VarArgDocs[+D](source: os.Path, output: os.RelPath, data: IndexedSeq[Doc[D]])
+    extends DocumentCollection[D](source, output, data):
+  def take(n: Int): VarArgDocs[D] = VarArgDocs(sourcePath, outputPath, takeData(n))

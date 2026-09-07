@@ -13,11 +13,11 @@ object Homepage extends model.Theme:
   type Templates = NamedTuple.Empty
   override val templates = model.TemplateFunctions.Empty
 
-  type SiteMap = (about: Doc[FrontMatter.About])
+  type SiteMap = (about: model.Directory[(index: Doc[FrontMatter.About])])
 
   override val siteMapMeta =
     defaultSiteMeta.about(
-      _.setAsRoot.indexLayoutAlways(homeLayout)
+      _.index(_.setAsRoot.layoutAlways(homeLayout))
     )
 
   object FrontMatter:
