@@ -14,12 +14,14 @@ version (currently `0.1.0-SNAPSHOT`). All published artifacts use organization
 | `core` | `tiger-site-gen-core` | — |
 | `revealTheme` | `tiger-site-gen-reveal` | core |
 | `breeze` | `tiger-site-gen-breeze` | core |
-| `breezeSite` | `tiger-site-gen-breeze-site` | breeze |
-| `home` | `tiger-site-gen-home` | core |
-| `examples` | Not published | Reveal, BreezeSite, Homepage |
+| `blog.breezeSite` | Not published | breeze |
+| `blog.home` | Not published | core |
+| `examples` | Not published | Reveal |
+| `blog` | Not published | blog.breezeSite, blog.home |
 
 Sources live in each module's `src/`; integration tests live in
-`examples/test/src/`, and Reveal asset tests in `revealTheme/test/src/`.
+`examples/test/src/`, blog build tests in `blog/test/src/`, and Reveal asset
+tests in `revealTheme/test/src/`.
 Open the repository in Metals, import Mill, and compile/run tests there.
 
 After verification, publish the core and Reveal jars to the local Ivy repository:
@@ -72,17 +74,27 @@ Conflicting output routes are rejected before pages are written.
 
 ## Existing sites
 
-`breeze/` contains shared layouts; `breezeSite/` and `home/` are complete themes.
-Their sources remain in `_docs/` and `_home/`. The migrated examples preserve
+`breeze/` contains shared layouts; `blog/breezeSite/` and `blog/home/` are
+blog-specific themes. `blog/package.mill` defines the blog module and its two
+non-published theme submodules.
+Their sources live in `blog/_docs/` and `blog/_home/`. The blog module preserves
 their public URLs.
 
-Run the entry points in `examples/src/example/makeSite.scala` from an IDE with Metals:
+Run the entry points in `blog/src/blog/makeSite.scala` from an IDE with Metals:
 
-- `example.makeSite` builds `_docs/` into `dist/breeze/`.
-- `example.makeHome` builds `_home/` into `dist/home/`.
-- `example.watchSite` watches and rebuilds the Breeze site.
+- `blog.makeSite` builds `blog/_docs/` into `dist/breeze/`.
+- `blog.makeHome` builds `blog/_home/` into `dist/home/`.
+- `blog.watchSite` watches and rebuilds the Breeze site.
 
-The simulator source is now `_docs/match-type-simulator/index.md`; its raw HTML
+From the repository root, the corresponding Mill entry points are:
+
+```sh
+./mill blog.run
+./mill blog.runMain blog.makeHome
+./mill blog.runMain blog.watchSite
+```
+
+The simulator source is now `blog/_docs/match-type-simulator/index.md`; its raw HTML
 layout and `/match-type-simulator/` URL are unchanged.
 
 ## Reusable Reveal theme

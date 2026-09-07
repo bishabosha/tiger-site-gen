@@ -4,7 +4,7 @@ import model.{Context, SiteRoot}
 import io.util.paths
 
 class ExistingThemes extends munit.FunSuite:
-  private val project = example.ExamplePaths.root
+  private val project = blog.BlogPaths.content
 
   test("Breeze keeps existing article, project and about URLs") {
     given SiteRoot = SiteRoot(project)
@@ -41,4 +41,13 @@ class ExistingThemes extends munit.FunSuite:
       assert(os.isFile(output / "about" / "index.html"))
       assert(os.read(output / "index.html").contains("/about/"))
     finally os.remove.all(output)
+  }
+
+  test("blog entry points build both sites from relocated content") {
+    blog.makeSite()
+    blog.makeHome()
+    for site <- Seq("breeze", "home") do
+      val output = blog.BlogPaths.root / "dist" / site
+      assert(os.isFile(output / "about" / "index.html"))
+      assertEquals(os.read(output / "index.html"), paths.rootPage(redirect = "/about/").render)
   }

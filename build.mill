@@ -43,15 +43,7 @@ object breeze extends PublishedModule:
   def artifactName = "tiger-site-gen-breeze"
   def moduleDeps = Seq(core)
 
-object breezeSite extends PublishedModule:
-  def artifactName = "tiger-site-gen-breeze-site"
-  def moduleDeps = Seq(breeze)
-
-object home extends PublishedModule:
-  def artifactName = "tiger-site-gen-home"
-  def moduleDeps = Seq(core)
-
 object examples extends TigerModule:
-  def moduleDeps = Seq(revealTheme, breezeSite, home)
+  def moduleDeps = Seq(revealTheme)
   object test extends ScalaTests, TestModule.Munit:
     def munitVersion = "1.3.3"

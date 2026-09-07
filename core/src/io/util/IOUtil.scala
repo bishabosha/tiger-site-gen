@@ -108,11 +108,11 @@ object paths:
     // Use cache in watch mode; dependency tracking ensures selective re-render
     val session = new model.BuildSession
     generateSite(src, out, theme, ignoreCache = false, session = session)
-    println(s"watching for changes in root ${curr / src}")
+    println(s"watching for changes in root ${os.Path(src, curr)}")
     val watcher = os.watch.watch(
-      Seq(curr / src),
+      Seq(os.Path(src, curr)),
       changeSet =>
-        println(s"Changes detected in root ${curr / src}")
+        println(s"Changes detected in root ${os.Path(src, curr)}")
         // Always use cache; let dependency tracking re-render affected pages
         generateSite(src, out, theme, ignoreCache = false, session = session)
     )
@@ -175,7 +175,7 @@ object paths:
 
     val changedWithDeps: Set[os.Path] = changed.toSet ++ dependentDocs
 
-    given theme.Context = model.Context.fromTheme(curr / src, theme, session)
+    given theme.Context = model.Context.fromTheme(os.Path(src, curr), theme, session)
     // Render and collect dependencies for pages that were re-rendered
     val depsFromRender: Map[String, Set[String]] = renderSite(
       dest,
