@@ -7,7 +7,7 @@ import Breeze.*
 object subtitles:
 
   def article(
-      doc: DocPageOf[FrontMatter.Article],
+      doc: DocOf[FrontMatter.Article],
       extras: scalatags.Text.Modifier*
   ): scalatags.Text.Modifier =
     ul(

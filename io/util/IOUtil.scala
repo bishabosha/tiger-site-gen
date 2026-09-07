@@ -50,6 +50,12 @@ object Cache:
     catch case NonFatal(_) => empty
 
 object sanatise:
+  case class FileVersion(size: Long, modified: java.nio.file.attribute.FileTime,
+      created: java.nio.file.attribute.FileTime, fileKey: Any)
+  def fileVersion(path: os.Path): FileVersion =
+    val stat = java.nio.file.Files.readAttributes(path.toNIO, classOf[java.nio.file.attribute.BasicFileAttributes])
+    FileVersion(stat.size, stat.lastModifiedTime, stat.creationTime, stat.fileKey)
+
   private val regex = raw"[:/()!?&*^$$#@,']".r
 
   def md5Hashed(path: os.Path): String =
@@ -69,6 +75,7 @@ object sanatise:
     s"$time minute read"
 
 object paths:
+  private val fileHashes = new model.BuildSession.Cache[os.Path, (sanatise.FileVersion, String)]
 
   def hashPath(path: os.Path): os.Path =
     val hashedSuffix = sanatise.md5Hashed(path)
@@ -94,14 +101,15 @@ object paths:
       model.SiteRoot
   ): Unit =
     // Use cache in watch mode; dependency tracking ensures selective re-render
-    generateSite(src, out, theme, ignoreCache = false)
+    val session = new model.BuildSession
+    generateSite(src, out, theme, ignoreCache = false, session = session)
     println(s"watching for changes in root ${curr / src}")
     val watcher = os.watch.watch(
       Seq(curr / src),
       changeSet =>
         println(s"Changes detected in root ${curr / src}")
         // Always use cache; let dependency tracking re-render affected pages
-        generateSite(src, out, theme, ignoreCache = false)
+        generateSite(src, out, theme, ignoreCache = false, session = session)
     )
     Thread.sleep(Long.MaxValue)
     sys.addShutdownHook(watcher.close())
@@ -110,7 +118,8 @@ object paths:
       src: String,
       out: String,
       theme: T,
-      ignoreCache: Boolean
+      ignoreCache: Boolean,
+      session: model.BuildSession = new model.BuildSession
   )(using
       model.SiteRoot
   ): Unit =
@@ -121,21 +130,35 @@ object paths:
       else Cache.empty
 
     val allFiles = os.walk(curr / src).filter(os.isFile)
+    val hashes = session.cache(fileHashes)
+    def sourceHash(path: os.Path): String =
+      val version = sanatise.fileVersion(path)
+      hashes.get(path) match
+        case Some((cachedVersion, hash)) if cachedVersion == version => hash
+        case _ =>
+          val hash = sanatise.md5Hashed(path)
+          hashes(path) = (version, hash)
+          hash
 
     val (changed, unchanged) = allFiles.partition(p =>
       val path = p.relativeTo(curr).toString
-      val hash = sanatise.md5Hashed(p)
+      val hash = sourceHash(p)
       cache.files.get(path).map(_ != hash).getOrElse(true)
     )
 
     val deleted =
       cache.files.keySet.map(p => os.Path(p, curr)).filterNot(p => os.exists(p))
 
+    deleted.foreach(hashes.remove)
     if changed.nonEmpty then println(s"Changed: ${changed.mkString("\n  ", "\n  ", "")}")
     if deleted.nonEmpty then println(s"Deleted: ${deleted.mkString("\n  ", "\n  ", "")}")
 
     // Determine which doc pages depend on any changed inputs (docs or static assets)
-    val changedAbsPaths: Set[String] = changed.map(_.toString).toSet
+    // A directory dependency represents collection membership, including new
+    // and deleted sources that cannot be present in the old per-file deps.
+    val changedAbsPaths: Set[String] = (changed ++ deleted).flatMap(p =>
+      Seq(p.toString, (p / os.up).toString)
+    ).toSet
 
     val dependentDocs: Set[os.Path] =
       cache.deps.collect {
@@ -148,13 +171,12 @@ object paths:
 
     val changedWithDeps: Set[os.Path] = changed.toSet ++ dependentDocs
 
-    given theme.Context = model.Context.fromTheme(curr / src, theme)
+    given theme.Context = model.Context.fromTheme(curr / src, theme, session)
     // Render and collect dependencies for pages that were re-rendered
     val depsFromRender: Map[String, Set[String]] = renderSite(
       dest,
       theme,
-      changedWithDeps,
-      deleted.map(_.relativeTo(curr).toString)
+      changedWithDeps
     )
 
     // Merge dependency maps: keep previous except for deleted or re-rendered pages
@@ -167,7 +189,7 @@ object paths:
 
     val newCache = Cache(
       files = (changed ++ unchanged)
-        .map(p => p.relativeTo(curr).toString -> sanatise.md5Hashed(p))
+        .map(p => p.relativeTo(curr).toString -> sourceHash(p))
         .toMap,
       deps = mergedDeps
     )
@@ -175,131 +197,169 @@ object paths:
 
   def buildSiteDb(
       src: os.Path,
-      theme: model.Theme
+      theme: model.Theme,
+      session: model.BuildSession = new model.BuildSession
   )(using model.SiteRoot): model.Site[theme.SiteMap] =
-    val (roots, files) = os.list(src).partition(os.isDir)
-    val optFavicon = files.find(_.last == "favicon.ico")
-    val (statics, colls) = roots.partition(_.baseName == "static")
-    val data: Map[String, model.DocCollection[?, ?]] =
-      colls
-        .flatMap(r =>
-          val paths =
-            os.list(r)
-              .filter(os.isFile)
-              .filter(p => p.ext == "md" || p.ext == "html")
-          val name = r.baseName
-          theme.siteMap.get(name) match
-            case Some(doc: model.SiteMapSchema.DocsSpec[i, t]) =>
-              given scalanotation.Reader[i] = doc.evI
-              given scalanotation.Reader[t] = doc.evA
-              val triples = paths.map(p =>
-                val s"$prefix - $suffix.md" = p.last: @unchecked
-                (prefix.toInt, suffix, p)
-              )
-              val (indexes, docs) = triples.partition((_, n, _) => n == "index")
-              assert(indexes.sizeIs <= 1, "more than 1 index file")
-              val ordered = docs
-                .sortBy((i, _, _) => i)(using Ordering.Int.reverse)
-                .map(_.tail)
-              val rendered = ordered.zipWithIndex
-                .map { case ((n, p), i) =>
-                  md.render[t](i, n, p, theme)
-                }
-              val indexOpt =
-                indexes.headOption.map { case (_, n, p) =>
-                  md.render[i](-1, n, p, theme)
-                }
-              Some(name -> model.Docs[i, t](name, indexOpt, rendered))
-            case Some(doc: model.SiteMapSchema.DocSpec[t]) =>
-              given scalanotation.Reader[t] = doc.ev
-              val path = paths.head
-              val pName = path.baseName
-              Some(
-                name -> model
-                  .Doc[t](
-                    name,
-                    md.render[t](-1, pName, paths.head, theme)
-                  )
-              )
-            case _ => None
-        )
-        .toMap
-    model.Site.read(statics.headOption, optFavicon, data)
+    val seenSources = mutable.Set.empty[os.Path]
+    def readDocument[A: scalanotation.Reader](
+        index: Int, name: String, path: os.Path, output: os.RelPath
+    ): model.Doc[A] =
+      seenSources += path
+      md.cached[A](index, name, path, output, theme, session)
+
+    def numberedDocument(path: os.Path): Option[(Int, String, os.Path)] =
+      path.last match
+        case s"$prefix - $slug.md" if prefix.toIntOption.isDefined && slug.nonEmpty =>
+          Some((prefix.toInt, slug, path))
+        case _ => None
+
+    def readNodes[T <: NamedTuple.AnyNamedTuple](
+        directory: os.Path,
+        output: os.RelPath,
+        schema: model.SiteMapSchema[T],
+        metadata: model.SiteMapMeta[theme.Context, T]
+    ): model.Site[T] =
+      require(os.isDir(directory), s"Expected content directory: $directory")
+      schema.entries.keys.foreach { name =>
+        require(name.nonEmpty && name != "." && name != ".." && !name.exists(c => c == '/' || c == '\\'),
+          s"Invalid content field name: $name")
+      }
+      lazy val numberedSiblings = os.list(directory).filter(os.isFile).flatMap(numberedDocument)
+      // Resolve all singleton sources before collecting the remaining documents.
+      val singletonSources = schema.entries.collect {
+        case (name, _: model.SiteMapSchema.DocSpec[?]) =>
+          val spec = metadata._query(name).asInstanceOf[model.SiteMapMeta.DocData[theme.Context, ?]]
+          val source =
+            if spec.isIndexed then
+              val matches = numberedSiblings.filter(_._2 == name).map(_._3)
+              require(matches.nonEmpty, s"Expected indexed singleton '<number> - $name.md' in $directory")
+              require(matches.size == 1,
+                s"Multiple indexed singleton documents for '$name' in $directory: ${matches.mkString(", ")}")
+              matches.head
+            else directory / s"$name.md"
+          require(os.isFile(source), s"Expected singleton document: $source")
+          name -> source
+      }
+      val siblingDocuments = singletonSources.values.toSet
+      val nodes = schema.entries.map { (name, spec) =>
+        val node: model.ContentNode = spec match
+          case doc: model.SiteMapSchema.DocSpec[a] =>
+            given scalanotation.Reader[a] = doc.reader
+            val source = singletonSources(name)
+            readDocument[a](-1, name, source, output / sanatise.mdNameToHtml(name))
+          case docs: model.SiteMapSchema.CollectionSpec[a] =>
+            given scalanotation.Reader[a] = docs.reader
+            val sharesParent = docs.isInstanceOf[model.SiteMapSchema.VarArgDocsSpec[?]]
+            val source = if sharesParent then directory else directory / name
+            val destination = if sharesParent then output else output / name
+            require(os.isDir(source), s"Expected document collection: $source")
+            val numbered = os.list(source)
+              .filter(p => os.isFile(p) && p.ext == "md" && !siblingDocuments.contains(p)).map { p =>
+              numberedDocument(p).getOrElse(
+                throw IllegalArgumentException(s"Expected '<number> - <name>.md': $p"))
+            }
+            val ordered = numbered.sortBy(x => (-x._1.toLong, x._2))
+            val pages = ordered.zipWithIndex.map { case ((_, slug, path), index) =>
+              readDocument[a](index, slug, path, destination / sanatise.mdNameToHtml(slug))
+            }
+            val routes = pages.map(p => sanatise.mdNameToHtml(p.name))
+            require(routes.distinct.size == routes.size, s"Duplicate document routes in $source")
+            docs match
+              case _: model.SiteMapSchema.VarArgDocsSpec[a] => model.VarArgDocs(source, destination, pages)
+              case _: model.SiteMapSchema.DocsSpec[a] => model.Docs(source, destination, pages)
+          case group: model.SiteMapSchema.DirectorySpec[t] =>
+            val source = directory / name
+            val childrenMeta = metadata._query(name)
+              .asInstanceOf[model.SiteMapMeta.DirectoryData[theme.Context, t]].children
+            model.Directory(source, output / name, readNodes(source, output / name, group.schema, childrenMeta))
+        name -> node
+      }
+      model.Site.read(None, None, nodes)
+    val loaded = readNodes(src, os.RelPath(""), theme.siteMap, theme.siteMapMeta)
+    md.pruneSources(theme, src, seenSources.toSet, session)
+    model.Site.read(
+      Option(src / "static").filter(os.isDir),
+      Option(src / "favicon.ico").filter(os.isFile),
+      loaded.nodes
+    )
 
   def renderSite(
       dest: os.Path,
       theme: model.Theme,
-      changed: Set[os.Path],
-      deleted: Set[String]
+      changed: Set[os.Path]
   )(using theme.Context, model.SiteRoot): Map[String, Set[String]] = {
     val deps = mutable.Map[String, Set[String]]()
+    val outputs = mutable.Map[String, String]()
+    val roots = mutable.ArrayBuffer.empty[String]
+    val jobs = mutable.ArrayBuffer.empty[() => Unit]
+    val routes = mutable.Set.empty[String]
 
-    deleted.foreach { p =>
-      val path = os.Path(p, curr)
-      if path.ext == "md" then
-        val collection = path.segments.toSeq.dropRight(1).last
-        val htmlFile = sanatise.mdNameToHtml(path.baseName)
-        os.remove(dest / collection / htmlFile)
-    }
+    def document[A](
+        page: model.Doc[A],
+        output: os.RelPath,
+        url: String,
+        selector: Option[model.SiteMapMeta.SelLayout[theme.Context, A]],
+        isRoot: Boolean
+    ): Unit =
+      val (selected, selectorDeps) = Templates.withDependencyCollection {
+        selector.map(_(page)).getOrElse(Result.Ok(None)) match
+          case Result.Ok(layout) => layout
+          case Result.Err(error) => throw error
+      }
+      require(!isRoot || selected.nonEmpty, s"Root document requires a layout: ${page.path}")
+      selected.foreach { layout =>
+        val route = output.toString
+        require(routes.add(route), s"Duplicate output route: $route")
+        val source = page.path.relativeTo(curr).toString
+        outputs(source) = route
+        if isRoot then roots += url
+        jobs += (() =>
+          if changed.contains(page.path) || !os.isFile(dest / output) then
+            val (rendered, usedDeps) = Templates.withDependencyCollection { layout.run(page) }
+            os.write.over(dest / output, scalatags.Text.all.doctype("html")(rendered), createFolders = true)
+            deps(source) = selectorDeps ++ usedDeps
+        )
+      }
 
-    val activeCols = ctx.site.allDocs.collect {
-      case col if col.willRender => col
+    def visit[T <: NamedTuple.AnyNamedTuple](
+        site: model.Site[T],
+        metadata: model.SiteMapMeta[theme.Context, T]
+    ): Unit =
+      site.nodes.foreach { (name, node) =>
+        // Schema derivation gives each node its corresponding metadata type.
+        (node, metadata._query(name)) match
+          case (single: model.Doc[a], spec: model.SiteMapMeta.DocData[theme.Context, ?]) =>
+            val typed = spec.asInstanceOf[model.SiteMapMeta.DocData[theme.Context, a]]
+            document(single, single.outputPath, single.url, typed.optLayout, typed.isRoot)
+          case (many: model.DocumentCollection[a], spec: model.SiteMapMeta.DocsData[theme.Context, ?]) =>
+            val typed = spec.asInstanceOf[model.SiteMapMeta.DocsData[theme.Context, a]]
+            many.foreach { page =>
+              document(page, page.outputPath, page.url, typed.optLayout, false)
+            }
+          case (group: model.Directory[t], spec: model.SiteMapMeta.DirectoryData[theme.Context, ?]) =>
+            visit(group.children, spec.children.asInstanceOf[model.SiteMapMeta[theme.Context, t]])
+          case _ => throw IllegalArgumentException(s"Metadata does not match content node: $name")
+      }
+
+    visit(ctx.site, theme.siteMapMeta)
+    require(roots.size <= 1, "More than one root document")
+    require(roots.headOption.forall(_ == "/") || !routes.contains("index.html"),
+      "Root redirect would overwrite index.html")
+    os.makeDir.all(dest)
+    // Persist exact routes so deleted nested sources and removed layouts clean up correctly.
+    val outputManifest = dest / ".outputs.json"
+    val previous =
+      if os.isFile(outputManifest) then upickle.default.read[Map[String, String]](os.read(outputManifest))
+      else Map.empty[String, String]
+    val currentRoutes = outputs.values.toSet ++ roots.headOption.map(_ => "index.html")
+    (previous.values.toSet -- currentRoutes).foreach { route =>
+      val path = dest / os.RelPath(route)
+      if os.isFile(path) then os.remove(path)
     }
-    var optRoots = Set.empty[model.AnyDocCollection]
-    for col <- activeCols do
-      given model.AnyDocCollection = col
-      os.makeDir.all(dest / col.collName)
-      val colMeta = theme.siteMapMeta._query(col.collName)
-      if colMeta.isRoot then optRoots += col
-      colMeta match
-        case spec: model.SiteMapMeta.DocsData[theme.Context, i0, d0] =>
-          for
-            fn <- spec.optPageLayout
-            doc <- col
-          do
-            val d0 = doc.asInstanceOf[model.DocPage[d0]]
-            fn(d0) match
-              case Result.Ok(Some(layout)) if changed.contains(doc.path) =>
-                val (subPage, usedDeps) = Templates.withDependencyCollection {
-                  layout.run(d0)
-                }
-                os.write.over(
-                  dest / col.collName / sanatise.mdNameToHtml(doc.name),
-                  scalatags.Text.all.doctype("html")(subPage)
-                )
-                deps += (doc.path.relativeTo(curr).toString -> usedDeps)
-              case Result.Ok(_)  => // skip unchanged pages or those without a layout
-              case Result.Err(e) => throw e
-          end for
-          if changed.contains(col.index.path) then
-            for fn <- spec.optIndexLayout do
-              val i0 = col.index.asInstanceOf[model.DocPage[i0]]
-              val ilayout =
-                fn(i0) match
-                  case Result.Ok(Some(layout)) => layout
-                  case Result.Ok(None)         =>
-                    throw AssertionError(
-                      s"index page ${col.index.path} must have a layout"
-                    )
-                  case Result.Err(e) => throw e
-              val (indexPage, usedDeps) = Templates.withDependencyCollection {
-                ilayout.run(i0)
-              }
-              os.write.over(
-                dest / col.collName / "index.html",
-                scalatags.Text.all.doctype("html")(indexPage)
-              )
-              deps += (col.index.path.relativeTo(curr).toString -> usedDeps)
-            end for
-          end if
-      end match
-    end for
-    assert(optRoots.sizeIs <= 1, "more than one root")
-    for rootCol <- optRoots.headOption do
-      os.write.over(
-        dest / "index.html",
-        io.util.paths.rootPage(redirect = s"/${rootCol.collName}/")
-      )
+    jobs.foreach(_())
+    roots.headOption.filter(_ != "/").foreach { url =>
+      os.write.over(dest / "index.html", rootPage(redirect = url))
+    }
     for static <- ctx.site.optStatic do
       os.makeDir.all(dest / "static")
       os.walk.stream(static).foreach { p =>
@@ -321,6 +381,9 @@ object paths:
         dest / "favicon.ico"
       )
 
+    model.Context.afterRender(theme, dest)
+    val tracked = outputs.toMap ++ roots.headOption.filter(_ != "/").map(_ => "@root" -> "index.html")
+    os.write.over(outputManifest, upickle.default.write(tracked))
     deps.toMap
   }
 
@@ -460,12 +523,40 @@ object md:
   def parseDryRun(document: String, theme: model.Theme): Document =
     parser.parse(Templates.interpolateDefault(document, theme))
 
+  private case class SourceKey(theme: model.Theme, reader: scalanotation.Reader[?], path: os.Path)
+  private case class CachedSource(version: sanatise.FileVersion, document: model.Doc[?])
+  private val sources = new model.BuildSession.Cache[SourceKey, CachedSource]
+
+  private[util] def pruneSources(theme: model.Theme, root: os.Path, live: Set[os.Path],
+      session: model.BuildSession): Unit =
+    val cache = session.cache(sources)
+    cache.keys.filter(key => (key.theme eq theme) && key.path.startsWith(root) && !live(key.path))
+      .toVector.foreach(cache.remove)
+
+  /** Stat unchanged inputs without opening/decoding them again. Publish only successful parses. */
+  def cached[T: scalanotation.Reader](
+      index: Int, name: String, path: os.Path, outputPath: os.RelPath,
+      theme: model.Theme, session: model.BuildSession
+  ): model.Doc[T] =
+    val version = sanatise.fileVersion(path)
+    val key = SourceKey(theme, summon[scalanotation.Reader[T]], path)
+    val cache = session.cache(sources)
+    cache.get(key) match
+      case Some(entry) if entry.version == version &&
+          entry.document.name == name && entry.document.outputPath == outputPath =>
+        entry.document.asInstanceOf[model.Doc[T]].atIndex(index)
+      case _ =>
+        val document = render[T](index, name, path, outputPath, theme)
+        cache(key) = CachedSource(version, document)
+        document
+
   def render[T: scalanotation.Reader](
       index: Int,
       name: String,
       path: os.Path,
+      outputPath: os.RelPath,
       theme: model.Theme
-  ): model.DocPage[T] =
+  ): model.Doc[T] =
     import org.virtuslab.yaml.*
     def frontMatterError(msg: String): Nothing =
       throw new Exception(s"failed to read front matter of $path:$msg")
@@ -484,9 +575,10 @@ object md:
     val (sample, wordCount, headings) =
       ContentSampler.sampleContent(documentNoSplices)
 
-    model.DocPage(
+    model.Doc(
       name = name,
       path = path,
+      outputPath = outputPath,
       frontMatter = data,
       wordCount = wordCount,
       headings = headings,

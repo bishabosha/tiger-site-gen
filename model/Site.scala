@@ -1,205 +1,148 @@
 package model
 
-import NamedTuple.AnyNamedTuple
-import NamedTuple.NamedTuple
+import NamedTuple.{AnyNamedTuple, NamedTuple}
 import steps.result.Result
-import model.SiteMapMeta.RawMeta
 
-sealed trait SiteMapMeta[C <: model.Context, T <: AnyNamedTuple] extends Selectable:
-  type Fields = NamedTuple.Map[
-    T,
-    [X] =>> (
-        SiteMapMeta.DocColToMetaOf[C, X] => SiteMapMeta.DocColToMetaOf[C, X]
-    ) => SiteMapMeta[C, T]
-  ]
-  def _update(name: String)(
-      in: SiteMapMeta.Data[C] => SiteMapMeta.Data[C]
-  ): SiteMapMeta[C, T]
+sealed trait SiteMapMeta[C <: Context, T <: AnyNamedTuple] extends Selectable:
+  type Fields = NamedTuple.Map[T, [X] =>> (SiteMapMeta.MetaOf[C, X] => SiteMapMeta.MetaOf[C, X]) => SiteMapMeta[C, T]]
   def _query(name: String): SiteMapMeta.Data[C]
-  final def selectDynamic(
-      name: String
-  ): (
-      SiteMapMeta.Data[C] => SiteMapMeta.Data[C]
-  ) => SiteMapMeta[C, T] =
+  def _update(name: String)(f: SiteMapMeta.Data[C] => SiteMapMeta.Data[C]): SiteMapMeta[C, T]
+  final def selectDynamic(name: String): (SiteMapMeta.Data[C] => SiteMapMeta.Data[C]) => SiteMapMeta[C, T] =
     _update(name)
 
-  def _mergeFrom[C0 <: model.Context, T0 <: AnyNamedTuple](
-      that: SiteMapMeta[C0, T0]
-  )(using
-      sub: Record.IsSubPrefix[T0, T],
-      conformsCtx: model.Context.Views.Conforms[C0, C]
-  ): SiteMapMeta[C0, T0] =
-    (this, that) match
-      case (thisRaw: RawMeta[c, t], thatRaw: RawMeta[c0, t0]) =>
-        thatRaw.mergeInner(thisRaw.asInstanceOf[RawMeta[c0, t0]])
-
 object SiteMapMeta:
-  type Of[C <: model.Context] = [T <: AnyNamedTuple] =>> SiteMapMeta[C, T]
-  type DocColToMeta[C <: model.Context] = [T] =>> DocColToMetaOf[C, T]
+  type Of[C <: Context] = [T <: AnyNamedTuple] =>> SiteMapMeta[C, T]
+  type MetaOf[C <: Context, T] <: Data[C] = T match
+    case Doc[a] => DocData[C, a]
+    case Docs[a] => DocsData[C, a]
+    case VarArgDocs[a] => DocsData[C, a]
+    case Directory[t] => DirectoryData[C, t]
 
-  type DocColToMetaOf[C <: model.Context, T] <: Data[C] = T match
-    case model.Doc[a]     => DocData[C, a]
-    case model.Docs[i, a] => DocsData[C, i, a]
+  sealed trait Data[C <: Context]
+  type SelLayout[C <: Context, A] =
+    Doc[A] => Result[Option[Layout[C, Doc[A]]], Exception]
+  type LayoutAlways[C <: Context, A] = Layout[C, Doc[A]]
 
-  private class RawMeta[C <: model.Context, T <: AnyNamedTuple] private[SiteMapMeta] (
-      private val data: Map[String, Data[C]]
-  ) extends SiteMapMeta[C, T]:
-    def _query(name: String): Data[C] = data.getOrElse(name, emptyDataOf)
-    def _update(
-        name: String
-    )(in: Data[C] => Data[C]): SiteMapMeta[C, T] =
-      RawMeta(data.updatedWith(name) {
-        case Some(d) => Some(in(d))
-        case None    => Some(in(emptyDataOf))
-      })
-    def mergeInner(that: RawMeta[C, T]): RawMeta[C, T] =
-      var folded = this.data
-      that.data.foreach((name, d) =>
-        folded = folded.updatedWith(name) {
-          case Some(existing) =>
-            (existing, d) match
-              case (existing0: DefaultData, d0: DefaultData) =>
-                Some(
-                  DefaultData(
-                    isRoot = existing0.isRoot || d0.isRoot,
-                    optIndexLayout = existing0.optIndexLayout.orElse(d0.optIndexLayout),
-                    optPageLayout = existing0.optPageLayout.orElse(d0.optPageLayout)
-                  )
-                )
+  final case class DocData[C <: Context, A](
+      isRoot: Boolean = false,
+      optLayout: Option[SelLayout[C, A]] = None,
+      isIndexed: Boolean = false
+  ) extends Data[C]:
+    /** Resolve `$number - $field.md` in the containing directory. */
+    def indexed: DocData[C, A] = copy(isIndexed = true)
+    def setAsRoot: DocData[C, A] = copy(isRoot = true)
+    def layout(fn: SelLayout[C, A]): DocData[C, A] = copy(optLayout = Some(fn))
+    def layoutAlways(value: LayoutAlways[C, A]): DocData[C, A] =
+      layout(Function.const(Result.Ok(Some(value))))
 
-          case None => Some(d)
-        }
-      )
-      RawMeta(folded)
+  final case class DocsData[C <: Context, A](
+      optLayout: Option[SelLayout[C, A]] = None
+  ) extends Data[C]:
+    def layout(fn: SelLayout[C, A]): DocsData[C, A] = copy(optLayout = Some(fn))
+    def layoutAlways(value: LayoutAlways[C, A]): DocsData[C, A] =
+      layout(Function.const(Result.Ok(Some(value))))
 
-  private val Default: SiteMapMeta[model.Context, AnyNamedTuple] =
-    new RawMeta[model.Context, AnyNamedTuple](Map.empty)
+  final class DirectoryData[C <: Context, T <: AnyNamedTuple](val children: SiteMapMeta[C, T])
+      extends Data[C], Selectable:
+    type Fields = NamedTuple.Map[T, [X] =>> (MetaOf[C, X] => MetaOf[C, X]) => DirectoryData[C, T]]
+    def selectDynamic(name: String): (Data[C] => Data[C]) => DirectoryData[C, T] =
+      f => DirectoryData(children._update(name)(f))
 
-  def default[C <: model.Context, T <: AnyNamedTuple: SiteMapSchema]: SiteMapMeta[C, T] =
-    Default.asInstanceOf[SiteMapMeta[C, T]]
+  private class RawMeta[C <: Context, T <: AnyNamedTuple](data: Map[String, Data[C]])
+      extends SiteMapMeta[C, T]:
+    def _query(name: String): Data[C] = data(name)
+    def _update(name: String)(f: Data[C] => Data[C]): SiteMapMeta[C, T] =
+      RawMeta(data.updated(name, f(data(name))))
 
-  private val emptyData: DefaultData = DefaultData(false, None, None)
-  private def emptyDataOf[C <: model.Context]: Data[C] =
-    emptyData.asInstanceOf[Data[C]]
+  def default[C <: Context, T <: AnyNamedTuple](using schema: SiteMapSchema[T]): SiteMapMeta[C, T] =
+    fromSchema(schema)
 
-  private case class DefaultData(
-      isRoot: Boolean,
-      optIndexLayout: Option[SelLayout[model.Context, Any]],
-      optPageLayout: Option[SelLayout[model.Context, Any]]
-  ) extends DocsData[model.Context, Any, Any]:
-    def setAsRoot = copy(isRoot = true)
-    def indexLayout(fn: SelLayout[model.Context, Any]) = copy(optIndexLayout = Some(fn))
-    def pageLayout(fn: SelLayout[model.Context, Any]) = copy(optPageLayout = Some(fn))
-
-  sealed trait Data[C <: model.Context]:
-    def isRoot: Boolean
-    def setAsRoot: Data[C]
-
-  type SelLayout[C <: model.Context, A] =
-    model.DocPage[A] => Result[Option[model.Layout[C, model.DocPage[A]]], Exception]
-  type LayoutAlways[C <: model.Context, A] =
-    model.Layout[C, model.DocPage[A]]
-
-  sealed trait DocData[C <: model.Context, I] extends Data[C]:
-    override def setAsRoot: DocData[C, I]
-    def optIndexLayout: Option[SelLayout[C, I]]
-    def indexLayout(fn: SelLayout[C, I]): DocData[C, I]
-    def indexLayoutAlways(layout: LayoutAlways[C, I]): DocData[C, I] =
-      indexLayout(Function.const(Result.Ok(Some(layout))))
-  sealed trait DocsData[C <: model.Context, I, A] extends DocData[C, I]:
-    override def setAsRoot: DocsData[C, I, A]
-    override def indexLayout(fn: SelLayout[C, I]): DocsData[C, I, A]
-    def optPageLayout: Option[SelLayout[C, A]]
-    def pageLayout(fn: SelLayout[C, A]): DocsData[C, I, A]
-    def pageLayoutAlways(layout: LayoutAlways[C, A]): DocsData[C, I, A] =
-      pageLayout(Function.const(Result.Ok(Some(layout))))
+  private def fromSchema[C <: Context, T <: AnyNamedTuple](schema: SiteMapSchema[T]): SiteMapMeta[C, T] =
+    RawMeta(schema.entries.map { (name, spec) =>
+      val value: Data[C] = spec match
+        case _: SiteMapSchema.DocSpec[a] => DocData[C, a]()
+        case _: SiteMapSchema.CollectionSpec[a] => DocsData[C, a]()
+        case d: SiteMapSchema.DirectorySpec[t] => DirectoryData(fromSchema[C, t](d.schema))
+      name -> value
+    }.toMap)
 
 sealed trait SiteMapSchema[T <: AnyNamedTuple] extends Selectable:
-  type Fields = NamedTuple.Map[T, SiteMapSchema.DocColToSchema]
-  def get(name: String): Option[SiteMapSchema.CollectionSpec]
-  def apply(name: String): SiteMapSchema.CollectionSpec
-  final def selectDynamic(
-      name: String
-  ): SiteMapSchema.CollectionSpec =
-    apply(name)
+  type Fields = NamedTuple.Map[T, SiteMapSchema.NodeToSchema]
+  def entries: Map[String, SiteMapSchema.NodeSpec]
+  def get(name: String): Option[SiteMapSchema.NodeSpec] = entries.get(name)
+  def apply(name: String): SiteMapSchema.NodeSpec = entries(name)
+  final def selectDynamic(name: String): SiteMapSchema.NodeSpec = apply(name)
 
 object SiteMapSchema:
+  /** Count only immediate children; each nested Directory derives its own schema. */
+  type VarArgCount[V <: Tuple] <: Int = V match
+    case EmptyTuple => 0
+    case VarArgDocs[a] *: tail => scala.compiletime.ops.int.S[VarArgCount[tail]]
+    case head *: tail => VarArgCount[tail]
+  type AtMostOneVarArg[V <: Tuple] =
+    scala.compiletime.ops.int.<=[VarArgCount[V], 1] =:= true
+
   type IsAll[T] = [U <: Tuple] =>> Tuple.Union[U] <:< T
+  type NodeToSchema[T] <: NodeSpec = T match
+    case Doc[a] => DocSpec[a]
+    case Docs[a] => DocsSpec[a]
+    case VarArgDocs[a] => VarArgDocsSpec[a]
+    case Directory[t] => DirectorySpec[t]
 
-  type DocColToSchema[T] <: CollectionSpec = T match
-    case model.Doc[a]     => SiteMapSchema.DocSpec[a]
-    case model.Docs[i, a] => SiteMapSchema.DocsSpec[i, a]
-
-  inline def derived[N <: Tuple, V <: Tuple: IsAll[
-    model.DocCollection[?, ?]
-  ]]: SiteMapSchema[NamedTuple[N, V]] =
-    val nt: NamedTuple[N, Tuple.Map[V, DocColToSchema]] =
-      NamedTuple(compiletime.summonAll[Tuple.Map[V, DocColToSchema]])
+  inline def derived[N <: Tuple, V <: Tuple: IsAll[ContentNode]: AtMostOneVarArg]: SiteMapSchema[NamedTuple[N, V]] =
+    val nt: NamedTuple[N, Tuple.Map[V, NodeToSchema]] =
+      NamedTuple(compiletime.summonAll[Tuple.Map[V, NodeToSchema]])
     apply(nt)
 
   object auto:
-    inline given autoDerived[BaseType, N <: Tuple, V <: Tuple: IsAll[
-      model.DocCollection[?, ?]
-    ]]: SiteMapSchema[NamedTuple[N, V]] = derived[N, V]
+    inline given autoDerived[N <: Tuple, V <: Tuple: IsAll[ContentNode]: AtMostOneVarArg]: SiteMapSchema[NamedTuple[N, V]] =
+      derived[N, V]
 
-  inline def apply[BaseType, N <: Tuple, V <: Tuple: IsAll[
-    model.DocCollection[?, ?]
-  ]](
-      data: NamedTuple[N, Tuple.Map[V, DocColToSchema]]
+  inline def apply[N <: Tuple, V <: Tuple: IsAll[ContentNode]: AtMostOneVarArg](
+      data: NamedTuple[N, Tuple.Map[V, NodeToSchema]]
   ): SiteMapSchema[NamedTuple[N, V]] = make(data.toSeqMap)
 
-  def make[BaseType, N <: Tuple, V <: Tuple: IsAll[model.DocCollection[?, ?]]](
-      data: Map[String, Tuple.Union[Tuple.Map[V, DocColToSchema]]]
+  def make[N <: Tuple, V <: Tuple: IsAll[ContentNode]: AtMostOneVarArg](
+      data: Map[String, Tuple.Union[Tuple.Map[V, NodeToSchema]]]
   ): SiteMapSchema[NamedTuple[N, V]] =
-    new SiteMapSchema[NamedTuple[N, V]] {
-      private val data0: Map[String, CollectionSpec] =
-        data.asInstanceOf[Map[String, CollectionSpec]]
-      def get(name: String): Option[CollectionSpec] = data0.get(name)
-      def apply(name: String): CollectionSpec = data0(name)
-    }
+    new SiteMapSchema[NamedTuple[N, V]]:
+      val entries = data.asInstanceOf[Map[String, NodeSpec]]
 
-  type IndexOf[A, T <: Tuple, Acc <: Int] <: Int = T match
-    case EmptyTuple => -1
-    case A *: _     => Acc
-    case _ *: xs    => IndexOf[A, xs, compiletime.ops.int.S[Acc]]
-
-  sealed trait CollectionSpec
-
-  final class DocSpec[A](using
-      val ev: scalanotation.Reader[A]
-  ) extends CollectionSpec
-  final class DocsSpec[I, A](using
-      val evI: scalanotation.Reader[I],
-      val evA: scalanotation.Reader[A]
-  ) extends CollectionSpec
-
-  object CollectionSpec:
-    given [A]
-      => scalanotation.Reader[A]
-      => DocSpec[A] =
-      DocSpec()
-    given [I, A]
-      => (scalanotation.Reader[I], scalanotation.Reader[A])
-      => DocsSpec[I, A] = DocsSpec()
+  sealed trait NodeSpec
+  final class DocSpec[A](using val reader: scalanotation.Reader[A]) extends NodeSpec
+  sealed abstract class CollectionSpec[A](using val reader: scalanotation.Reader[A]) extends NodeSpec
+  final class DocsSpec[A](using scalanotation.Reader[A]) extends CollectionSpec[A]
+  final class VarArgDocsSpec[A](using scalanotation.Reader[A]) extends CollectionSpec[A]
+  final class DirectorySpec[T <: AnyNamedTuple](using val schema: SiteMapSchema[T]) extends NodeSpec
+  object NodeSpec:
+    given [A: scalanotation.Reader]: DocSpec[A] = DocSpec()
+    given [A: scalanotation.Reader]: DocsSpec[A] = DocsSpec()
+    given [A: scalanotation.Reader]: VarArgDocsSpec[A] = VarArgDocsSpec()
+    given [T <: AnyNamedTuple: SiteMapSchema]: DirectorySpec[T] = DirectorySpec()
 
 final class Site[T <: AnyNamedTuple] private (
     val optStatic: Option[os.Path],
     val optFavicon: Option[os.Path],
-    data: Map[String, DocCollection[?, ?]]
+    val nodes: Map[String, ContentNode]
 ) extends Selectable:
   type Fields = T
-  def selectDynamic(name: String): DocCollection[?, ?] = data(
-    name
-  )
-  def allDocs: Iterable[DocCollection[?, ?]] = data.values
+  def selectDynamic(name: String): ContentNode = nodes(name)
 
 object Site:
+  /** Alias nodes without changing their physical paths or documents. */
+  inline def project[N <: Tuple, V <: Tuple: SiteMapSchema.IsAll[ContentNode]: SiteMapSchema.AtMostOneVarArg](
+      source: Site[?],
+      nodes: NamedTuple[N, V]
+  ): Site[NamedTuple[N, V]] =
+    val names = compiletime.constValueTuple[N].toList.map(_.toString)
+    val values = nodes.toTuple.toList.map(_.asInstanceOf[ContentNode])
+    read(source.optStatic, source.optFavicon, names.zip(values).toMap)
+
   given [C <: AnyNamedTuple, P <: AnyNamedTuple]
     => Record.IsSubPrefix[C, P] => Context.Views.Conforms[Site[C], Site[P]]()
 
   def read[T <: AnyNamedTuple](
       optStatic: Option[os.Path],
       optFavicon: Option[os.Path],
-      data: Map[String, DocCollection[?, ?]]
-  ): Site[T] =
-    Site(optStatic, optFavicon, data)
+      data: Map[String, ContentNode]
+  ): Site[T] = Site(optStatic, optFavicon, data)

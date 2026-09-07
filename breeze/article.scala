@@ -10,7 +10,7 @@ import Breeze.*
 
 val articleLayout = model.Layout[Breeze.Context, FrontMatter.Article]: doc =>
   val (prev, next) =
-    ctx.site.articles.prevNext(doc).swap // articles is in reverse order
+    ctx.site.articles.posts.prevNext(doc).swap // articles is in reverse order
   val articleNav = (
     Option.when(prev.orElse(next).isDefined)(
       div(

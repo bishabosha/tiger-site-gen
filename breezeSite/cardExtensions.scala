@@ -9,7 +9,7 @@ object cardExtensions:
 
   def projects(
       title: String,
-      projects: DocsOf[FrontMatter.Projects, FrontMatter.Project]
+      projects: model.DocumentCollection[FrontMatter.Project]
   ): scalatags.Text.Modifier =
     cards.wrap(
       title,
@@ -29,8 +29,7 @@ object cardExtensions:
               ),
               td(
                 a(
-                  href := s"/${projects.collName}/${io.util.sanatise
-                      .mdNameToHtml(project.name)}",
+                  href := project.url,
                   img(
                     src := project.frontMatter.avatar,
                     alt := "Project 1 Icon",

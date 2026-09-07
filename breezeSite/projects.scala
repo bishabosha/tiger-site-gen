@@ -35,7 +35,7 @@ val projects = model.Layout[Breeze.Context, FrontMatter.Projects]: doc =>
             ),
             div(
               cls := "list-group",
-              for project <- ctx.site.projects
+              for project <- ctx.site.projects.posts
               yield div(
                 cls := "list-group-item",
                 div(

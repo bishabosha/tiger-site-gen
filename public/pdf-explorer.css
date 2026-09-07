@@ -1,0 +1,36 @@
+.reveal a.explore-pdf { display:inline-block; padding:.2em .65em; border:1px solid currentColor; border-radius:4px; }
+.pdf-tour {
+  box-sizing:border-box;
+  width:100vw;
+  height:100dvh;
+  max-width:none;
+  max-height:none;
+  margin:0;
+  padding:0;
+  border:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:16px/1.3 var(--r-main-font);
+}
+.pdf-tour[open] { display:flex; flex-direction:column; }
+.pdf-tour::backdrop { background:#19242a; }
+/* Floating controls leave the entire viewport available to the document. */
+.pdf-controls { position:absolute; top:8px; right:8px; z-index:10; display:flex; align-items:center; gap:2px; padding:4px; border:1px solid var(--rule); border-radius:8px; background:var(--paper); box-shadow:0 2px 8px #0002; }
+.pdf-toolbar { display:flex; align-items:center; gap:2px; }
+.pdf-toolbar[hidden] { display:none; }
+.pdf-controls button,.pdf-controls a { display:flex; align-items:center; justify-content:center; box-sizing:border-box; height:32px; min-width:32px; padding:0 6px; border:0; border-radius:4px; background:transparent; color:inherit; font:20px/1 var(--r-main-font); text-decoration:none; cursor:pointer; }
+.pdf-controls [data-pdf-action="fit"],.pdf-controls #pdf-zoom { font-size:14px; }
+.pdf-controls #pdf-zoom { min-width:50px; font-variant-numeric:tabular-nums; }
+.pdf-controls button:hover,.pdf-controls a:hover { background:#e8e7df; }
+.pdf-controls button:disabled { opacity:.4; cursor:wait; }
+.pdf-controls :focus-visible,.pdf-scroll:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.pdf-controls:has(.pdf-toolbar[hidden]) { border-color:transparent; box-shadow:none; opacity:.3; }
+.pdf-controls:has(.pdf-toolbar[hidden]):is(:hover,:focus-within) { opacity:1; }
+.pdf-stage { position:relative; flex:1; min-height:0; }
+.pdf-scroll { position:absolute; inset:0; overflow:auto; overscroll-behavior:contain; scroll-behavior:smooth; cursor:grab; user-select:none; background:#d5d5d2; }
+.pdf-scroll.dragging { cursor:grabbing; scroll-behavior:auto; }
+.pdf-scroll .pdfViewer { padding:0; }
+.pdf-status { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:var(--paper); padding:18px 26px; border-radius:6px; text-align:center; }
+.pdf-status[hidden] { display:none; }
+@media (prefers-reduced-motion:reduce) { .pdf-scroll { scroll-behavior:auto; } }
+@media print { .pdf-tour { display:none!important; } }

@@ -7,7 +7,7 @@ import Breeze.*
 object subtitleExtensions:
 
   def project(
-      doc: DocPageOf[FrontMatter.Project],
+      doc: DocOf[FrontMatter.Project],
       extras: scalatags.Text.Modifier*
   ): scalatags.Text.Modifier =
     ul(

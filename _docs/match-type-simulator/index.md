@@ -1,4 +1,3 @@
----
 ```scala
 (
   layout = "raw"

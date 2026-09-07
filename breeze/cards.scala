@@ -33,7 +33,7 @@ object cards:
 
   def recentPosts(
       kind: String,
-      posts: DocsOf[FrontMatter.Articles, FrontMatter.Article]
+      posts: model.DocumentCollection[FrontMatter.Article]
   ): scalatags.Text.Modifier =
     wrap(
       s"Recent $kind",
@@ -53,7 +53,7 @@ object cards:
               ),
               td(
                 a(
-                  href := s"/${posts.collName}/${io.util.sanatise.mdNameToHtml(post.name)}",
+                  href := post.url,
                   title
                 )
               )
@@ -71,7 +71,8 @@ object cards:
   def links(
       title: String,
       kind: String,
-      links: DataOf[FrontMatter.Link]
+      links: model.DocumentCollection[FrontMatter.Link],
+      showAll: Boolean = false
   ): scalatags.Text.Modifier =
     wrap(
       title,
@@ -92,7 +93,7 @@ object cards:
           )
         )
       )),
-      (if links.willRender then
+      (if showAll then
          p(
            a(
              href := s"/${kind.toLowerCase}/",

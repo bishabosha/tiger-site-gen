@@ -19,7 +19,7 @@ val articles = model.Layout[Breeze.Context, FrontMatter.Articles]: doc =>
             cls := "jumbotron bg-light py-lg-5 py-3",
             h1(cls := "display-5", "Articles"),
             hr(),
-            for doc <- ctx.site.articles yield
+            for doc <- ctx.site.articles.posts yield
               val published = doc.frontMatter.published
               val title = doc.frontMatter.title
               val sample = doc.htmlPreview

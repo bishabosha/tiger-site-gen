@@ -45,21 +45,20 @@ object Breeze extends model.DictionaryTheme:
     )
 
   type SiteMap = parent.SiteMap ++ (
-      talks: DocsOf[FrontMatter.Talks, FrontMatter.Talk],
-      videos: DocsOf[FrontMatter.Videos, FrontMatter.Video],
-      projects: DocsOf[FrontMatter.Projects, FrontMatter.Project],
-      `match-type-simulator`: DocOf[FrontMatter.Raw]
+      talks: model.Directory[(index: DocOf[FrontMatter.Talks], posts: VarArgDocsOf[FrontMatter.Talk])],
+      videos: DocsOf[FrontMatter.Video],
+      projects: model.Directory[(index: DocOf[FrontMatter.Projects], posts: VarArgDocsOf[FrontMatter.Project])],
+      `match-type-simulator`: model.Directory[(index: DocOf[FrontMatter.Raw])]
   )
 
-  override val siteMapMeta = parent.siteMapMeta
-    ._mergeFrom(defaultSiteMeta)
-    .about(_.indexLayout(dict((about = layouts.about))))
-    .talks(_.indexLayout(dict((talks = layouts.talks))))
-    .projects(
-      _.indexLayout(dict((projects = layouts.projects)))
-        .pageLayout(dict((project = layouts.project)))
-    )
-    .`match-type-simulator`(_.indexLayout(dict((raw = layouts.raw))))
+  override val siteMapMeta = defaultSiteMeta
+    .about(_.index(_.setAsRoot.layout(dict((about = layouts.about)))))
+    .articles(_.index(_.indexed.layout(dict((articles = layouts.articles))))
+      .posts(_.layout(dict((article = layouts.article)))))
+    .talks(_.index(_.indexed.layout(dict((talks = layouts.talks)))))
+    .projects(_.index(_.indexed.layout(dict((projects = layouts.projects))))
+      .posts(_.layout(dict((project = layouts.project)))))
+    .`match-type-simulator`(_.index(_.layout(dict((raw = layouts.raw)))))
 
   type Extra = parent.Extra
   def extras(using SiteContext) = Record:

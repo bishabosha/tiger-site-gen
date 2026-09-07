@@ -30,7 +30,7 @@ object sidebar:
       bio(ctx.site.about.index, hideable, collapsable)
     )
 
-  def toc(doc: DocPageOf[FrontMatter.BaseArticle])(using
+  def toc(doc: DocOf[FrontMatter.BaseArticle])(using
       Context
   ): scalatags.Text.Modifier =
     div(

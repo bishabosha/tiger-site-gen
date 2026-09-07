@@ -3,10 +3,10 @@ package home
 import scalatags.Text.all.*
 
 import Homepage.*
-import model.DocPage
+import model.Doc
 
 def bio(
-    me: DocPage[FrontMatter.About],
+    me: Doc[FrontMatter.About],
     hideable: Boolean,
     collapsable: Boolean
 )(using

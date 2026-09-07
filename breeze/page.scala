@@ -3,7 +3,7 @@ package breeze
 import scalatags.Text.all.*
 
 import model.ctx
-import model.AnyDocCollection
+import model.ContentNode
 import Breeze.*
 
 object page:
@@ -52,14 +52,13 @@ object page:
 
   final case class NavBar(brand: String, links: Seq[NavLink])
 
-  private def siteNav(col: AnyDocCollection)(using Context) = NavBar(
+  private def siteNav(col: ContentNode)(using Context) = NavBar(
     brand = s"$whoAmI",
     links = ctx.extra.nav
-      .filter(_.willRender)
       .map(c =>
         NavLink(
-          isActive = c.collName == col.collName,
-          Link(s"/${c.collName}/", c.collName.capitalize)
+          isActive = c.url == col.url,
+          Link(c.url, c.outputPath.last.capitalize)
         )
       )
       .toIndexedSeq
@@ -70,8 +69,8 @@ object page:
   def wrap(using
       Context
   )(
-      page: DocPageOf[FrontMatter.BasePage],
-      col: AnyDocCollection,
+      page: DocOf[FrontMatter.BasePage],
+      col: ContentNode,
       title: String
   )(
       pageContent: scalatags.Text.Modifier*

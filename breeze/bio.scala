@@ -5,7 +5,7 @@ import scalatags.Text.all.*
 import Breeze.*
 
 def bio(
-    me: DocPageOf[FrontMatter.About],
+    me: DocOf[FrontMatter.About],
     hideable: Boolean,
     collapsable: Boolean
 )(using

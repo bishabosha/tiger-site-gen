@@ -1,0 +1,3 @@
+@font-face{font-family:Source Sans;src:url(assets/source-sans-pro-regular.woff)}
+body{font:21px/1.55 Source Sans,Arial,sans-serif;color:#19242a;background:#f5f2eb;max-width:1000px;margin:65px auto;padding:0 30px}
+h1{font-size:46px;line-height:1.1}h2{font-size:31px;line-height:1.2}a{color:#b22531}article{border-top:1px solid #c9c8c0;padding:32px 0}.time{color:#58626a;font-size:18px}nav{columns:2;line-height:1.8;margin:35px 0}nav a{display:block;font-size:18px}p{margin:16px 0}.anchor-link{display:none}@media(max-width:650px){nav{columns:1}}@media print{nav{display:none}article{break-inside:avoid}}
