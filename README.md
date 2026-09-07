@@ -3,6 +3,46 @@
 A static site generator written in Scala, with typed content trees, composable
 themes, and incremental builds.
 
+## Modules and versions
+
+The Mill build is pinned by `.mill-version`; `version` is the shared artifact
+version (currently `0.1.0-SNAPSHOT`). All published artifacts use organization
+`io.github.bishabosha` and Scala 3's `_3` suffix.
+
+| Mill module | Artifact | Module dependencies |
+| --- | --- | --- |
+| `core` | `tiger-site-gen-core` | — |
+| `revealTheme` | `tiger-site-gen-reveal` | core |
+| `breeze` | `tiger-site-gen-breeze` | core |
+| `breezeSite` | `tiger-site-gen-breeze-site` | breeze |
+| `home` | `tiger-site-gen-home` | core |
+| `examples` | Not published | Reveal, BreezeSite, Homepage |
+
+Sources live in each module's `src/`; integration tests live in
+`examples/test/src/`, and Reveal asset tests in `revealTheme/test/src/`.
+Open the repository in Metals, import Mill, and compile/run tests there.
+
+After verification, publish the core and Reveal jars to the local Ivy repository:
+
+```sh
+./mill core.publishLocal --doc false
+./mill revealTheme.publishLocal --doc false
+```
+
+`publishLocal` includes sources and dependency metadata. Omit `--doc false` to
+also generate Scaladoc. Update `version` for a new release; keep the consumer's
+pinned version in sync. Snapshot versions are for local development.
+
+A Scala CLI consumer uses:
+
+```scala
+//> using scala "3.8.3"
+//> using options -experimental -preview
+//> using repository ivy2local
+//> using dep "io.github.bishabosha::tiger-site-gen-core:0.1.0-SNAPSHOT"
+//> using dep "io.github.bishabosha::tiger-site-gen-reveal:0.1.0-SNAPSHOT"
+```
+
 ## Content model
 
 ```scala
@@ -36,10 +76,10 @@ Conflicting output routes are rejected before pages are written.
 Their sources remain in `_docs/` and `_home/`. The migrated examples preserve
 their public URLs.
 
-Run the entry points in `makeSite.scala` from an IDE with Metals:
+Run the entry points in `examples/src/example/makeSite.scala` from an IDE with Metals:
 
-- `example.makeSite` builds `_docs/` into `out/`.
-- `example.makeHome` builds `_home/` into `out_home/`.
+- `example.makeSite` builds `_docs/` into `dist/breeze/`.
+- `example.makeHome` builds `_home/` into `dist/home/`.
 - `example.watchSite` watches and rebuilds the Breeze site.
 
 The simulator source is now `_docs/match-type-simulator/index.md`; its raw HTML
@@ -47,8 +87,8 @@ layout and `/match-type-simulator/` URL are unchanged.
 
 ## Reusable Reveal theme
 
-`revealTheme/` contains `revealTheme.RevealTheme`, Scala layouts, slide validation, timing
-manifest, and browser styles. `public/` contains generic player assets, fonts,
+`revealTheme/src/revealTheme/` contains `revealTheme.RevealTheme`, Scala layouts, slide validation, timing
+manifest, and browser styles. `revealTheme/resources/revealTheme/` contains generic player assets, fonts,
 slide fitting, fullscreen controls, and an optional PDF viewer.
 There is no presentation-specific content or Node preview server.
 
@@ -56,9 +96,31 @@ Install browser dependencies with `npm ci` (Node 22.13 or newer).
 `package.json` is only an asset dependency manifest; it contains no server.
 Reveal installs its pinned assets through the `afterRender` hook.
 
+The jar bundles Tiger's player code, CSS and licensed fonts. It does **not**
+include Reveal.js or PDF.js. The consumer owns those packages and their versions.
+`RevealAssets.fromNpm` looks in the current `SiteRoot`'s `node_modules`; optional
+`theme/` and `public/` directories overlay bundled assets file by file.
+This works from a published jar without a checkout of the theme sources.
+
+Supply a resolver to locate packages elsewhere (including per-mount locations):
+
+```scala
+val presentation = RevealTheme.mount[SiteMap](_.presentation, assets = root =>
+  RevealAssets(
+    revealJs = root.root / "browser-packages" / "reveal.js",
+    pdfJs = root.root / "browser-packages" / "pdfjs-dist",
+    publicDirectory = Some(root.root / "public")
+  ))
+```
+
+The resolver runs in the normal `afterRender` flow with the host's `SiteRoot`,
+including embedded-only mounts. Direct use can configure
+`new RevealTheme(assetSources = resolver)`. Output asset URLs still derive from
+the selected collection, independently of package locations on disk.
+
 A deck is a directory containing an index document, a speaker-notes document,
 and a slides collection. See `examples/embedded/content/presentations/` for two
-generic decks in the shared `examples/mysite/MySite.scala` host example.
+generic decks in the shared `examples/src/mysite/MySite.scala` host example.
 
 ```scala
 type SiteMap = (presentation: RevealTheme.Deck)

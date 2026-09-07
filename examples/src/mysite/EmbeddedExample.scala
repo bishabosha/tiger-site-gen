@@ -11,7 +11,7 @@ import model.{Context, SiteRoot}
   buildHostExample(EmbeddedOnlySite, "embedded-only-example")
 
 private def buildHostExample(theme: ExampleSite, output: String): Unit =
-  val project = SiteRoot.here.root / os.up / os.up
+  val project = example.ExamplePaths.root
   given SiteRoot = SiteRoot(project)
   val source = project / "examples" / "embedded" / "content"
   val dest = project / "dist" / output

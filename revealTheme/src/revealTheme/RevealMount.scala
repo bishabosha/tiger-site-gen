@@ -8,9 +8,11 @@ import model.SiteMapMeta.DirectoryData
 
 /** A deck mounted under host-owned collection names and URLs. */
 final class RevealMount[HostMap <: NamedTuple.AnyNamedTuple](
-    collections: Site[HostMap] => RevealTheme.Deck
+    collections: Site[HostMap] => RevealTheme.Deck,
+    assets: RevealAssets.Resolver = RevealAssets.fromNpm
 ):
-  private val mounted = new ThemeMount[HostMap, RevealTheme.type](RevealTheme)(site =>
+  private val theme = new RevealTheme(assets)
+  private val mounted = new ThemeMount[HostMap, RevealTheme](theme)(site =>
     Site.project(site, (deck = collections(site)))
   )
 

@@ -12,11 +12,14 @@ case class SlideMeta(id: String, seconds: Int, layout: String)
 case class NotesMeta(title: String) derives scalanotation.Reader
 
 /** Reveal layouts expressed through Tiger's existing Markdown template system. */
-object RevealTheme extends model.Theme:
+object RevealTheme extends RevealTheme(RevealAssets.fromNpm)
+
+class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm) extends model.Theme:
   def mount[HostMap <: NamedTuple.AnyNamedTuple](
-      collections: model.Site[HostMap] => Deck
+      collections: model.Site[HostMap] => Deck,
+      assets: RevealAssets.Resolver = assetSources
   ): RevealMount[HostMap] =
-    new RevealMount(collections)
+    new RevealMount(collections, assets)
 
   val metadata: model.Theme.Metadata = new:
     val name = "Reveal"
@@ -62,4 +65,4 @@ object RevealTheme extends model.Theme:
   def extras(using SiteContext): Record[Extra] = Record((slides = Slides.render()))
 
   override def afterRender(outputRoot: os.Path)(using Context): Unit =
-    DeckOutput.write(outputRoot)
+    DeckOutput.write(outputRoot, assetSources(model.ctx.siteRoot))

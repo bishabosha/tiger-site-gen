@@ -1,6 +1,6 @@
 # Mounting Reveal inside another theme
 
-`examples/mysite/MySite.scala` is a complete host with an `articles` collection and two
+`examples/src/mysite/MySite.scala` is a complete host with an `articles` collection and two
 independent presentations. Neither the order nor the names of the host's
 collections need to match Reveal's schema.
 
@@ -195,7 +195,7 @@ Visit `/articles/presentations.html`, `/presentations/conference/`, or
 same sources and mounts. Serve that directory as the web root to see the articles
 with embedded decks and no standalone presentation or notes pages.
 `EmbeddedOnlySite` and `MySite` share the `ExampleSite` implementation in
-`examples/mysite/MySite.scala`; the difference is whether it registers the deck layouts.
+`examples/src/mysite/MySite.scala`; the difference is whether it registers the deck layouts.
 
 The MUnit suite `revealTheme.MountChecks` can be run through Metals. It covers typed
 selectors, mount isolation, projected source identity, standalone and article

@@ -1,4 +1,3 @@
-//> using test.dep org.scalameta::munit:1.3.3
 package revealTheme
 
 import model.{Context, SiteRoot}
@@ -7,13 +6,13 @@ import mysite.MySite
 import scala.compiletime.testing.typeCheckErrors
 
 class MountChecks extends munit.FunSuite:
-  private val project = SiteRoot.here.root / os.up
+  private val project = example.ExamplePaths.root
 
   private def fixture(body: os.Path => Unit): Unit =
     val root = os.temp.dir(prefix = "reveal-mount-")
     try
       os.copy(project / "examples" / "embedded" / "content", root / "content")
-      for directory <- Seq("public", "revealTheme", "node_modules") do
+      for directory <- Seq("node_modules") do
         os.symlink(root / directory, project / directory)
       body(root)
     finally os.remove.all(root)
@@ -394,6 +393,33 @@ class MountChecks extends munit.FunSuite:
         assert(os.read(output / "index.html").contains(s"/presentations/$collection/deck.js"))
         assert(os.read(output / "speaker-notes.html").contains(s"/presentations/$collection/notes.css"))
         assert(os.isFile(output / "vendor" / "reveal" / "dist" / "reveal.js"))
+  }
+
+  test("mounted hooks resolve third-party packages outside the host site") {
+    fixture { root =>
+      given SiteRoot = SiteRoot(root)
+      os.remove(root / "node_modules")
+      val seen = scala.collection.mutable.ArrayBuffer.empty[os.Path]
+      val resolve: RevealAssets.Resolver = siteRoot =>
+        seen += siteRoot.root
+        RevealAssets(
+          project / "node_modules" / "reveal.js",
+          project / "node_modules" / "pdfjs-dist"
+        )
+      val theme = new mysite.ExampleSite(serveDeckPages = false, assets = resolve)
+      val context = Context.fromTheme(root / "content", theme)
+      paths.renderSite(root / "dist", theme, os.walk(root / "content").filter(os.isFile).toSet)(using context, summon[SiteRoot])
+      assertEquals(seen.toList, List(root, root))
+      for collection <- Seq("conference", "workshop") do
+        val output = root / "dist" / "presentations" / collection
+        assert(os.isFile(output / "vendor" / "reveal" / "dist" / "reveal.js"))
+        assert(os.isFile(output / "vendor" / "pdfjs" / "pdf.mjs"))
+        assert(os.isFile(output / "theme.css"))
+        assert(os.isFile(output / "deck.json"))
+        assert(!os.exists(output / "index.html"))
+      paths.renderSite(root / "dist", theme, Set.empty)(using context, summon[SiteRoot])
+      assertEquals(seen.size, 4)
+    }
   }
 
   test("embedded-only hosts serve collection assets without standalone pages") {

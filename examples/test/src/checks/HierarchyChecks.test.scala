@@ -1,4 +1,3 @@
-//> using test.dep org.scalameta::munit:1.3.3
 package revealTheme
 
 import model.{Context, Doc, Docs, VarArgDocs, Directory, Layout, Record, SiteRoot, ctx}

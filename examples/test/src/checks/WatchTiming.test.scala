@@ -1,4 +1,3 @@
-//> using test.dep org.scalameta::munit:1.3.3
 package revealTheme
 
 import model.{Context, SiteRoot}
@@ -8,14 +7,14 @@ import java.util.concurrent.atomic.AtomicLong
 
 class WatchTiming extends munit.FunSuite:
   test("measure save-to-watcher and watcher-to-output latency") {
-    val project = SiteRoot.here.root / os.up
+    val project = example.ExamplePaths.root
     val root = os.Path(os.temp.dir(prefix = "deck-watch-timing-").toNIO.toRealPath())
     given SiteRoot = SiteRoot(root)
     val session = new model.BuildSession
     var watcher: Option[AutoCloseable] = None
     try
       os.copy(project / "examples" / "embedded" / "content", root / "content")
-      for directory <- Seq("public", "revealTheme", "node_modules") do
+      for directory <- Seq("node_modules") do
         os.symlink(root / directory, project / directory)
       val source = root / "content" / "presentations" / "conference" / "slides" / "010 - opening.md"
       def build(): Unit =

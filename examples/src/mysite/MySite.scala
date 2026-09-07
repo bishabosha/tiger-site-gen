@@ -2,7 +2,7 @@ package mysite
 
 /* DEMO SITE for testing embedding of presentations within articles */
 
-import revealTheme.RevealTheme
+import revealTheme.{RevealTheme, RevealAssets}
 import model.{Layout, Record, TemplateFunction, TemplateFunctions, ctx}
 import Record.++
 import model.SiteMapSchema.auto.given
@@ -14,7 +14,7 @@ type ArticleMeta = model.Dictionary {
 }
 
 /** The host owns naming, root placement, assets and the lifetime of prepared mounts. */
-class ExampleSite(serveDeckPages: Boolean) extends model.DictionaryTheme:
+class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = RevealAssets.fromNpm) extends model.DictionaryTheme:
   val metadata: model.Theme.Metadata = new:
     val name = "A website with articles and two presentations"
 
@@ -28,8 +28,8 @@ class ExampleSite(serveDeckPages: Boolean) extends model.DictionaryTheme:
       presentations: model.Directory[(conference: RevealTheme.Deck, workshop: RevealTheme.Deck)]
   )
 
-  val conference = RevealTheme.mount[SiteMap](_.presentations.conference)
-  val workshop = RevealTheme.mount[SiteMap](_.presentations.workshop)
+  val conference = RevealTheme.mount[SiteMap](_.presentations.conference, assets)
+  val workshop = RevealTheme.mount[SiteMap](_.presentations.workshop, assets)
 
   type Extra = (conference: conference.Prepared, workshop: workshop.Prepared)
   def extras(using SiteContext): Record[Extra] =

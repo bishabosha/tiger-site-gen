@@ -1,11 +1,10 @@
-//> using test.dep org.scalameta::munit:1.3.3
 package checks
 
 import model.{Context, SiteRoot}
 import io.util.paths
 
 class ExistingThemes extends munit.FunSuite:
-  private val project = SiteRoot.here.root / os.up
+  private val project = example.ExamplePaths.root
 
   test("Breeze keeps existing article, project and about URLs") {
     given SiteRoot = SiteRoot(project)

@@ -4,9 +4,9 @@ import model.ctx
 
 /** Reveal's output hook, shared by direct themes and every mounted presentation. */
 private[revealTheme] object DeckOutput:
-  def write(outputRoot: os.Path)(using RevealTheme.Context): Unit =
+  def write(outputRoot: os.Path, assets: RevealAssets)(using RevealTheme.Context): Unit =
     val dest = outputRoot / ctx.site.deck.outputPath
-    DeckAssets.install(ctx.siteRoot.root, dest)
+    DeckAssets.install(assets, dest)
 
     val meta = ctx.site.deck.index.frontMatter
     val slides = ctx.extra.slides.read()

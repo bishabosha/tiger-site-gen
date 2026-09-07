@@ -7,7 +7,7 @@ import mysite.MySite
 
 /** Exercise the authoring contract through Tiger, including a changed slide count. */
 @main def verifyAuthoring(): Unit =
-  val source = SiteRoot.here.root / os.up
+  val source = example.ExamplePaths.root
   val root = os.temp.dir(prefix = "reveal-authoring-")
   def expectFailure(label: String)(operation: => Unit): Unit =
     val error = try
@@ -33,7 +33,6 @@ import mysite.MySite
 
   try
     os.symlink(root / "node_modules", source / "node_modules")
-    os.copy(source / "revealTheme", root / "revealTheme")
     os.makeDir.all(root / "public")
     os.copy(source / "examples" / "embedded" / "content", root / "content")
     val content = root / "content" / "presentations" / "conference" / "slides"

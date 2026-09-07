@@ -50,10 +50,15 @@ object Cache:
     catch case NonFatal(_) => empty
 
 object sanatise:
-  case class FileVersion(size: Long, modified: java.nio.file.attribute.FileTime,
-      created: java.nio.file.attribute.FileTime, fileKey: Any)
+  case class FileVersion(
+      size: Long,
+      modified: java.nio.file.attribute.FileTime,
+      created: java.nio.file.attribute.FileTime,
+      fileKey: Any
+  )
   def fileVersion(path: os.Path): FileVersion =
-    val stat = java.nio.file.Files.readAttributes(path.toNIO, classOf[java.nio.file.attribute.BasicFileAttributes])
+    val stat = java.nio.file.Files
+      .readAttributes(path.toNIO, classOf[java.nio.file.attribute.BasicFileAttributes])
     FileVersion(stat.size, stat.lastModifiedTime, stat.creationTime, stat.fileKey)
 
   private val regex = raw"[:/()!?&*^$$#@,']".r
@@ -123,19 +128,19 @@ object paths:
   )(using
       model.SiteRoot
   ): Unit =
-    val dest = curr / out
+    val dest = os.Path(out, curr)
     val cachePath = dest / ".cache"
     val cache =
       if !ignoreCache then Cache.readFrom(cachePath)
       else Cache.empty
 
-    val allFiles = os.walk(curr / src).filter(os.isFile)
+    val allFiles = os.walk(os.Path(src, curr)).filter(os.isFile)
     val hashes = session.cache(fileHashes)
     def sourceHash(path: os.Path): String =
       val version = sanatise.fileVersion(path)
       hashes.get(path) match
         case Some((cachedVersion, hash)) if cachedVersion == version => hash
-        case _ =>
+        case _                                                       =>
           val hash = sanatise.md5Hashed(path)
           hashes(path) = (version, hash)
           hash
@@ -156,9 +161,8 @@ object paths:
     // Determine which doc pages depend on any changed inputs (docs or static assets)
     // A directory dependency represents collection membership, including new
     // and deleted sources that cannot be present in the old per-file deps.
-    val changedAbsPaths: Set[String] = (changed ++ deleted).flatMap(p =>
-      Seq(p.toString, (p / os.up).toString)
-    ).toSet
+    val changedAbsPaths: Set[String] =
+      (changed ++ deleted).flatMap(p => Seq(p.toString, (p / os.up).toString)).toSet
 
     val dependentDocs: Set[os.Path] =
       cache.deps.collect {
@@ -202,7 +206,10 @@ object paths:
   )(using model.SiteRoot): model.Site[theme.SiteMap] =
     val seenSources = mutable.Set.empty[os.Path]
     def readDocument[A: scalanotation.Reader](
-        index: Int, name: String, path: os.Path, output: os.RelPath
+        index: Int,
+        name: String,
+        path: os.Path,
+        output: os.RelPath
     ): model.Doc[A] =
       seenSources += path
       md.cached[A](index, name, path, output, theme, session)
@@ -221,8 +228,10 @@ object paths:
     ): model.Site[T] =
       require(os.isDir(directory), s"Expected content directory: $directory")
       schema.entries.keys.foreach { name =>
-        require(name.nonEmpty && name != "." && name != ".." && !name.exists(c => c == '/' || c == '\\'),
-          s"Invalid content field name: $name")
+        require(
+          name.nonEmpty && name != "." && name != ".." && !name.exists(c => c == '/' || c == '\\'),
+          s"Invalid content field name: $name"
+        )
       }
       lazy val numberedSiblings = os.list(directory).filter(os.isFile).flatMap(numberedDocument)
       // Resolve all singleton sources before collecting the remaining documents.
@@ -232,9 +241,14 @@ object paths:
           val source =
             if spec.isIndexed then
               val matches = numberedSiblings.filter(_._2 == name).map(_._3)
-              require(matches.nonEmpty, s"Expected indexed singleton '<number> - $name.md' in $directory")
-              require(matches.size == 1,
-                s"Multiple indexed singleton documents for '$name' in $directory: ${matches.mkString(", ")}")
+              require(
+                matches.nonEmpty,
+                s"Expected indexed singleton '<number> - $name.md' in $directory"
+              )
+              require(
+                matches.size == 1,
+                s"Multiple indexed singleton documents for '$name' in $directory: ${matches.mkString(", ")}"
+              )
               matches.head
             else directory / s"$name.md"
           require(os.isFile(source), s"Expected singleton document: $source")
@@ -253,11 +267,14 @@ object paths:
             val source = if sharesParent then directory else directory / name
             val destination = if sharesParent then output else output / name
             require(os.isDir(source), s"Expected document collection: $source")
-            val numbered = os.list(source)
-              .filter(p => os.isFile(p) && p.ext == "md" && !siblingDocuments.contains(p)).map { p =>
-              numberedDocument(p).getOrElse(
-                throw IllegalArgumentException(s"Expected '<number> - <name>.md': $p"))
-            }
+            val numbered = os
+              .list(source)
+              .filter(p => os.isFile(p) && p.ext == "md" && !siblingDocuments.contains(p))
+              .map { p =>
+                numberedDocument(p).getOrElse(
+                  throw IllegalArgumentException(s"Expected '<number> - <name>.md': $p")
+                )
+              }
             val ordered = numbered.sortBy(x => (-x._1.toLong, x._2))
             val pages = ordered.zipWithIndex.map { case ((_, slug, path), index) =>
               readDocument[a](index, slug, path, destination / sanatise.mdNameToHtml(slug))
@@ -265,13 +282,20 @@ object paths:
             val routes = pages.map(p => sanatise.mdNameToHtml(p.name))
             require(routes.distinct.size == routes.size, s"Duplicate document routes in $source")
             docs match
-              case _: model.SiteMapSchema.VarArgDocsSpec[a] => model.VarArgDocs(source, destination, pages)
+              case _: model.SiteMapSchema.VarArgDocsSpec[a] =>
+                model.VarArgDocs(source, destination, pages)
               case _: model.SiteMapSchema.DocsSpec[a] => model.Docs(source, destination, pages)
           case group: model.SiteMapSchema.DirectorySpec[t] =>
             val source = directory / name
-            val childrenMeta = metadata._query(name)
-              .asInstanceOf[model.SiteMapMeta.DirectoryData[theme.Context, t]].children
-            model.Directory(source, output / name, readNodes(source, output / name, group.schema, childrenMeta))
+            val childrenMeta = metadata
+              ._query(name)
+              .asInstanceOf[model.SiteMapMeta.DirectoryData[theme.Context, t]]
+              .children
+            model.Directory(
+              source,
+              output / name,
+              readNodes(source, output / name, group.schema, childrenMeta)
+            )
         name -> node
       }
       model.Site.read(None, None, nodes)
@@ -316,7 +340,11 @@ object paths:
         jobs += (() =>
           if changed.contains(page.path) || !os.isFile(dest / output) then
             val (rendered, usedDeps) = Templates.withDependencyCollection { layout.run(page) }
-            os.write.over(dest / output, scalatags.Text.all.doctype("html")(rendered), createFolders = true)
+            os.write.over(
+              dest / output,
+              scalatags.Text.all.doctype("html")(rendered),
+              createFolders = true
+            )
             deps(source) = selectorDeps ++ usedDeps
         )
       }
@@ -331,25 +359,34 @@ object paths:
           case (single: model.Doc[a], spec: model.SiteMapMeta.DocData[theme.Context, ?]) =>
             val typed = spec.asInstanceOf[model.SiteMapMeta.DocData[theme.Context, a]]
             document(single, single.outputPath, single.url, typed.optLayout, typed.isRoot)
-          case (many: model.DocumentCollection[a], spec: model.SiteMapMeta.DocsData[theme.Context, ?]) =>
+          case (
+                many: model.DocumentCollection[a],
+                spec: model.SiteMapMeta.DocsData[theme.Context, ?]
+              ) =>
             val typed = spec.asInstanceOf[model.SiteMapMeta.DocsData[theme.Context, a]]
             many.foreach { page =>
               document(page, page.outputPath, page.url, typed.optLayout, false)
             }
-          case (group: model.Directory[t], spec: model.SiteMapMeta.DirectoryData[theme.Context, ?]) =>
+          case (
+                group: model.Directory[t],
+                spec: model.SiteMapMeta.DirectoryData[theme.Context, ?]
+              ) =>
             visit(group.children, spec.children.asInstanceOf[model.SiteMapMeta[theme.Context, t]])
           case _ => throw IllegalArgumentException(s"Metadata does not match content node: $name")
       }
 
     visit(ctx.site, theme.siteMapMeta)
     require(roots.size <= 1, "More than one root document")
-    require(roots.headOption.forall(_ == "/") || !routes.contains("index.html"),
-      "Root redirect would overwrite index.html")
+    require(
+      roots.headOption.forall(_ == "/") || !routes.contains("index.html"),
+      "Root redirect would overwrite index.html"
+    )
     os.makeDir.all(dest)
     // Persist exact routes so deleted nested sources and removed layouts clean up correctly.
     val outputManifest = dest / ".outputs.json"
     val previous =
-      if os.isFile(outputManifest) then upickle.default.read[Map[String, String]](os.read(outputManifest))
+      if os.isFile(outputManifest) then
+        upickle.default.read[Map[String, String]](os.read(outputManifest))
       else Map.empty[String, String]
     val currentRoutes = outputs.values.toSet ++ roots.headOption.map(_ => "index.html")
     (previous.values.toSet -- currentRoutes).foreach { route =>
@@ -382,7 +419,8 @@ object paths:
       )
 
     model.Context.afterRender(theme, dest)
-    val tracked = outputs.toMap ++ roots.headOption.filter(_ != "/").map(_ => "@root" -> "index.html")
+    val tracked =
+      outputs.toMap ++ roots.headOption.filter(_ != "/").map(_ => "@root" -> "index.html")
     os.write.over(outputManifest, upickle.default.write(tracked))
     deps.toMap
   }
@@ -527,23 +565,34 @@ object md:
   private case class CachedSource(version: sanatise.FileVersion, document: model.Doc[?])
   private val sources = new model.BuildSession.Cache[SourceKey, CachedSource]
 
-  private[util] def pruneSources(theme: model.Theme, root: os.Path, live: Set[os.Path],
-      session: model.BuildSession): Unit =
+  private[util] def pruneSources(
+      theme: model.Theme,
+      root: os.Path,
+      live: Set[os.Path],
+      session: model.BuildSession
+  ): Unit =
     val cache = session.cache(sources)
-    cache.keys.filter(key => (key.theme eq theme) && key.path.startsWith(root) && !live(key.path))
-      .toVector.foreach(cache.remove)
+    cache.keys
+      .filter(key => (key.theme eq theme) && key.path.startsWith(root) && !live(key.path))
+      .toVector
+      .foreach(cache.remove)
 
   /** Stat unchanged inputs without opening/decoding them again. Publish only successful parses. */
   def cached[T: scalanotation.Reader](
-      index: Int, name: String, path: os.Path, outputPath: os.RelPath,
-      theme: model.Theme, session: model.BuildSession
+      index: Int,
+      name: String,
+      path: os.Path,
+      outputPath: os.RelPath,
+      theme: model.Theme,
+      session: model.BuildSession
   ): model.Doc[T] =
     val version = sanatise.fileVersion(path)
     val key = SourceKey(theme, summon[scalanotation.Reader[T]], path)
     val cache = session.cache(sources)
     cache.get(key) match
-      case Some(entry) if entry.version == version &&
-          entry.document.name == name && entry.document.outputPath == outputPath =>
+      case Some(entry)
+          if entry.version == version &&
+            entry.document.name == name && entry.document.outputPath == outputPath =>
         entry.document.asInstanceOf[model.Doc[T]].atIndex(index)
       case _ =>
         val document = render[T](index, name, path, outputPath, theme)
