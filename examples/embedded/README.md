@@ -241,3 +241,14 @@ and the lookup always uses the current host context's value.
 This uses `Context.ExtraValue[C, A]`, derived through `Record.SelectByType`.
 No additional runtime registry or preparation is involved. Explicit
 `index` and `notes` adapters remain available when a custom selector is needed.
+
+## Aligning column content
+
+Columns are vertically centered by default. Use `{{columns top}}` to align all
+columns in that row to the top. To top-align just one column, wrap its contents
+in `{{stack top}}` … `{{end-stack}}` inside a columns group. Other columns retain
+their normal alignment.
+
+For several aligned rows grouped centrally, put the row-by-row `{{columns top}}`
+groups inside one outer `{{stack}}`. The outer stack centers the group with
+compact spacing, while each row aligns its cells at their top edges.

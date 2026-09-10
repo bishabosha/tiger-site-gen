@@ -45,6 +45,9 @@ body.reveal-standalone,.reveal-viewport { background:var(--paper); }
 /* Two arrangements. A slide is already a stack; nest these in either direction. */
 .reveal :is(.slide-body,.stack) { display:flex; flex-direction:column; gap:.65em; }
 .reveal .columns { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); align-items:center; gap:1em; }
+/* Align a whole row, or an individual column, to its top edge. */
+.reveal .columns.top { align-items:start; }
+.reveal .columns>.top { align-self:start; }
 .reveal :is(.stack,.columns,.slide-body)>* { min-width:0; margin:0; }
 .reveal .columns.divider>*+* {
   border-inline-start:1px solid var(--rule);
