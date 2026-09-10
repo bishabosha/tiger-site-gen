@@ -8,7 +8,9 @@ import NamedTuple.AnyNamedTuple
   */
 final class ThemeMount[HostMap <: AnyNamedTuple, T <: Theme](val theme: T)(
     project: Site[HostMap] => Site[theme.SiteMap]
-):
+)(using mounts: Theme.Mounts = new Theme.Mounts):
+  mounts.register(theme)
+
   final class Prepared private[ThemeMount] (val context: theme.Context):
     def render[A](body: theme.Context ?=> A): A = body(using context)
 

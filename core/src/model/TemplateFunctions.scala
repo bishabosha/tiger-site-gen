@@ -25,6 +25,11 @@ class TemplateFunctions[T <: AnyNamedTuple] private[model] (
   inline def selectDynamic(name: String): Any =
     functions.selectDynamic(name)
 
+  private[model] def get(name: String): Option[TemplateFunction] =
+    val index = try Some(lookup(name))
+      catch case _: NoSuchElementException => None
+    index.map(i => functions(i).asInstanceOf[TemplateFunction])
+
   private def split(expr: String): (String, String) =
     expr.span(!_.isWhitespace) match
       case (name, args) => (name, args.trim)

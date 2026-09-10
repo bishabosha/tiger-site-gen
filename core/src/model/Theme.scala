@@ -4,6 +4,12 @@ import scala.language.experimental.modularity
 import Theme.Metadata
 
 object Theme:
+  /** A definition-time registry, separate from per-build Prepared contexts. */
+  final class Mounts:
+    private val themes = scala.collection.mutable.ArrayBuffer.empty[Theme]
+    private[model] def register(theme: Theme): Unit = themes += theme
+    def mountedThemes: Seq[Theme] = themes.toVector
+
   trait Metadata:
     val name: String
 
@@ -11,6 +17,30 @@ trait Theme:
   thisTheme =>
 
   val metadata: Metadata
+
+  /** Mount constructors inherit this registry from their enclosing host theme. */
+  protected given themeMounts: Theme.Mounts = new Theme.Mounts
+
+  /** Local templates take precedence, then mounts in declaration order.
+    * Override to expose mounts owned outside this theme definition.
+    */
+  def mountedThemes: Seq[Theme] = themeMounts.mountedThemes
+
+  private[model] final def defaultTemplate(name: String): Option[TemplateFunction] =
+    def find(theme: Theme, visited: Set[Theme]): Option[TemplateFunction] =
+      if visited.contains(theme) then None
+      else theme.templates.get(name).orElse {
+        theme.mountedThemes.iterator
+          .flatMap(mounted => find(mounted, visited + theme)).nextOption()
+      }
+    find(this, Set.empty)
+
+  /** Initial Markdown parsing runs before mounted contexts can be prepared. */
+  final def renderTemplateDefault(expr: String): String =
+    val (name, args) = expr.span(!_.isWhitespace)
+    defaultTemplate(name).getOrElse {
+      throw new Exception(s"Template function not found: `{{${expr}}}`")
+    }.renderDefault(args.trim)
 
   type Templates <: NamedTuple.AnyNamedTuple
   val templates: TemplateFunctions[Templates]

@@ -93,10 +93,13 @@ If a host publishes standalone pages, `embed(linkToStandalone = true)` adds a
 fallback link derived from the selected collection's `url`. There is no explicit
 deck URL to synchronize. Content asset resolution stays independent of that link.
 
-The host also composes `RevealTheme.templates` into its own templates, as shown
-in `MySite`. Tiger parses source Markdown using the host theme before mounts are
-prepared, so Reveal authoring markers such as `{{stack}}` must be available there.
-The projected context itself uses Reveal's template collection.
+Mounts created inside a theme automatically register with that host. Initial
+Markdown parsing discovers their template functions before any mount is prepared,
+so the host does not need to compose `RevealTheme.templates` into its dictionary.
+Local templates take precedence, followed by mounted themes in declaration order
+(including nested mounts). Rendering uses the prepared mount's own context and
+typed template dictionary. For mounts defined outside the host, override
+`mountedThemes` to expose their themes explicitly.
 
 ## Prepare once per build
 

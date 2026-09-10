@@ -4,7 +4,6 @@ package mysite
 
 import revealTheme.{RevealTheme, RevealAssets}
 import model.{Layout, Record, TemplateFunction, TemplateFunctions, ctx}
-import Record.++
 import model.SiteMapSchema.auto.given
 import scalatags.Text.all.*
 
@@ -18,10 +17,10 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
   val metadata: model.Theme.Metadata = new:
     val name = "A website with articles and two presentations"
 
-  type Templates = (date: TemplateFunction) ++ RevealTheme.Templates
+  type Templates = (date: TemplateFunction)
   val templates: TemplateFunctions[Templates] = TemplateFunctions(
     (date = TemplateFunction(_ => java.time.LocalDate.now.toString, _ => "today"))
-  ) ++ RevealTheme.templates
+  )
 
   type SiteMap = (
       articles: model.Directory[(index: DocOf[ArticleMeta], posts: VarArgDocsOf[ArticleMeta])],

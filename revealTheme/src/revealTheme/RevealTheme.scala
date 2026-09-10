@@ -18,8 +18,8 @@ class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm
   def mount[HostMap <: NamedTuple.AnyNamedTuple](
       collections: model.Site[HostMap] => Deck,
       assets: RevealAssets.Resolver = assetSources
-  ): RevealMount[HostMap] =
-    new RevealMount(collections, assets)
+  )(using mounts: model.Theme.Mounts = new model.Theme.Mounts): RevealMount[HostMap] =
+    new RevealMount(collections, assets)(using mounts)
 
   val metadata: model.Theme.Metadata = new:
     val name = "Reveal"

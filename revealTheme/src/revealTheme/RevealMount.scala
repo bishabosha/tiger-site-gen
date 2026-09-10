@@ -10,11 +10,11 @@ import model.SiteMapMeta.DirectoryData
 final class RevealMount[HostMap <: NamedTuple.AnyNamedTuple](
     collections: Site[HostMap] => RevealTheme.Deck,
     assets: RevealAssets.Resolver = RevealAssets.fromNpm
-):
+)(using mounts: model.Theme.Mounts = new model.Theme.Mounts):
   private val theme = new RevealTheme(assets)
   private val mounted = new ThemeMount[HostMap, RevealTheme](theme)(site =>
     Site.project(site, (deck = collections(site)))
-  )
+  )(using mounts)
 
   final class Prepared private[RevealMount] (private val value: mounted.Prepared):
     val context: RevealTheme.Context = value.context

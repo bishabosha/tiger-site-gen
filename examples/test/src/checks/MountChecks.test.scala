@@ -17,6 +17,78 @@ class MountChecks extends munit.FunSuite:
       body(root)
     finally os.remove.all(root)
 
+  test("mounted templates are discovered before preparation with an empty host dictionary") {
+    fixture { root =>
+      import model.SiteMapSchema.auto.given
+      given SiteRoot = SiteRoot(root)
+      object hostTheme extends model.Theme:
+        val metadata = MySite.metadata
+        type SiteMap = MySite.SiteMap
+        type Templates = NamedTuple.Empty
+        val templates = model.TemplateFunctions.Empty
+        val conference = RevealTheme.mount[SiteMap](_.presentations.conference)
+        val workshop = RevealTheme.mount[SiteMap](_.presentations.workshop)
+        type Extra = (conference: conference.Prepared, workshop: workshop.Prepared)
+        def extras(using SiteContext): model.Record[Extra] =
+          model.Record((conference = conference.prepare(), workshop = workshop.prepare()))
+        override val siteMapMeta = defaultSiteMeta.articles(_.index(_.indexed)).presentations(_
+          .conference(conference.installLayouts[Context])
+          .workshop(workshop.installLayouts[Context]))
+      assertEquals(hostTheme.mountedThemes.size, 2)
+      assertEquals(Templates.interpolateDefault("{{stack}}x{{end-stack}}", hostTheme),
+        "<div class=\"stack \">\nx</div>\n")
+      val context = Context.fromTheme(root / "content", hostTheme)
+      paths.renderSite(root / "dist", hostTheme, os.walk(root / "content").filter(os.isFile).toSet)(
+        using context, summon[SiteRoot])
+      for deck <- Seq("conference", "workshop") do
+        val page = os.read(root / "dist" / "presentations" / deck / "index.html")
+        assert(page.contains("class=\"stack \""))
+        assert(!page.contains("{{stack}}"))
+    }
+  }
+
+  test("generic mounts discover nested templates and respect local and declaration precedence") {
+    import model.{Record, TemplateFunction, TemplateFunctions, ThemeMount}
+    import model.SiteMapSchema.auto.given
+    class TestTheme(value: String) extends model.Theme:
+      val metadata: model.Theme.Metadata = new:
+        val name = value
+      type SiteMap = NamedTuple.Empty
+      type Templates = (marker: TemplateFunction)
+      val templates = TemplateFunctions((marker = TemplateFunction(_ => value, _ => value)))
+      type Extra = NamedTuple.Empty
+      def extras(using SiteContext): Record[Extra] = Record(NamedTuple.Empty)
+      def attach(child: model.Theme): Unit =
+        new ThemeMount[SiteMap, child.type](child)(_ =>
+          throw new AssertionError("Template discovery must not project or prepare a mount"))
+        ()
+    class EmptyTheme extends model.Theme:
+      val metadata: model.Theme.Metadata = new:
+        val name = "empty"
+      type SiteMap = NamedTuple.Empty
+      type Templates = NamedTuple.Empty
+      val templates = TemplateFunctions.Empty
+      type Extra = NamedTuple.Empty
+      def extras(using SiteContext): Record[Extra] = Record(NamedTuple.Empty)
+      def attach(child: model.Theme): Unit =
+        new ThemeMount[SiteMap, child.type](child)(_ =>
+          throw new AssertionError("Template discovery must not project or prepare a mount"))
+        ()
+    val host = new EmptyTheme
+    val nested = new EmptyTheme
+    nested.attach(new TestTheme("nested"))
+    host.attach(nested)
+    host.attach(new TestTheme("later"))
+    assertEquals(host.renderTemplateDefault("marker"), "nested")
+    val local = new TestTheme("local")
+    local.attach(host)
+    assertEquals(local.renderTemplateDefault("marker"), "local")
+    nested.attach(host) // Cycles must still terminate for a missing name.
+    val error = intercept[Exception](host.renderTemplateDefault("absent"))
+    assert(error.getMessage.contains("{{absent}}"))
+    assertEquals(new EmptyTheme().mountedThemes.size, 0)
+  }
+
   test("selectors reject absent names and incompatible metadata") {
     assertEquals(typeCheckErrors("""
       import revealTheme.*
@@ -69,6 +141,7 @@ class MountChecks extends munit.FunSuite:
         type SiteMap = MySite.SiteMap
         type Templates = MySite.Templates
         val templates = MySite.templates
+        override def mountedThemes = MySite.mountedThemes
         type Extra = (
           second: MySite.workshop.Prepared,
           label: String,
