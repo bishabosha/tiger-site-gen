@@ -93,6 +93,8 @@ class Directory[T <: NamedTuple.AnyNamedTuple](
 ) extends ContentNode, Selectable:
   type Fields = T
   def selectDynamic(name: String): ContentNode = children.selectDynamic(name)
+  def _select[Name <: String: ValueOf](using Name <:< Tuple.Union[NamedTuple.Names[Fields]])
+      : Record.FieldOf[Fields, Name] = children._select[Name]
   def url: String = if outputPath.segments.isEmpty then "/" else "/" + outputPath.toString + "/"
 
 sealed abstract class DocumentCollection[+D](

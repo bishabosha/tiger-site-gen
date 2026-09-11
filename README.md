@@ -97,6 +97,32 @@ From the repository root, the corresponding Mill entry points are:
 The simulator source is now `blog/_docs/match-type-simulator/index.md`; its raw HTML
 layout and `/match-type-simulator/` URL are unchanged.
 
+## Selecting a field by string type
+
+`Site`, `Directory`, `SiteMapMeta` and `SiteMapMeta.DirectoryData` expose
+`_select[Name]` for code whose field name is a type parameter:
+
+```scala
+trait DeckHost[DeckName <: String: ValueOf] extends model.Theme:
+  type SiteMap = NamedTuple.NamedTuple[
+    DeckName *: EmptyTuple, revealTheme.RevealTheme.Deck *: EmptyTuple]
+
+  def deck(site: model.Site[SiteMap]): revealTheme.RevealTheme.Deck =
+    site._select[DeckName]
+
+  override val siteMapMeta = defaultSiteMeta._select[DeckName] { deck =>
+    deck.index(_.setAsRoot)
+  }
+  // Supply metadata, templates and extras as usual.
+```
+
+The value comes from `ValueOf[Name]`; the result type is
+`Record.FieldOf[Fields, Name]`, computed through the named-tuple match types.
+On content this selects the precise node type. On metadata it selects the typed
+modifier function, so its callback receives the correct document, collection or
+directory metadata. A compile-time membership check rejects unknown field names.
+The existing literal dot syntax continues to work.
+
 ## Extending Breeze
 
 Breeze is a complete About/Articles theme. It owns the base content schemas,

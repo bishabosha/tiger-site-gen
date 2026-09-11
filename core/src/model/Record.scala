@@ -42,6 +42,10 @@ class Record[T <: AnyNamedTuple](
 }
 
 object Record:
+  /** The value associated with a field name, including an abstract string type. */
+  type FieldOf[T <: AnyNamedTuple, Name <: String] =
+    Tuple.Elem[DropNames[T], IndexOf[Name, Names[T], 0]]
+
   /** Select one statically known field by type, independently of its name. */
   trait SelectByType[T <: AnyNamedTuple, A]:
     def apply(record: Record[T]): A

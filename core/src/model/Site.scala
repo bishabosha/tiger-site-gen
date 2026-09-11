@@ -28,6 +28,11 @@ sealed trait SiteMapMeta[C <: Context, T <: AnyNamedTuple] extends Selectable:
   final def selectDynamic(name: String): (SiteMapMeta.Data[C] => SiteMapMeta.Data[C]) => SiteMapMeta[C, T] =
     _update(name)
 
+  /** Select a typed metadata modifier using a string type parameter. */
+  final def _select[Name <: String: ValueOf](using Name <:< Tuple.Union[NamedTuple.Names[Fields]])
+      : Record.FieldOf[Fields, Name] =
+    selectDynamic(valueOf[Name]).asInstanceOf[Record.FieldOf[Fields, Name]]
+
 object SiteMapMeta:
   type Of[C <: Context] = [T <: AnyNamedTuple] =>> SiteMapMeta[C, T]
   type MetaOf[C <: Context, T] <: Data[C] = T match
@@ -65,6 +70,10 @@ object SiteMapMeta:
     type Fields = NamedTuple.Map[T, [X] =>> (MetaOf[C, X] => MetaOf[C, X]) => DirectoryData[C, T]]
     def selectDynamic(name: String): (Data[C] => Data[C]) => DirectoryData[C, T] =
       f => DirectoryData(children._update(name)(f))
+
+    def _select[Name <: String: ValueOf](using Name <:< Tuple.Union[NamedTuple.Names[Fields]])
+        : Record.FieldOf[Fields, Name] =
+      selectDynamic(valueOf[Name]).asInstanceOf[Record.FieldOf[Fields, Name]]
 
   /** Layout-only modifiers preserve host root/indexed flags and unconfigured layouts. */
   final class LayoutInstallers[C <: Context, T <: AnyNamedTuple] private[model] (
@@ -185,6 +194,11 @@ final class Site[T <: AnyNamedTuple] private (
 ) extends Selectable:
   type Fields = T
   def selectDynamic(name: String): ContentNode = nodes(name)
+
+  /** Select the field's precise content-node type without requiring a literal name. */
+  def _select[Name <: String: ValueOf](using Name <:< Tuple.Union[NamedTuple.Names[Fields]])
+      : Record.FieldOf[Fields, Name] =
+    selectDynamic(valueOf[Name]).asInstanceOf[Record.FieldOf[Fields, Name]]
 
 object Site:
   /** Alias nodes without changing their physical paths or documents. */
