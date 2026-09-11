@@ -208,6 +208,70 @@ object Homepage extends model.EmptyExtras, model.EmptyTemplates:
   // Define metadata, SiteMap and layouts.
 ```
 
+## Markdown block templates
+
+`TemplateFunction` handles inline calls; `BlockTemplateFunction` handles calls
+with a Markdown body. They are separate interfaces. `TemplateFunctions` accepts
+either kind and retains each field's precise type, including after composition
+and inference. Using the wrong Markdown syntax reports an error during lookup.
+
+Register a block renderer in the same named-tuple dictionary as inline templates:
+
+```scala
+import model.{BlockTemplateFunction, TemplateBody, TemplateFunctions}
+import scalatags.Text.all.*
+
+def panel(title: String, body: TemplateBody): String =
+  tag("aside")(h3(title), raw(body.html)).render
+
+val templateDefs = parent.templates ++ TemplateFunctions((
+  panel = BlockTemplateFunction(panel, panel)
+))
+```
+
+Authors supply the arguments on the opening line and Markdown between the fences:
+
+```markdown
+:::panel Related ideas
+
+- **Collections**
+  - Flat representation
+  - Default `Seq`
+
+:::
+```
+
+`TemplateBody.children` exposes the parsed Flexmark nodes for renderers that
+interpret structure, such as mind maps or timelines. `render(node)`,
+`renderChildren(node)` and `html` use the document's configured Markdown
+extensions and reference links. They render HTML for inclusion in the template's
+output. Escape arguments as ordinary text, as the ScalaTags example does.
+
+The first function passed to `BlockTemplateFunction` receives the live `Context`;
+the second supports initial parsing before extras and mounted contexts exist.
+Composition, inferred schemas and default lookup through generic mounts work the
+same way as for inline templates. `md.renderDoc` renders against the live context;
+`md.parseDryRun` uses the default function. `md.renderRaw` remains inline-only for
+raw HTML documents.
+
+Blocks can nest: a standalone `:::` closes the innermost block. Nested templates
+render before their parents. Their original Markdown nodes remain available to
+extension visitors. Fragment rendering collects only the fragment's HTML, leaving
+document-level output, such as Admonition's SVG icons, to the final render.
+Fenced and indented code, raw HTML and HTML comments retain literal block syntax;
+unclosed blocks and unmatched closing fences report their line number. Inline
+`{{…}}` interpolation retains its existing behavior, including inside code fences.
+
+Markdown attributes inside a body retain their usual targets. Attributes attached
+to the template container (for example, a separate `{.wide #overview}` paragraph
+after its closing fence) decorate a `div` around its output. Without container
+attributes, no wrapper is added. Attributes written in the opening arguments are
+still interpreted by the template itself.
+
+GitLab `>>>` fences retain their existing rule: the next `>>>` closes the quote.
+Close any templates inside the quote before that marker; use ordinary `>` Markdown
+quotes when nesting quotes through templates.
+
 ## Extending Breeze
 
 Breeze is a complete About/Articles theme. It owns the base content schemas,

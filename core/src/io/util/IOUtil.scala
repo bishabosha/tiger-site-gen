@@ -446,6 +446,7 @@ object md:
   private val (parser, renderer) =
     val options = MutableDataSet()
     val exts = List(
+      BlockTemplates,
       AttributesExtension.create(),
       GitLabExtension.create(),
       AnchorLinkExtension.create(),
@@ -516,6 +517,8 @@ object md:
       // example of visitor for a node or nodes, just add VisitHandlers<> to the list
       // any node type not handled by the visitor will default to visiting its children
       val visitor = NodeVisitor(
+        // Template source can contain control headings that are not in its rendered output.
+        VisitHandler(classOf[BlockTemplates.TemplateBlock], _ => ()),
         VisitHandler(classOf[Text], visit(_)),
         VisitHandler(classOf[Paragraph], visit(_)),
         VisitHandler(classOf[Heading], visit(_))
@@ -554,12 +557,14 @@ object md:
   end ContentSampler
 
   def renderDoc(document: String)(using Context): String =
-    renderer.render(parser.parse(renderRaw(document)))
+    renderer.render(BlockTemplates.expand(parser.parse(renderRaw(document)),
+      (expression, body) => ctx.templates(expression, body)))
   def renderRaw(document: String)(using Context): String =
     Templates.interpolate(document)
 
   def parseDryRun(document: String, theme: model.Theme): Document =
-    parser.parse(Templates.interpolateDefault(document, theme))
+    BlockTemplates.expand(parser.parse(Templates.interpolateDefault(document, theme)),
+      (expression, body) => theme.renderTemplateDefault(expression, body))
 
   private case class SourceKey(theme: model.Theme, reader: scalanotation.Reader[?], path: os.Path)
   private case class CachedSource(version: sanatise.FileVersion, document: model.Doc[?])

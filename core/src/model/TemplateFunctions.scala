@@ -3,19 +3,6 @@ package model
 import NamedTuple.{AnyNamedTuple, NamedTuple}
 import scala.NamedTuple.Names
 
-trait TemplateFunction:
-  def render(args: String)(using Context): String
-  def renderDefault(args: String): String
-
-object TemplateFunction:
-  def apply(
-      renderFn: Context ?=> String => String,
-      defaultFn: String => String
-  ): TemplateFunction = new:
-    def render(args: String)(using ctx: Context): String =
-      renderFn(using ctx)(args)
-    def renderDefault(args: String): String = defaultFn(args)
-
 class TemplateFunctions[T <: AnyNamedTuple] private[model] (
     private val functions: Record[T]
 )(using lookup: Record.Lookup[T])
@@ -25,28 +12,30 @@ class TemplateFunctions[T <: AnyNamedTuple] private[model] (
   inline def selectDynamic(name: String): Any =
     functions.selectDynamic(name)
 
-  private[model] def get(name: String): Option[TemplateFunction] =
+  private[model] def get(name: String): Option[TemplateFunction | BlockTemplateFunction] =
     val index = try Some(lookup(name))
       catch case _: NoSuchElementException => None
-    index.map(i => functions(i).asInstanceOf[TemplateFunction])
+    index.map(i => functions(i).asInstanceOf[TemplateFunction | BlockTemplateFunction])
 
   private def split(expr: String): (String, String) =
     expr.span(!_.isWhitespace) match
       case (name, args) => (name, args.trim)
 
-  private def templateFunction(name: String, expr: String): TemplateFunction =
-    try functions(lookup(name)).asInstanceOf[TemplateFunction]
-    catch
-      case err =>
-        throw new Exception(s"Template function not found: `{{${expr}}}`", err)
-
   def apply(expr: String)(using Context): String =
     val (name, args) = split(expr)
-    templateFunction(name, expr).render(args)
+    TemplateFunctions.inlineFunction(expr, get(name)).render(args)
 
   def renderDefault(expr: String): String =
     val (name, args) = split(expr)
-    templateFunction(name, expr).renderDefault(args)
+    TemplateFunctions.inlineFunction(expr, get(name)).renderDefault(args)
+
+  def apply(expr: String, body: TemplateBody)(using Context): String =
+    val (name, args) = split(expr)
+    TemplateFunctions.blockFunction(expr, get(name)).render(args, body)
+
+  def renderDefault(expr: String, body: TemplateBody): String =
+    val (name, args) = split(expr)
+    TemplateFunctions.blockFunction(expr, get(name)).renderDefault(args, body)
 
   inline def ++[Additions <: AnyNamedTuple](
       additions: TemplateFunctions[Additions]
@@ -58,10 +47,29 @@ class TemplateFunctions[T <: AnyNamedTuple] private[model] (
     TemplateFunctions.fromRecord(functions ++ additions.functions)
 
 object TemplateFunctions:
+  /** Check the selected entry after lookup, preserving local-first name shadowing. */
+  private[model] def inlineFunction(
+      expression: String, entry: Option[TemplateFunction | BlockTemplateFunction]
+  ): TemplateFunction = entry match
+    case Some(function: TemplateFunction) => function
+    case Some(_: BlockTemplateFunction) =>
+      throw new IllegalArgumentException(s"Block template used inline: {{$expression}}; use :::$expression with a body and closing :::")
+    case None =>
+      throw new IllegalArgumentException(s"Template function not found: `{{$expression}}`")
+
+  private[model] def blockFunction(
+      expression: String, entry: Option[TemplateFunction | BlockTemplateFunction]
+  ): BlockTemplateFunction = entry match
+    case Some(function: BlockTemplateFunction) => function
+    case Some(_: TemplateFunction) =>
+      throw new IllegalArgumentException(s"Inline template used as a block: :::$expression; use {{$expression}}")
+    case None =>
+      throw new IllegalArgumentException(s"Block template not found: :::$expression")
+
   type IsAll[T] = [U <: Tuple] =>> Tuple.Union[U] <:< T
 
   inline def apply[N <: Tuple, V <: Tuple: IsAll[
-    TemplateFunction
+    TemplateFunction | BlockTemplateFunction
   ]](
       functions: NamedTuple[N, V]
   ): TemplateFunctions[NamedTuple[N, V]] =

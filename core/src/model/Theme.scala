@@ -32,8 +32,8 @@ trait Theme:
     */
   def mountedThemes: Seq[Theme] = themeMounts.mountedThemes
 
-  private[model] final def defaultTemplate(name: String): Option[TemplateFunction] =
-    def find(theme: Theme, visited: Set[Theme]): Option[TemplateFunction] =
+  private[model] final def defaultTemplate(name: String): Option[TemplateFunction | BlockTemplateFunction] =
+    def find(theme: Theme, visited: Set[Theme]): Option[TemplateFunction | BlockTemplateFunction] =
       if visited.contains(theme) then None
       else theme.templates.get(name).orElse {
         theme.mountedThemes.iterator
@@ -44,9 +44,12 @@ trait Theme:
   /** Initial Markdown parsing runs before mounted contexts can be prepared. */
   final def renderTemplateDefault(expr: String): String =
     val (name, args) = expr.span(!_.isWhitespace)
-    defaultTemplate(name).getOrElse {
-      throw new Exception(s"Template function not found: `{{${expr}}}`")
-    }.renderDefault(args.trim)
+    TemplateFunctions.inlineFunction(expr, defaultTemplate(name)).renderDefault(args.trim)
+
+  /** Resolve block templates through the same local-first mount lookup. */
+  final def renderTemplateDefault(expr: String, body: TemplateBody): String =
+    val (name, args) = expr.span(!_.isWhitespace)
+    TemplateFunctions.blockFunction(expr, defaultTemplate(name)).renderDefault(args.trim, body)
 
   type Templates <: NamedTuple.AnyNamedTuple
   def templates: TemplateFunctions[Templates]
