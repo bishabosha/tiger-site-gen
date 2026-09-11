@@ -50,6 +50,14 @@ class ExtendedThemeChecks extends munit.FunSuite:
     finally os.remove.all(root)
 
   test("record-composed templates survive a generic mount and inherited extras") {
+    summon[RevealTheme.Templates =:= (
+      stack: TemplateFunction, `end-stack`: TemplateFunction,
+      columns: TemplateFunction, `end-columns`: TemplateFunction, br: TemplateFunction
+    )]
+    summon[RevealTheme.Extra =:= (slides: Slides.Deck)]
+    val configured = new RevealTheme()
+    summon[configured.Templates =:= RevealTheme.Templates]
+    summon[configured.Extra =:= RevealTheme.Extra]
     fixture { root =>
       given SiteRoot = SiteRoot(root)
       val extension = new ExtendedReveal("extended")
@@ -73,6 +81,9 @@ class ExtendedThemeChecks extends munit.FunSuite:
       assert(slides.head.slide.render.contains("Value extended"))
       assert(slides.head.slide.render.contains("class=\"stack \""))
       assert(slides.head.notes.render.contains("Notes extended"))
+      val embedded = context.extra.presentation.render { DeckLayouts.embedded().render }
+      assert(embedded.contains("<reveal-deck"))
+      assert(embedded.contains("Value extended"))
       assert(mounted.site.deck eq context.site.deck)
       io.util.paths.renderSite(root / "dist", host, os.walk(root / "content").filter(os.isFile).toSet)(using context, summon[SiteRoot])
       assert(os.read(root / "dist" / "deck" / "index.html").contains("Value extended"))

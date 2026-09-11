@@ -1,6 +1,6 @@
 package revealTheme
 
-import model.{Record, TemplateFunction, TemplateFunctions}
+import model.{TemplateFunction, TemplateFunctions}
 import model.SiteMapSchema.auto.given
 
 case class DeckMeta(title: String, author: String, event: String, description: String)
@@ -14,13 +14,8 @@ case class NotesMeta(title: String) derives scalanotation.Reader
 /** Reveal layouts expressed through Tiger's existing Markdown template system. */
 object RevealTheme extends RevealTheme(RevealAssets.fromNpm)
 
-class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm) extends model.Theme:
-  def mount[HostMap <: NamedTuple.AnyNamedTuple](
-      collections: model.SiteProjection.Paths[HostMap, HostMap] => model.SiteProjection.Path[HostMap, Deck],
-      assets: RevealAssets.Resolver = assetSources
-  )(using mounts: model.Theme.Mounts = new model.Theme.Mounts): RevealMount[HostMap] =
-    new RevealMount(collections, assets)(using mounts)
-
+class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm)
+    extends model.InferredExtras, model.InferredTemplates:
   val metadata: model.Theme.Metadata = new:
     val name = "Reveal"
 
@@ -31,15 +26,7 @@ class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm
   private def template(render: String => String): TemplateFunction =
     TemplateFunction(render, render)
 
-  type Templates = (
-      stack: TemplateFunction,
-      `end-stack`: TemplateFunction,
-      columns: TemplateFunction,
-      `end-columns`: TemplateFunction,
-      br: TemplateFunction
-  )
-
-  val templates: TemplateFunctions[Templates] = TemplateFunctions(
+  val templateDefs = TemplateFunctions(
     (
       stack = template(args => s"<div class=\"stack ${classes(args)}\">\n"),
       `end-stack` = template(_ => "</div>\n"),
@@ -61,8 +48,9 @@ class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm
     .deck(_.index(_.setAsRoot.layoutAlways(DeckLayouts.index))
       .`speaker-notes`(_.layoutAlways(DeckLayouts.notes)))
 
-  type Extra = (slides: Slides.Deck)
-  def extras(using SiteContext): Record[Extra] = Record((slides = Slides.render()))
+  val extraDefs = defineExtras {
+    (slides = Slides.render())
+  }
 
   override def afterRender(outputRoot: os.Path)(using Context): Unit =
     DeckOutput.write(outputRoot, assetSources(model.ctx.siteRoot))

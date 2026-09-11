@@ -104,7 +104,12 @@ object DeckLayouts:
       if fullscreen then div(cls := "presentation-tools")(fullscreenControl()) else frag()
     )
 
-  def embedded(assets: DeckAssets, linkToStandalone: Boolean, contentBaseUrl: String)(using RevealTheme.Context): Frag =
+  /** Render a fragment in a prepared deck context; URLs follow its physical collection. */
+  def embedded(using context: RevealTheme.Context)(
+      linkToStandalone: Boolean = false,
+      contentBaseUrl: String = context.site.deck.url
+  ): Frag =
+    val assets = DeckAssets(context.site.deck.url)
     require(assets.baseUrl.nonEmpty, "Embedded decks need an absolute asset location")
     require(contentBaseUrl.startsWith("/") && !contentBaseUrl.startsWith("//") && contentBaseUrl.endsWith("/"),
       "Embedded content needs a site-absolute asset directory ending in /")

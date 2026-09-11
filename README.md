@@ -266,18 +266,25 @@ This works from a published jar without a checkout of the theme sources.
 Supply a resolver to locate packages elsewhere (including per-mount locations):
 
 ```scala
-val presentation = RevealTheme.mount[SiteMap](_.presentation, assets = root =>
+val slideTheme = new RevealTheme(assetSources = root =>
   RevealAssets(
     revealJs = root.root / "browser-packages" / "reveal.js",
     pdfJs = root.root / "browser-packages" / "pdfjs-dist",
     publicDirectory = Some(root.root / "public")
   ))
+val presentation = mount(slideTheme)(paths => (deck = paths.presentation))
 ```
 
 The resolver runs in the normal `afterRender` flow with the host's `SiteRoot`,
 including embedded-only mounts. Direct use can configure
 `new RevealTheme(assetSources = resolver)`. Output asset URLs still derive from
 the selected collection, independently of package locations on disk.
+
+The `RevealTheme` class uses `InferredExtras` and `InferredTemplates`, including
+its default singleton and instances with custom asset resolvers. `templateDefs`
+defines the five built-in template functions; `extraDefs` defers `Slides.render()`
+until each context is constructed. Both public schemas are inferred from those
+definitions, and composed themes retain the same template and extras types.
 
 A deck is a directory containing an index document, a speaker-notes document,
 and a slides collection. See `examples/embedded/content/presentations/` for two
@@ -286,7 +293,7 @@ Inside a `model.InferredExtras` host:
 
 ```scala
 type SiteMap = (presentation: RevealTheme.Deck)
-val presentation = RevealTheme.mount[SiteMap](_.presentation)
+val presentation = mount(RevealTheme)(paths => (deck = paths.presentation))
 
 val extraDefs = defineExtras {
   (presentation = presentation.prepare())
@@ -337,9 +344,21 @@ hooks still belong to each mount's `Prepared` value.
 
 An explicit prepared-value lookup is available when it is nested inside another
 extra: `presentation.extend(defaultSiteMeta, ctx => ctx.extra.wrapper.prepared)`.
-The Reveal-specific mount exposes the same `extend(defaultSiteMeta)` convenience.
 For manual placement of individual layouts, `installLayouts[Context].deck` remains
 available; that operation preserves host indexing and unconfigured host layouts.
+
+Reveal uses the generic `ThemeMount` for preparation, metadata, layouts and output
+hooks. Render an embedded fragment inside its prepared context:
+
+```scala
+ctx.extra.presentation.render {
+  DeckLayouts.embedded(linkToStandalone = true)
+}
+```
+
+`DeckLayouts.embedded` derives asset and content URLs from the selected physical
+deck. Pass `contentBaseUrl` to override the content location. Configure asset
+sources on the `RevealTheme` instance before mounting it.
 
 Run `mysite.buildEmbeddedExample` or `mysite.buildEmbeddedOnlyExample` to build
 the two-deck article examples. Serve each output directory with any static

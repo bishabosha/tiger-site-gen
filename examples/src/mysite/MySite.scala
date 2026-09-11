@@ -2,7 +2,7 @@ package mysite
 
 /* DEMO SITE for testing embedding of presentations within articles */
 
-import revealTheme.{RevealTheme, RevealAssets}
+import revealTheme.{DeckLayouts, RevealTheme, RevealAssets}
 import model.{Layout, TemplateFunction, TemplateFunctions, ctx}
 import model.SiteMapSchema.auto.given
 import scalatags.Text.all.*
@@ -27,8 +27,9 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
       presentations: model.Directory[(conference: RevealTheme.Deck, workshop: RevealTheme.Deck)]
   )
 
-  val conference = RevealTheme.mount[SiteMap](_.presentations.conference, assets)
-  val workshop = RevealTheme.mount[SiteMap](_.presentations.workshop, assets)
+  val slideTheme = new RevealTheme(assets)
+  val conference = mount(slideTheme)(paths => (deck = paths.presentations.conference))
+  val workshop = mount(slideTheme)(paths => (deck = paths.presentations.workshop))
 
   val extraDefs = defineExtras {
     (conference = conference.prepare(), workshop = workshop.prepare())
@@ -43,9 +44,9 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
         scalatags.Text.tags2.article(
           h1(page.frontMatter.title),
           raw(io.util.md.renderDoc(page.rawContent)),
-          ctx.extra.conference.embed(linkToStandalone = serveDeckPages),
+          ctx.extra.conference.render { DeckLayouts.embedded(linkToStandalone = serveDeckPages) },
           h2("Workshop"),
-          ctx.extra.workshop.embed(linkToStandalone = serveDeckPages)
+          ctx.extra.workshop.render { DeckLayouts.embedded(linkToStandalone = serveDeckPages) }
         )
       )
     )

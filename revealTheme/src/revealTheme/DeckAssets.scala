@@ -14,7 +14,7 @@ object DeckAssets:
     val reveal = sources.revealJs
     for source <- Seq(reveal, pdfjs) do
       require(os.isFile(source / "package.json"),
-        s"Missing presentation package at $source. Run npm ci or configure RevealTheme.mount(assets = ...).")
+        s"Missing presentation package at $source. Run npm ci or configure new RevealTheme(assetSources = ...).")
     for directory <- sources.themeDirectory.toSeq ++ sources.publicDirectory.toSeq do
       require(os.isDir(directory), s"Missing presentation asset directory: $directory")
 

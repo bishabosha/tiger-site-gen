@@ -22,7 +22,7 @@ class RevealAssetChecks extends munit.FunSuite:
         DeckAssets.install(RevealAssets(root / "external-reveal", root / "external-pdfjs"), root / "output")
       }
       assert(error.getMessage.contains((root / "external-reveal").toString))
-      assert(error.getMessage.contains("assets ="))
+      assert(error.getMessage.contains("assetSources ="))
       assert(!os.exists(root / "output"))
     }
   }

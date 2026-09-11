@@ -63,10 +63,11 @@ type SiteMap = (
 )
 ```
 
-A typed selector mounts one existing directory:
+The inherited `Theme.mount` helper captures the mapping for each deck:
 
 ```scala
-val conference = RevealTheme.mount[SiteMap](_.presentations.conference)
+val conference = mount(RevealTheme)(paths => (deck = paths.presentations.conference))
+val workshop = mount(RevealTheme)(paths => (deck = paths.presentations.workshop))
 ```
 
 The selected directory must have Reveal's `Deck` type. Missing fields, wrong
@@ -87,9 +88,10 @@ Renaming or selecting a different collection updates both the URLs and output
 location without an explicit `DeckAssets` value.
 
 Embedded relative image/link URLs default to the same directory. For content
-stored elsewhere, use `embed(contentBaseUrl = "/media/conference/")`.
+stored elsewhere, pass `contentBaseUrl = "/media/conference/"` to
+`DeckLayouts.embedded` inside the prepared context.
 
-If a host publishes standalone pages, `embed(linkToStandalone = true)` adds a
+If a host publishes standalone pages, `DeckLayouts.embedded(linkToStandalone = true)` adds a
 fallback link derived from the selected collection's `url`. There is no explicit
 deck URL to synchronize. Content asset resolution stays independent of that link.
 
@@ -125,7 +127,7 @@ For optional standalone pages, attach the adapted layouts to the host collection
 
 ```scala
 override val siteMapMeta = defaultSiteMeta
-  .presentations(_.conference(conference.installLayouts[Context]))
+  .presentations(_.conference(conference.installLayouts[Context].deck))
 ```
 
 Omit those deck layout registrations for an embedded-only site. The host still
@@ -136,12 +138,12 @@ Inside a host article layout, use the prepared value directly:
 ```scala
 article(
   raw(io.util.md.renderDoc(page.rawContent)),
-  ctx.extra.conference.embed()
+  ctx.extra.conference.render { DeckLayouts.embedded() }
 )
 ```
 
-The article retains its own context and template functions. The embed enters
-the prepared deck's context only while rendering the fragment. You can embed
+The article retains its own context and template functions. The generic prepared
+value's `render` method enters the deck's context only while rendering the fragment. You can embed
 several decks, or the same deck more than once. Standalone pages and embeds use
 the same `DeckLayouts.slidesFragment` renderer and the same prepared slides.
 
@@ -214,7 +216,9 @@ of the example output.
 - `Layout.contramapContext` adapts a layout using an explicit context conversion.
 - `Theme.afterRender` completes theme-owned output in the normal render flow.
 - `ThemeMount` combines projection, preparation, layout adaptation, and automatic hook registration for any
-  Tiger theme. `RevealMount` adds Reveal's fragment and asset conventions.
+  Tiger theme, including Reveal.
+- `DeckLayouts.embedded` renders a Reveal fragment in the prepared context, with asset URLs derived from its collection.
+- `new RevealTheme(assetSources = resolver)` configures asset sources before mounting.
 
 
 For existing numbered singleton sources, opt into `indexed` metadata:
@@ -233,7 +237,7 @@ the field still loads `<field>.md`. Resolved singleton files are excluded from
 sibling `VarArgDocs`; their numeric prefixes never affect public URLs.
 
 
-`installLayouts[Context]` retrieves the prepared mount from the host's typed
+`installLayouts[Context].deck` retrieves the prepared mount from the host's typed
 extras automatically. It requires exactly one field whose type is that mount's
 path-dependent `Prepared` type. Field names and ordering are arbitrary; another
 mount's prepared value is a different type. Missing or duplicate matches fail
@@ -241,8 +245,9 @@ at compilation. Extras remain directly accessible as `ctx.extra.conference`,
 and the lookup always uses the current host context's value.
 
 This uses `Context.ExtraValue[C, A]`, derived through `Record.SelectByType`.
-No additional runtime registry or preparation is involved. Explicit
-`index` and `notes` adapters remain available when a custom selector is needed.
+No additional runtime registry or preparation is involved. Use the generic
+`mount.layout(DeckLayouts.index)(preparedLookup)` or
+`mount.layout(DeckLayouts.notes)(preparedLookup)` when a custom selector is needed.
 
 ## Aligning column content
 

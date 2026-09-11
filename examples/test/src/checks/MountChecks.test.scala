@@ -26,14 +26,14 @@ class MountChecks extends munit.FunSuite:
         type SiteMap = MySite.SiteMap
         type Templates = NamedTuple.Empty
         val templates = model.TemplateFunctions.Empty
-        val conference = RevealTheme.mount[SiteMap](_.presentations.conference)
-        val workshop = RevealTheme.mount[SiteMap](_.presentations.workshop)
+        val conference = mount(RevealTheme)(paths => (deck = paths.presentations.conference))
+        val workshop = mount(RevealTheme)(paths => (deck = paths.presentations.workshop))
         type Extra = (conference: conference.Prepared, workshop: workshop.Prepared)
         def extras(using SiteContext): model.Record[Extra] =
           model.Record((conference = conference.prepare(), workshop = workshop.prepare()))
         override val siteMapMeta = defaultSiteMeta.articles(_.index(_.indexed)).presentations(_
-          .conference(conference.installLayouts[Context])
-          .workshop(workshop.installLayouts[Context]))
+          .conference(conference.installLayouts[Context].deck)
+          .workshop(workshop.installLayouts[Context].deck))
       assertEquals(hostTheme.mountedThemes.size, 2)
       assertEquals(Templates.interpolateDefault("{{stack}}x{{end-stack}}", hostTheme),
         "<div class=\"stack \">\nx</div>\n")
@@ -90,18 +90,18 @@ class MountChecks extends munit.FunSuite:
   test("selectors reject absent names and incompatible metadata") {
     assertEquals(typeCheckErrors("""
       import revealTheme.*
-      RevealTheme.mount[mysite.MySite.SiteMap](site =>
-        site.presentations.conference)
+      mysite.MySite.mount(RevealTheme)(site =>
+        (deck = site.presentations.conference))
     """), Nil)
     assert(typeCheckErrors("""
       import revealTheme.*
-      RevealTheme.mount[mysite.MySite.SiteMap](site =>
-        site.presentations.missing)
+      mysite.MySite.mount(RevealTheme)(site =>
+        (deck = site.presentations.missing))
     """).nonEmpty)
     assert(typeCheckErrors("""
       import revealTheme.*
-      RevealTheme.mount[mysite.MySite.SiteMap](site =>
-        site.articles)
+      mysite.MySite.mount(RevealTheme)(site =>
+        (deck = site.articles))
     """).nonEmpty)
     assert(typeCheckErrors("""
       val other: mysite.MySite.workshop.Prepared = ???
@@ -115,21 +115,21 @@ class MountChecks extends munit.FunSuite:
       type Host = Context.Of[mysite.MySite.SiteMap,
         (second: mysite.MySite.workshop.Prepared, label: String, renamed: mysite.MySite.conference.Prepared),
         mysite.MySite.Templates]
-      mysite.MySite.conference.installLayouts[Host]
-      mysite.MySite.workshop.installLayouts[Host]
+      mysite.MySite.conference.installLayouts[Host].deck
+      mysite.MySite.workshop.installLayouts[Host].deck
     """), Nil)
     assert(typeCheckErrors("""
       import model.*
       type Host = Context.Of[mysite.MySite.SiteMap,
         (other: mysite.MySite.workshop.Prepared), mysite.MySite.Templates]
-      mysite.MySite.conference.installLayouts[Host]
+      mysite.MySite.conference.installLayouts[Host].deck
     """).nonEmpty)
     assert(typeCheckErrors("""
       import model.*
       type Host = Context.Of[mysite.MySite.SiteMap,
         (first: mysite.MySite.conference.Prepared, duplicate: mysite.MySite.conference.Prepared),
         mysite.MySite.Templates]
-      mysite.MySite.conference.installLayouts[Host]
+      mysite.MySite.conference.installLayouts[Host].deck
     """).nonEmpty)
     fixture { root =>
       import model.SiteMapSchema.auto.given
@@ -151,8 +151,8 @@ class MountChecks extends munit.FunSuite:
           renamed = MySite.conference.prepare()
         ))
         override val siteMapMeta = defaultSiteMeta.articles(_.index(_.indexed)).presentations(_
-          .conference(MySite.conference.installLayouts[Context])
-          .workshop(MySite.workshop.installLayouts[Context]))
+          .conference(MySite.conference.installLayouts[Context].deck)
+          .workshop(MySite.workshop.installLayouts[Context].deck))
       val one = Context.fromTheme(root / "content", renamedHost)
       val two = Context.fromTheme(root / "content", renamedHost)
       val lookup = summon[Context.ExtraValue[renamedHost.Context, MySite.conference.Prepared]]
@@ -187,7 +187,7 @@ class MountChecks extends munit.FunSuite:
       assertEquals(slides.head.title, "Conference opening")
       assertEquals(workshop.extra.slides.read()(using workshop).head.title, "Workshop opening")
       val (fragment, deps) = Templates.withDependencyCollection {
-        host.extra.conference.embed().render
+        host.extra.conference.render { DeckLayouts.embedded().render }
       }(using host)
       assert(fragment.contains("<reveal-deck"))
       assert(!fragment.contains("<html") && !fragment.contains("<body"))
@@ -216,10 +216,10 @@ class MountChecks extends munit.FunSuite:
         type Extra = NamedTuple.Empty
         def extras(using SiteContext): model.Record[Extra] = model.Record(NamedTuple.Empty)
       val host = Context.fromTheme(root / "content", renamedHost)
-      val renamed = RevealTheme.mount[renamedHost.SiteMap](_.`renamed-conference`)
+      val renamed = renamedHost.mount(RevealTheme)(paths => (deck = paths.`renamed-conference`))
       val prepared = renamed.prepare()(using host)
       assertEquals(prepared.context.site.deck.url, "/renamed-conference/")
-      val fragment = prepared.embed(linkToStandalone = true).render
+      val fragment = prepared.render { DeckLayouts.embedded(linkToStandalone = true).render }
       assert(fragment.contains("data-content-base=\"/renamed-conference/\""))
       assert(fragment.contains("src=\"/renamed-conference/embed.mjs\""))
       assert(fragment.contains("href=\"/renamed-conference/\""))
@@ -510,7 +510,7 @@ class MountChecks extends munit.FunSuite:
         assert(!os.exists(root / "dist" / "presentations" / collection / "index.html"))
         assert(!os.exists(root / "dist" / "presentations" / collection / "speaker-notes.html"))
       val host = Context.fromTheme(root / "content", theme)
-      val customAssets = host.extra.conference.embed(contentBaseUrl = "/media/conference/").render
+      val customAssets = host.extra.conference.render { DeckLayouts.embedded(contentBaseUrl = "/media/conference/").render }
       assert(customAssets.contains("data-content-base=\"/media/conference/\""))
       assert(!customAssets.contains("href=\"/presentations/conference/\""))
       val slide = root / "content" / "presentations" / "conference" / "slides" / "010 - opening.md"
