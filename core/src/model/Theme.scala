@@ -21,6 +21,12 @@ trait Theme:
   /** Mount constructors inherit this registry from their enclosing host theme. */
   protected given themeMounts: Theme.Mounts = new Theme.Mounts
 
+  /** Mount another theme using this host's sitemap and the child's singleton type. */
+  final def mount(child: Theme)(
+      mapping: SiteProjection.Paths[SiteMap, SiteMap] => SiteProjection.Mapping[SiteMap, child.SiteMap]
+  )(using labels: SiteProjection.Labels[child.SiteMap]): ThemeMount[SiteMap, child.type] =
+    new ThemeMount[SiteMap, child.type](child)(mapping)(using labels, themeMounts)
+
   /** Local templates take precedence, then mounts in declaration order.
     * Override to expose mounts owned outside this theme definition.
     */

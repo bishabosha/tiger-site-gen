@@ -1,6 +1,6 @@
 package revealTheme
 
-import model.{Context, Directory, Doc, Docs, Layout, Record, Site, SiteRoot, TemplateFunctions, ThemeMount, VarArgDocs, ctx}
+import model.{Context, Directory, Doc, Docs, Layout, Record, SiteRoot, TemplateFunctions, VarArgDocs, ctx}
 import model.SiteMapSchema.auto.given
 import scala.compiletime.testing.typeCheckErrors
 import scalatags.Text.all.*
@@ -42,10 +42,10 @@ object MountedContentHost extends model.Theme:
   type SiteMap = (renamed: Directory[mainTheme.Group], note: Doc[MountedPage], feed: Docs[MountedPage])
   type Templates = NamedTuple.Empty
   val templates = TemplateFunctions.Empty
-  val main = new ThemeMount[SiteMap, mainTheme.type](mainTheme)(site =>
-    Site.project(site, (bundle = site.renamed, about = site.note, feed = site.feed)))
-  val other = new ThemeMount[SiteMap, otherTheme.type](otherTheme)(site =>
-    Site.project(site, (bundle = site.renamed, about = site.note, feed = site.feed)))
+  val main = mount(mainTheme)(site =>
+    (bundle = site.renamed, about = site.note, feed = site.feed))
+  val other = mount(otherTheme)(site =>
+    (bundle = site.renamed, about = site.note, feed = site.feed))
   type Extra = (other: other.Prepared, hostLabel: String, renamedMount: main.Prepared)
   def extras(using SiteContext): Record[Extra] =
     Record((other = other.prepare(), hostLabel = "host", renamedMount = main.prepare()))

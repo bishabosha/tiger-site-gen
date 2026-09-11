@@ -1,6 +1,6 @@
 package revealTheme
 
-import model.{Context, Record, Site, SiteRoot, TemplateFunction, TemplateFunctions, ThemeMount}
+import model.{Context, Record, SiteRoot, TemplateFunction, TemplateFunctions}
 import model.Record.++
 import model.SiteMapSchema.auto.given
 
@@ -59,12 +59,12 @@ class ExtendedThemeChecks extends munit.FunSuite:
         type SiteMap = RevealTheme.SiteMap
         type Templates = NamedTuple.Empty
         val templates = TemplateFunctions.Empty
-        val presentation = new ThemeMount[SiteMap, extension.type](extension)(site =>
-          Site.project(site, (deck = site.deck)))
+        val presentation = mount(extension)(site =>
+          (deck = site.deck))
         type Extra = (presentation: presentation.Prepared)
         def extras(using SiteContext): Record[Extra] =
           Record((presentation = presentation.prepare()))
-        override val siteMapMeta = defaultSiteMeta.deck(presentation.installLayouts[Context].deck)
+        override val siteMapMeta = presentation.extend(defaultSiteMeta)
       assertEquals(host.renderTemplateDefault("marker"), "extended")
       val context = Context.fromTheme(root / "content", host)
       val mounted = context.extra.presentation.context

@@ -70,10 +70,7 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
     val host = defaultSiteMeta
       .articles(_.index(_.setAsRoot.layout(articleLayouts).indexed).posts(_.layout(articleLayouts)))
     if serveDeckPages then
-      host.presentations(_
-        .conference(conference.installLayouts[Context])
-        .workshop(workshop.installLayouts[Context])
-      )
+      workshop.extend(conference.extend(host))
     else host
 
 object MySite extends ExampleSite(serveDeckPages = true):

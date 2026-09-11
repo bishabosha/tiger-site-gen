@@ -216,36 +216,54 @@ type Extra = (presentation: presentation.Prepared)
 def extras(using SiteContext): Record[Extra] =
   Record((presentation = presentation.prepare()))
 
-override val siteMapMeta = defaultSiteMeta.presentation(deck =>
-  presentation.installLayouts[Context](deck.index(_.setAsRoot)))
+override val siteMapMeta = presentation.extend(defaultSiteMeta)
+  .presentation(_.index(_.setAsRoot))
 ```
 
-Mounts retain physical source paths and URLs. `installLayouts` finds the exact
-mount's prepared value in the host's typed extras, independently of field names.
-Missing or duplicate values fail at compilation. Extras remain statically
-accessible to other layouts.
+Mounts retain physical source paths and URLs. `extend` finds the exact mount's
+prepared value in the host's typed extras, independently of field names. Missing
+or duplicate prepared values fail at compilation.
 
-Generic `ThemeMount` instances install layouts from the mounted theme's own
-`siteMapMeta`, including metadata inherited or overridden by a composed extension:
+Inside a host theme, `mount(child)` infers the host sitemap and preserves the
+child's singleton type. The resulting `ThemeMount` uses its declared projection to
+inherit the child's `siteMapMeta`, including a composed extension's overrides:
 
 ```scala
-val presentation = new ThemeMount[SiteMap, RevealTheme.type](RevealTheme)(site =>
-  Site.project(site, (deck = site.presentation)))
+val presentation = mount(RevealTheme)(paths =>
+  (deck = paths.presentation))
 
-override val siteMapMeta = defaultSiteMeta.presentation(deck =>
-  presentation.installLayouts[Context].deck(deck.index(_.setAsRoot)))
+override val siteMapMeta = presentation.extend(defaultSiteMeta)
+  .presentation(_.index(_.setAsRoot))
 ```
 
-The selected name (`deck`) belongs to the mounted theme; the host can use a
-different collection name. Each installer is a typed modifier for a document,
-collection or directory. Directories install their layouts recursively, including
-nested directories and `VarArgDocs`. Configured selectors retain their conditional
-results and errors. Host root/indexing settings and layouts on nodes the theme
-leaves unconfigured are preserved; subsequent host edits can override installed
-layouts. `RevealMount.installLayouts` delegates to this same generic mechanism.
+The helper registers the child on the receiving host; it also works as
+`host.mount(child)(paths => ...)` outside the host definition. The explicit
+`ThemeMount` constructor remains available for standalone mounts.
 
-For a prepared mount stored inside another value, use the explicit lookup overload:
-`presentation.installLayouts[Context](ctx => ctx.extra.wrapper.prepared).deck`.
+The mapping is declared once: `deck` maps to the host's `presentation`. Nested
+selections and aliases follow that same projection automatically. Layout selectors
+and indexed-source metadata are inherited before content is loaded; unselected
+host nodes are retained. Apply host overrides after `extend`. Root selection
+remains a host setting, so multiple mounts can coexist without claiming the root.
+An existing host root flag is preserved.
+
+The mount's builder receives typed `SiteProjection.Paths` and returns a named
+tuple of selections matching the mounted theme's sitemap. `ThemeMount` captures
+that tuple internally as a `SiteProjection[HostMap, MountedMap]` value.
+The builder runs once, when the mount is declared. `prepare()` selects real nodes
+through the stored paths; `extend()` installs metadata through those same paths.
+Neither operation reruns the builder. Document content and collection operations
+are unavailable on paths, so content-dependent selections fail at compilation.
+Missing or misspelled target fields and incompatible node types also fail at compilation;
+overlapping host paths are rejected when the projection is declared. The paths
+support `._select[Name]` for abstract string types. Prepared contexts and output
+hooks still belong to each mount's `Prepared` value.
+
+An explicit prepared-value lookup is available when it is nested inside another
+extra: `presentation.extend(defaultSiteMeta, ctx => ctx.extra.wrapper.prepared)`.
+The Reveal-specific mount exposes the same `extend(defaultSiteMeta)` convenience.
+For manual placement of individual layouts, `installLayouts[Context].deck` remains
+available; that operation preserves host indexing and unconfigured host layouts.
 
 Run `mysite.buildEmbeddedExample` or `mysite.buildEmbeddedOnlyExample` to build
 the two-deck article examples. Serve each output directory with any static

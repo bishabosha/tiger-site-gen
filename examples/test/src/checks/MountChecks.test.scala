@@ -48,7 +48,7 @@ class MountChecks extends munit.FunSuite:
   }
 
   test("generic mounts discover nested templates and respect local and declaration precedence") {
-    import model.{Record, TemplateFunction, TemplateFunctions, ThemeMount}
+    import model.{Record, TemplateFunction, TemplateFunctions}
     import model.SiteMapSchema.auto.given
     class TestTheme(value: String) extends model.Theme:
       val metadata: model.Theme.Metadata = new:
@@ -58,9 +58,8 @@ class MountChecks extends munit.FunSuite:
       val templates = TemplateFunctions((marker = TemplateFunction(_ => value, _ => value)))
       type Extra = NamedTuple.Empty
       def extras(using SiteContext): Record[Extra] = Record(NamedTuple.Empty)
-      def attach(child: model.Theme): Unit =
-        new ThemeMount[SiteMap, child.type](child)(_ =>
-          throw new AssertionError("Template discovery must not project or prepare a mount"))
+      def attach(child: model.Theme { type SiteMap = NamedTuple.Empty }): Unit =
+        mount(child)(site => NamedTuple.Empty)
         ()
     class EmptyTheme extends model.Theme:
       val metadata: model.Theme.Metadata = new:
@@ -70,9 +69,8 @@ class MountChecks extends munit.FunSuite:
       val templates = TemplateFunctions.Empty
       type Extra = NamedTuple.Empty
       def extras(using SiteContext): Record[Extra] = Record(NamedTuple.Empty)
-      def attach(child: model.Theme): Unit =
-        new ThemeMount[SiteMap, child.type](child)(_ =>
-          throw new AssertionError("Template discovery must not project or prepare a mount"))
+      def attach(child: model.Theme { type SiteMap = NamedTuple.Empty }): Unit =
+        mount(child)(site => NamedTuple.Empty)
         ()
     val host = new EmptyTheme
     val nested = new EmptyTheme
@@ -379,8 +377,8 @@ class MountChecks extends munit.FunSuite:
       type Extra = NamedTuple.Empty
       def extras(using SiteContext): model.Record[Extra] = model.Record(NamedTuple.Empty)
 
-    class Branch(label: String, child: EmptyTheme) extends EmptyTheme(label):
-      val mounted = new model.ThemeMount[SiteMap, EmptyTheme](child)(site => site)
+    class Branch(label: String, val child: EmptyTheme) extends EmptyTheme(label):
+      val mounted = mount(child)(site => NamedTuple.Empty)
       type Extra = (first: mounted.Prepared, second: mounted.Prepared)
       def extras(using SiteContext): model.Record[Extra] =
         model.Record((first = mounted.prepare(), second = mounted.prepare()))

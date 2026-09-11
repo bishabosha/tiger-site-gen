@@ -1,6 +1,6 @@
 package revealTheme
 
-import model.{Context, Doc, Layout, Site, SiteContext, ThemeMount}
+import model.{Context, Doc, Layout, SiteProjection, SiteContext, ThemeMount}
 import scalatags.Text.all.*
 import model.SiteMapMeta
 import revealTheme.RevealTheme.Deck
@@ -8,13 +8,13 @@ import model.SiteMapMeta.DirectoryData
 
 /** A deck mounted under host-owned collection names and URLs. */
 final class RevealMount[HostMap <: NamedTuple.AnyNamedTuple](
-    collections: Site[HostMap] => RevealTheme.Deck,
+    collections: SiteProjection.Paths[HostMap, HostMap] => SiteProjection.Path[HostMap, RevealTheme.Deck],
     assets: RevealAssets.Resolver = RevealAssets.fromNpm
 )(using mounts: model.Theme.Mounts = new model.Theme.Mounts):
   private val theme = new RevealTheme(assets)
   private val mounted = new ThemeMount[HostMap, RevealTheme](theme)(site =>
-    Site.project(site, (deck = collections(site)))
-  )(using mounts)
+    (deck = collections(site))
+  )(using summon[SiteProjection.Labels[theme.SiteMap]], mounts)
 
   final class Prepared private[RevealMount] (private[RevealMount] val value: mounted.Prepared):
     val context: RevealTheme.Context = value.context
@@ -42,3 +42,9 @@ final class RevealMount[HostMap <: NamedTuple.AnyNamedTuple](
 
   def notes[C <: Context](prepared: C => Prepared): Layout[C, Doc[NotesMeta]] =
     DeckLayouts.notes.contramapContext(host => prepared(host).context)
+
+  /** Apply this deck's metadata through the collection projection captured at mounting. */
+  def extend[C <: Context](defaults: SiteMapMeta[C, HostMap])(using
+      selected: Context.ExtraValue[C, Prepared]
+  ): SiteMapMeta[C, HostMap] =
+    mounted.extend(defaults, host => selected(host).value)

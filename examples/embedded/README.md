@@ -207,7 +207,8 @@ of the example output.
 
 ## Tiger primitives
 
-- `Site.project(source, namedNodes)` constructs typed content-node aliases.
+- `SiteProjection` stores typed paths for both content selection and metadata installation.
+- `Site.project(source, namedNodes)` constructs aliases of already loaded content nodes.
 - `Context.fromSite(theme)(site)` constructs fresh extras over an existing site.
 - `Layout.contramapContext` adapts a layout using an explicit context conversion.
 - `Theme.afterRender` completes theme-owned output in the normal render flow.

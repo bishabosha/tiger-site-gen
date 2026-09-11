@@ -16,7 +16,7 @@ object RevealTheme extends RevealTheme(RevealAssets.fromNpm)
 
 class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm) extends model.Theme:
   def mount[HostMap <: NamedTuple.AnyNamedTuple](
-      collections: model.Site[HostMap] => Deck,
+      collections: model.SiteProjection.Paths[HostMap, HostMap] => model.SiteProjection.Path[HostMap, Deck],
       assets: RevealAssets.Resolver = assetSources
   )(using mounts: model.Theme.Mounts = new model.Theme.Mounts): RevealMount[HostMap] =
     new RevealMount(collections, assets)(using mounts)
