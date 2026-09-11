@@ -87,3 +87,49 @@ class InferredExtrasChecks extends munit.FunSuite:
       assertEquals(attempts, 1)
     finally os.remove.all(root)
   }
+
+  test("reusing a definition preserves its schema and builds against the receiving context") {
+    var builds = 0
+    object source extends model.InferredExtras, model.EmptyTemplates:
+      val metadata: model.Theme.Metadata = new:
+        val name = "Source"
+      type SiteMap = NamedTuple.Empty
+      val extraDefs = defineExtras {
+        builds += 1
+        (theme = model.sctx.theme, site = model.sctx.site, root = model.sctx.siteRoot, serial = builds)
+      }
+    object reuser extends model.InferredExtras, model.EmptyTemplates:
+      val metadata: model.Theme.Metadata = new:
+        val name = "Reuser"
+      type SiteMap = source.SiteMap
+      val extraDefs = source.extraDefs
+
+    summon[reuser.Extra =:= source.Extra]
+    assert(reuser.extraDefs eq source.extraDefs)
+    assertEquals(builds, 0)
+    val root = os.temp.dir(prefix = "reuse-extras-")
+    try
+      val session = new model.BuildSession
+      val originalSite = Site.read[source.SiteMap](None, None, Map.empty)
+      val otherSite = Site.read[reuser.SiteMap](None, None, Map.empty)
+      val original = Context.fromSite(source)(originalSite, session)(using SiteRoot(root / "source"))
+      val reused = Context.fromSite(reuser)(otherSite, session)(using SiteRoot(root / "reuser"))
+      val fresh = Context.fromSite(reuser)(otherSite, session)(using SiteRoot(root / "fresh"))
+      assert(original.extra.theme eq source)
+      assert(original.extra.site eq originalSite)
+      assert(reused.extra.theme eq reuser)
+      assert(reused.extra.site eq otherSite)
+      assertEquals(reused.extra.root, SiteRoot(root / "reuser"))
+      assertEquals(fresh.extra.root, SiteRoot(root / "fresh"))
+      assertEquals(List(original.extra.serial, reused.extra.serial, fresh.extra.serial), List(1, 2, 3))
+    finally os.remove.all(root)
+  }
+
+  test("a reused definition still requires its declared site context") {
+    import scala.compiletime.testing.typeCheckErrors
+    assert(typeCheckErrors("""
+      val invalid: model.InferredExtras.ExtraDefinition[
+        model.Context.Views.SiteView[model.SiteContext.Of[(other: model.Doc[String])]]
+      ] = revealTheme.RevealTheme.extraDefs
+    """).nonEmpty)
+  }

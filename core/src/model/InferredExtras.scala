@@ -3,11 +3,15 @@ package model
 import scala.language.experimental.modularity
 import scala.NamedTuple.AnyNamedTuple
 
+object InferredExtras:
+  /** A reusable recipe indexed by the context it requires, independent of its owner. */
+  trait ExtraDefinition[-C <: model.SiteContext]:
+    type Out <: AnyNamedTuple
+    def build(using C): Record[Out]
+
 /** Infer Extra from a deferred definition. Each context evaluates it once. */
 trait InferredExtras extends Theme:
-  trait ExtraDefinition:
-    type Out <: AnyNamedTuple
-    def build(using SiteContext): Record[Out]
+  type ExtraDefinition = InferredExtras.ExtraDefinition[SiteContext]
 
   /** Keep the overriding definition's Out refinement available through Theme.Extra. */
   tracked val extraDefs: ExtraDefinition

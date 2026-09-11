@@ -1,18 +1,17 @@
 package revealTheme
 
-import model.{Context, Record, SiteRoot, TemplateFunction, TemplateFunctions}
+import model.{Context, SiteRoot, TemplateFunction, TemplateFunctions}
 import model.Record.++
 import model.SiteMapSchema.auto.given
 
 class ExtendedThemeChecks extends munit.FunSuite:
-  private class ExtendedReveal(label: String) extends model.InferredTemplates:
+  private class ExtendedReveal(label: String) extends model.InferredExtras, model.InferredTemplates:
     val metadata = RevealTheme.metadata
     type SiteMap = RevealTheme.SiteMap
     val templateDefs = RevealTheme.templates ++ TemplateFunctions((
       marker = TemplateFunction(_ => label, _ => label)
     ))
-    type Extra = RevealTheme.Extra
-    def extras(using SiteContext): Record[Extra] = RevealTheme.extras
+    val extraDefs = RevealTheme.extraDefs
     override val siteMapMeta = RevealTheme.siteMapMeta.extend(defaultSiteMeta)
 
   private def fixture(body: os.Path => Unit): Unit =

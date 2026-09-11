@@ -143,7 +143,20 @@ that refinement. The definition stores a recipe: `Context.fromTheme` and
 site available and before rendering begins. Prepared values are never cached on
 the shared theme object.
 
-Use `defineExtraRecord` when reusing a function that already returns `Record[E]`.
+Themes with the same sitemap can reuse a definition directly:
+
+```scala
+val extraDefs = RevealTheme.extraDefs
+```
+
+`InferredExtras.ExtraDefinition` is indexed by its required site context rather
+than a theme instance. Reuse preserves the exact `Out` type and shares only the
+recipe: each build supplies the receiving theme's current site context, including
+its site, theme, build session and output hooks. An incompatible sitemap is
+rejected at compilation. No context reset or wrapping function is needed.
+
+Use `defineExtraRecord` when reusing a function that already returns `Record[E]`
+or when augmenting the source extras, as BreezeSite does below.
 The original `Theme` API still supports explicit `type Extra` and `def extras`.
 A concrete parent's fixed schema cannot be replaced by overriding a value;
 extend such schemas through composition, as BreezeSite does below.
