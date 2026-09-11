@@ -5,11 +5,10 @@ import model.Record.++
 import model.SiteMapSchema.auto.given
 
 class ExtendedThemeChecks extends munit.FunSuite:
-  private class ExtendedReveal(label: String) extends model.Theme:
+  private class ExtendedReveal(label: String) extends model.InferredTemplates:
     val metadata = RevealTheme.metadata
     type SiteMap = RevealTheme.SiteMap
-    type Templates = RevealTheme.Templates ++ (marker: TemplateFunction)
-    val templates = RevealTheme.templates ++ TemplateFunctions((
+    val templateDefs = RevealTheme.templates ++ TemplateFunctions((
       marker = TemplateFunction(_ => label, _ => label)
     ))
     type Extra = RevealTheme.Extra
@@ -54,16 +53,17 @@ class ExtendedThemeChecks extends munit.FunSuite:
     fixture { root =>
       given SiteRoot = SiteRoot(root)
       val extension = new ExtendedReveal("extended")
-      object host extends model.Theme:
+      summon[extension.Templates =:= (RevealTheme.Templates ++ (marker: TemplateFunction))]
+      assert(extension.templates eq extension.templateDefs)
+      assertEquals(extension.templates.marker.renderDefault(""), "extended")
+      object host extends model.InferredExtras, model.EmptyTemplates:
         val metadata = extension.metadata
         type SiteMap = RevealTheme.SiteMap
-        type Templates = NamedTuple.Empty
-        val templates = TemplateFunctions.Empty
         val presentation = mount(extension)(site =>
           (deck = site.deck))
-        type Extra = (presentation: presentation.Prepared)
-        def extras(using SiteContext): Record[Extra] =
-          Record((presentation = presentation.prepare()))
+        val extraDefs = defineExtras {
+          (presentation = presentation.prepare())
+        }
         override val siteMapMeta = presentation.extend(defaultSiteMeta)
       assertEquals(host.renderTemplateDefault("marker"), "extended")
       val context = Context.fromTheme(root / "content", host)

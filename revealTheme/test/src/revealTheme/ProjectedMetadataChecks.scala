@@ -1,12 +1,12 @@
 package revealTheme
 
-import model.{Context, Directory, Doc, Docs, Layout, Record, SiteRoot, TemplateFunctions, ThemeMount}
+import model.{Context, Directory, Doc, Docs, Layout, SiteRoot, TemplateFunctions, ThemeMount}
 import model.SiteMapSchema.auto.given
 import scalatags.Text.all.*
 import scala.compiletime.testing.typeCheckErrors
 
 /** The source theme's three fields live at different depths and names in the host. */
-object ProjectedMetadataHost extends model.Theme:
+object ProjectedMetadataHost extends model.InferredExtras:
   val contentTheme = new MountedContentTheme("projected")
   val metadata = contentTheme.metadata
   type SiteMap = (
@@ -23,8 +23,9 @@ object ProjectedMetadataHost extends model.Theme:
   val content = mount(contentTheme)(site =>
     mappingCalls += 1
     (bundle = site.shelf.library, about = site.shelf.note, feed = site.shelf.feed))
-  type Extra = (preparedContent: content.Prepared)
-  def extras(using SiteContext): Record[Extra] = Record((preparedContent = content.prepare()))
+  val extraDefs = defineExtras {
+    (preparedContent = content.prepare())
+  }
   private val local: LayoutOf[MountedPage] = Layout(page => html(body("host: " + page.frontMatter.title)))
   override val siteMapMeta = content.extend(defaultSiteMeta.outside(_.layoutAlways(local)))
     .shelf(_

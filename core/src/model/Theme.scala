@@ -49,7 +49,7 @@ trait Theme:
     }.renderDefault(args.trim)
 
   type Templates <: NamedTuple.AnyNamedTuple
-  val templates: TemplateFunctions[Templates]
+  def templates: TemplateFunctions[Templates]
 
   final type LayoutOf[Data] =
     model.Layout[Context, model.Doc[Data]]

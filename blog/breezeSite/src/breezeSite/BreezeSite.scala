@@ -9,7 +9,7 @@ import model.Record
 import model.Record.++
 import model.SiteMapSchema.auto.given
 
-object Breeze extends model.DictionaryTheme:
+object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.InferredTemplates:
 
   val metadata = new:
     val name = parent.metadata.name
@@ -23,10 +23,7 @@ object Breeze extends model.DictionaryTheme:
       raw = breezeSite.rawTemplate
     )
 
-  type Templates = parent.Templates ++ (
-      `match-sim-embed`: TemplateFunction
-  )
-  override val templates = parent.templates ++ model.TemplateFunctions:
+  val templateDefs = parent.templates ++ model.TemplateFunctions:
     (
       `match-sim-embed` = TemplateFunction(
         args =>
@@ -63,13 +60,14 @@ object Breeze extends model.DictionaryTheme:
     )
     .`match-type-simulator`(_.index(_.layout(dict((raw = layouts.raw)))))
 
-  type Extra = parent.Extra
-  def extras(using SiteContext): Record[Extra] = parent.extendExtras(
-    extraNav = Seq(sctx.site.projects, sctx.site.talks),
-    extraHead = Seq(meta(name := "twitter:site", content := "@bishabosha")) ++
-      HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
-    extraFoot = HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
-  )
+  val extraDefs = defineExtraRecord {
+    parent.extendExtras(
+      extraNav = Seq(sctx.site.projects, sctx.site.talks),
+      extraHead = Seq(meta(name := "twitter:site", content := "@bishabosha")) ++
+        HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
+      extraFoot = HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
+    )
+  }
 
   object FrontMatter:
     export parent.FrontMatter.*

@@ -123,11 +123,84 @@ modifier function, so its callback receives the correct document, collection or
 directory metadata. A compile-time membership check rejects unknown field names.
 The existing literal dot syntax continues to work.
 
+## Inferring extras from their definition
+
+A theme can extend `model.InferredExtras` to infer `Extra` from a single deferred
+definition:
+
+```scala
+val extraDefs = defineExtras {
+  (presentation = presentation.prepare())
+}
+```
+
+The abstract `extraDefs` member is a `tracked val` (Scala's experimental
+modularity feature). Its inferred `Out` refinement remains visible through
+`Extra = extraDefs.Out`, including each mount's distinct `Prepared` type. Keep
+the override's inferred type; annotating it as just `ExtraDefinition` would lose
+that refinement. The definition stores a recipe: `Context.fromTheme` and
+`Context.fromSite` evaluate it once for each fresh context, with that context's
+site available and before rendering begins. Prepared values are never cached on
+the shared theme object.
+
+Use `defineExtraRecord` when reusing a function that already returns `Record[E]`.
+The original `Theme` API still supports explicit `type Extra` and `def extras`.
+A concrete parent's fixed schema cannot be replaced by overriding a value;
+extend such schemas through composition, as BreezeSite does below.
+
+## Inferring template functions
+
+Mix in `model.InferredTemplates` and define the dictionary once:
+
+```scala
+val templateDefs = parent.templates ++ model.TemplateFunctions((
+  marker = model.TemplateFunction(_ => "Marker", _ => "Marker")
+))
+```
+
+The tracked `templateDefs` value carries its schema through
+`Templates = templateDefs.Fields`. The final `templates` accessor returns that
+same dictionary, so named selection, concatenation and context conformance retain
+the precise field types. Keep the overriding value's inferred type instead of
+widening it to `TemplateFunctions[?]`. No definition wrapper is needed: the
+dictionary already contains its field type. Dictionary construction happens when
+the theme is initialized; template rendering still receives the current context.
+
+`Theme.templates` is an abstract method so this mixin can forward to the
+initialized value. Existing themes can continue implementing it with a `val` and
+an explicit `type Templates`. The `breeze.Breeze` and `breezeSite.BreezeSite`
+objects combine `InferredTemplates` with `InferredExtras`; each mixin removes its
+corresponding duplicate schema declaration. Breeze supplies
+`List[ContentNode]` and `Seq.empty[Modifier]` so inference preserves the element
+types expected by layouts and extensions.
+
+A host that gets all its template functions from mounted themes can also mix in
+`model.EmptyTemplates`:
+
+```scala
+trait DeckHost extends model.InferredExtras, model.EmptyTemplates:
+  // Define metadata, SiteMap, mounts and extraDefs.
+```
+
+This finalizes both `Templates = NamedTuple.Empty` and
+`templates = TemplateFunctions.Empty`. Mounted themes still supply their own
+template functions through the normal lookup and rendering paths.
+
+`model.EmptyExtras` finalizes `Extra = NamedTuple.Empty` and supplies an empty
+record when a context is built. `home.Homepage` combines `EmptyExtras` with
+`EmptyTemplates`, so it needs neither extras nor template definitions:
+
+```scala
+object Homepage extends model.EmptyExtras, model.EmptyTemplates:
+  // Define metadata, SiteMap and layouts.
+```
+
 ## Extending Breeze
 
 Breeze is a complete About/Articles theme. It owns the base content schemas,
 root selection, indexed articles, default layouts, navigation, and page shell.
-`blog/breezeSite` adds projects, talks, videos and the simulator, replaces the
+`blog/breezeSite` defines `breezeSite.BreezeSite`, which adds projects, talks, videos
+and the simulator, replaces the
 About page content, and adds navigation and syntax/math/admonition dependencies.
 The reusable `breeze` module has no dependency on these specialisations.
 
@@ -156,15 +229,17 @@ indexed-source flags and root selection. Inherited layouts use the host's
 context, including its extended navigation and page dependencies. No base
 metadata is mutated. `extendWithContext` supports an explicit context adapter.
 
-BreezeSite reuses the base extras while adding its own values:
+BreezeSite mixes `model.InferredExtras` into its `model.DictionaryTheme` and reuses
+the base extras while adding its own values:
 
 ```scala
-type Extra = parent.Extra
-def extras(using SiteContext): Record[Extra] = parent.extendExtras(
-  nav = Seq(sctx.site.projects, sctx.site.talks),
-  head = HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
-  foot = HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
-)
+val extraDefs = defineExtraRecord {
+  parent.extendExtras(
+    extraNav = Seq(sctx.site.projects, sctx.site.talks),
+    extraHead = HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
+    extraFoot = HljsExtra.hljsFoot ++ KatexExtra.katexFoot ++ AdmonitionExtra.admonitionFoot
+  )
+}
 ```
 
 `breeze.aboutPage.wrap` supplies the shared homepage structure, biography,
@@ -207,14 +282,15 @@ the selected collection, independently of package locations on disk.
 A deck is a directory containing an index document, a speaker-notes document,
 and a slides collection. See `examples/embedded/content/presentations/` for two
 generic decks in the shared `examples/src/mysite/MySite.scala` host example.
+Inside a `model.InferredExtras` host:
 
 ```scala
 type SiteMap = (presentation: RevealTheme.Deck)
 val presentation = RevealTheme.mount[SiteMap](_.presentation)
 
-type Extra = (presentation: presentation.Prepared)
-def extras(using SiteContext): Record[Extra] =
-  Record((presentation = presentation.prepare()))
+val extraDefs = defineExtras {
+  (presentation = presentation.prepare())
+}
 
 override val siteMapMeta = presentation.extend(defaultSiteMeta)
   .presentation(_.index(_.setAsRoot))

@@ -103,12 +103,13 @@ typed template dictionary. For mounts defined outside the host, override
 
 ## Prepare once per build
 
-Store the prepared mount in the host's extras:
+The host mixes in `model.InferredExtras` and infers its extras from one deferred
+definition, retaining both mounts' distinct prepared types:
 
 ```scala
-type Extra = (conference: conference.Prepared)
-def extras(using SiteContext): Record[Extra] =
-  Record((conference = conference.prepare()))
+val extraDefs = defineExtras {
+  (conference = conference.prepare(), workshop = workshop.prepare())
+}
 ```
 
 Preparation creates a Reveal context over the projected site and evaluates its

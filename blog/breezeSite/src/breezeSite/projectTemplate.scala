@@ -7,9 +7,9 @@ import scalatags.Text.tags2.article
 
 import model.ctx
 
-import Breeze.*
+import BreezeSite.*
 
-val project = model.Layout[Breeze.Context, FrontMatter.Project]: doc =>
+val project = model.Layout[BreezeSite.Context, FrontMatter.Project]: doc =>
   val (prev, next) =
     ctx.site.projects.posts.prevNext(doc).swap // projects are in reverse order
   val projectNav = (

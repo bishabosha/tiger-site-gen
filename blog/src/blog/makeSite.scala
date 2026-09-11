@@ -6,10 +6,10 @@ import model.SiteRoot
 given SiteRoot = SiteRoot(BlogPaths.root)
 
 @main def makeSite(): Unit =
-  generateSite("blog/_docs", "dist/breeze", theme = breezeSite.Breeze, ignoreCache = true)
+  generateSite("blog/_docs", "dist/breeze", theme = breezeSite.BreezeSite, ignoreCache = true)
 
 @main def makeHome(): Unit =
   generateSite("blog/_home", "dist/home", theme = home.Homepage, ignoreCache = true)
 
 @main def watchSite(): Unit =
-  generateSiteWatch("blog/_docs", "dist/breeze", theme = breezeSite.Breeze)
+  generateSiteWatch("blog/_docs", "dist/breeze", theme = breezeSite.BreezeSite)
