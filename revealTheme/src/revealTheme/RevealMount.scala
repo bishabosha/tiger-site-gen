@@ -16,7 +16,7 @@ final class RevealMount[HostMap <: NamedTuple.AnyNamedTuple](
     Site.project(site, (deck = collections(site)))
   )(using mounts)
 
-  final class Prepared private[RevealMount] (private val value: mounted.Prepared):
+  final class Prepared private[RevealMount] (private[RevealMount] val value: mounted.Prepared):
     val context: RevealTheme.Context = value.context
     private val assets = DeckAssets(context.site.deck.url)
 
@@ -34,9 +34,8 @@ final class RevealMount[HostMap <: NamedTuple.AnyNamedTuple](
   type ModifyDeck[C <: Context] =
     DirectoryData[C, RevealTheme.DeckSources] => DirectoryData[C, RevealTheme.DeckSources]
 
-  def installLayouts[C <: Context](using sel: Context.ExtraValue[C, Prepared]): ModifyDeck[C] = _
-    .index(_.layoutAlways(index(sel.apply)))
-    .`speaker-notes`(_.layoutAlways(notes(sel.apply)))
+  def installLayouts[C <: Context](using sel: Context.ExtraValue[C, Prepared]): ModifyDeck[C] =
+    mounted.installLayouts[C](host => sel(host).value).deck
 
   def index[C <: Context](prepared: C => Prepared): Layout[C, Doc[DeckMeta]] =
     DeckLayouts.index.contramapContext(host => prepared(host).context)

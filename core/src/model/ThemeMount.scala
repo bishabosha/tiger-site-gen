@@ -27,3 +27,19 @@ final class ThemeMount[HostMap <: AnyNamedTuple, T <: Theme](val theme: T)(
       prepared: C => Prepared
   ): Layout[C, D] =
     layout.contramapContext(host => prepared(host).context)
+
+  /** Typed modifiers for the mounted theme's nodes, e.g. `.installLayouts[C].deck`.
+    * Selects this mount's Prepared value from the host extras automatically.
+    */
+  def installLayouts[C <: Context](using selected: Context.ExtraValue[C, Prepared])
+      : SiteMapMeta.LayoutInstallers[C, theme.SiteMap] =
+    installLayouts[C](selected.apply)
+
+  /** Explicit preparation lookup for hosts that store a mount inside another value. */
+  def installLayouts[C <: Context](prepared: C => Prepared)
+      : SiteMapMeta.LayoutInstallers[C, theme.SiteMap] =
+    new SiteMapMeta.LayoutInstallers(
+      theme.siteMapMeta.entries.map { (name, data) =>
+        name -> SiteMapMeta.adapt(data, (host: C) => prepared(host).context)
+      }
+    )

@@ -199,6 +199,28 @@ mount's prepared value in the host's typed extras, independently of field names.
 Missing or duplicate values fail at compilation. Extras remain statically
 accessible to other layouts.
 
+Generic `ThemeMount` instances install layouts from the mounted theme's own
+`siteMapMeta`, including metadata inherited or overridden by a composed extension:
+
+```scala
+val presentation = new ThemeMount[SiteMap, RevealTheme.type](RevealTheme)(site =>
+  Site.project(site, (deck = site.presentation)))
+
+override val siteMapMeta = defaultSiteMeta.presentation(deck =>
+  presentation.installLayouts[Context].deck(deck.index(_.setAsRoot)))
+```
+
+The selected name (`deck`) belongs to the mounted theme; the host can use a
+different collection name. Each installer is a typed modifier for a document,
+collection or directory. Directories install their layouts recursively, including
+nested directories and `VarArgDocs`. Configured selectors retain their conditional
+results and errors. Host root/indexing settings and layouts on nodes the theme
+leaves unconfigured are preserved; subsequent host edits can override installed
+layouts. `RevealMount.installLayouts` delegates to this same generic mechanism.
+
+For a prepared mount stored inside another value, use the explicit lookup overload:
+`presentation.installLayouts[Context](ctx => ctx.extra.wrapper.prepared).deck`.
+
 Run `mysite.buildEmbeddedExample` or `mysite.buildEmbeddedOnlyExample` to build
 the two-deck article examples. Serve each output directory with any static
 server. See [the embedding guide](examples/embedded/README.md) for details.

@@ -66,13 +66,36 @@ object SiteMapMeta:
     def selectDynamic(name: String): (Data[C] => Data[C]) => DirectoryData[C, T] =
       f => DirectoryData(children._update(name)(f))
 
+  /** Layout-only modifiers preserve host root/indexed flags and unconfigured layouts. */
+  final class LayoutInstallers[C <: Context, T <: AnyNamedTuple] private[model] (
+      source: Map[String, Data[C]]
+  ) extends Selectable:
+    type Fields = NamedTuple.Map[T, [X] =>> MetaOf[C, X] => MetaOf[C, X]]
+    def selectDynamic(name: String): Data[C] => Data[C] =
+      target => installLayouts(source(name), target)
+
+  private def installLayouts[C <: Context](source: Data[C], target: Data[C]): Data[C] =
+    source match
+      case doc: DocData[C, a] =>
+        val host = target.asInstanceOf[DocData[C, a]]
+        host.copy(optLayout = doc.optLayout.orElse(host.optLayout))
+      case docs: DocsData[C, a] =>
+        val host = target.asInstanceOf[DocsData[C, a]]
+        host.copy(optLayout = docs.optLayout.orElse(host.optLayout))
+      case directory: DirectoryData[C, t] =>
+        val host = target.asInstanceOf[DirectoryData[C, t]]
+        DirectoryData(directory.children.entries.foldLeft(host.children) {
+          case (children, (name, child)) =>
+            children._update(name)(installLayouts(child, _))
+        })
+
   private class RawMeta[C <: Context, T <: AnyNamedTuple](val entries: Map[String, Data[C]])
       extends SiteMapMeta[C, T]:
     def _query(name: String): Data[C] = entries(name)
     def _update(name: String)(f: Data[C] => Data[C]): SiteMapMeta[C, T] =
       RawMeta(entries.updated(name, f(entries(name))))
 
-  private def adapt[C <: Context, Host <: Context](data: Data[C], project: Host => C): Data[Host] =
+  private[model] def adapt[C <: Context, Host <: Context](data: Data[C], project: Host => C): Data[Host] =
     data match
       case doc: DocData[C, a] =>
         DocData[Host, a](

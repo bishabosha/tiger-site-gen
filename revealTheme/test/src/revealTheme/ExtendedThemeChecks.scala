@@ -64,6 +64,7 @@ class ExtendedThemeChecks extends munit.FunSuite:
         type Extra = (presentation: presentation.Prepared)
         def extras(using SiteContext): Record[Extra] =
           Record((presentation = presentation.prepare()))
+        override val siteMapMeta = defaultSiteMeta.deck(presentation.installLayouts[Context].deck)
       assertEquals(host.renderTemplateDefault("marker"), "extended")
       val context = Context.fromTheme(root / "content", host)
       val mounted = context.extra.presentation.context
@@ -73,6 +74,10 @@ class ExtendedThemeChecks extends munit.FunSuite:
       assert(slides.head.slide.render.contains("class=\"stack \""))
       assert(slides.head.notes.render.contains("Notes extended"))
       assert(mounted.site.deck eq context.site.deck)
+      io.util.paths.renderSite(root / "dist", host, os.walk(root / "content").filter(os.isFile).toSet)(using context, summon[SiteRoot])
+      assert(os.read(root / "dist" / "deck" / "index.html").contains("Value extended"))
+      assert(os.read(root / "dist" / "deck" / "speaker-notes.html").contains("Notes extended"))
+      assert(!os.exists(root / "dist" / "deck" / "slides"))
     }
   }
 
