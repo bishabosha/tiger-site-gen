@@ -40,7 +40,7 @@ object Slides:
         else
           for m <- directive.findAllMatchIn(line) do
             val name = m.group(1).takeWhile(!_.isWhitespace)
-            require(name == "br" || trimmed == m.matched,
+            require(!Set("stack", "columns", "end-stack", "end-columns")(name) || trimmed == m.matched,
               s"$file: layout markers must be on their own line")
             if name == "br" || name.startsWith("end-") then
               require(m.group(1).trim == name, s"$file: {{$name}} takes no arguments")
@@ -52,7 +52,7 @@ object Slides:
                 require(stack.headOption.contains(expected), s"$file: mismatched {{$name}}")
                 stack = stack.tail
               case "br" => ()
-              case other => throw IllegalArgumentException(s"$file: unknown template {{$other}}")
+              case _ => () // The active theme resolves extension templates during Markdown parsing.
       if trimmed != notesHeading || fence.nonEmpty then
         (if inNotes then notes else body).append(line).append('\n')
     require(fence.isEmpty, s"$file: unclosed code fence")
@@ -66,7 +66,7 @@ object Slides:
       start: Int, slide: ConcreteHtmlTag[String], notes: Frag, source: os.Path)
 
   private case class Parsed(title: String, audienceHtml: String, notesHtml: String)
-  private case class Cached(meta: SlideMeta, raw: String, parsed: Parsed, rendered: Rendered)
+  private case class Cached(theme: model.Theme, meta: SlideMeta, raw: String, parsed: Parsed, rendered: Rendered)
   private val fragments = new model.BuildSession.Cache[os.Path, Cached]
 
   class Deck(content: Vector[Rendered], sourceDirectory: os.Path):
@@ -78,6 +78,7 @@ object Slides:
 
   def render()(using RevealTheme.SiteContext): Deck =
     val collection = sctx.site.deck.slides
+    val theme = sctx.theme
     // Tiger orders articles newest first; a presentation reads forward.
     val pages = collection.toIterable.toVector.reverse
     require(pages.nonEmpty, "The deck has no slides")
@@ -97,10 +98,10 @@ object Slides:
       require(if appendix then m.seconds == 0 else m.seconds > 0, s"${page.path}: invalid timing")
       require(!reachedAppendix || appendix, "Appendices must follow the main slides")
       reachedAppendix ||= appendix
-      val cached = cache.get(page.path).filter(entry => entry.meta == m && entry.raw == page.rawContent)
+      val cached = cache.get(page.path).filter(entry => (entry.theme eq theme) && entry.meta == m && entry.raw == page.rawContent)
       val parsed = cached.map(_.parsed).getOrElse {
         val (content, notes) = splitAndValidate(page.rawContent, page.path.toString)
-        val ast = md.parseDryRun(content, RevealTheme)
+        val ast = md.parseDryRun(content, theme)
         val headings = ast.getChildren.asScala.collect { case h: Heading if h.getLevel <= 2 => h }.toVector
         require(headings.size == 1, s"${page.path}: expected exactly one H1/H2 slide title")
         val title = TextCollectingVisitor().collectAndGetText(headings.head).replaceAll("\\s+", " ").trim
@@ -108,7 +109,7 @@ object Slides:
         // Reuse Tiger's configured AST directly; no full Context is needed for rendering.
         val renderer = HtmlRenderer.builder(ast).build()
         val audienceHtml = renderer.render(ast)
-        val notesHtml = renderer.render(md.parseDryRun(notes, RevealTheme))
+        val notesHtml = renderer.render(md.parseDryRun(notes, theme))
         Parsed(title, audienceHtml, notesHtml)
       }
       val result = cached.filter(_.rendered.start == elapsed).map(_.rendered).getOrElse {
@@ -128,7 +129,7 @@ object Slides:
         Rendered(m.id, title, m.seconds, appendix, elapsed, sectionTag,
           notesWithTiming, page.path)
       }
-      cache(page.path) = Cached(m, page.rawContent, parsed, result)
+      cache(page.path) = Cached(theme, m, page.rawContent, parsed, result)
       elapsed += m.seconds
       result
     }

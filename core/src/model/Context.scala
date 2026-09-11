@@ -6,6 +6,8 @@ import Context.Views.{Conforms, View, SiteView}
 sealed trait SiteContext:
   type SiteMap <: NamedTuple.AnyNamedTuple
   val metadata: Theme.Metadata
+  /** The actual theme, including composed templates, before extras are evaluated. */
+  val theme: Theme
   val siteRoot: SiteRoot
   val buildSession: BuildSession
   val site: model.Site[SiteMap]
@@ -77,12 +79,14 @@ object Context:
         override type Templates = theme0.Templates
         val buildSession = session
         val metadata: Theme.Metadata = theme0.metadata
+        val theme: Theme = theme0
         private[model] val renderHooks = new RenderHooks
         val siteCtx = SiteView(
           new SiteContext {
             override type SiteMap = theme0.SiteMap
             val buildSession = session
             val metadata: Theme.Metadata = theme0.metadata
+            val theme: Theme = theme0
             private[model] val renderHooks = self.renderHooks
             override val siteRoot: SiteRoot = root
             override val site: model.Site[theme0.SiteMap] =
