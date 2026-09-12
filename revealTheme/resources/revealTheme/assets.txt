@@ -9,4 +9,5 @@ notes.css
 pdf-explorer.css
 pdf-explorer.mjs
 slide-fit.mjs
+slide-picker.mjs
 theme.css

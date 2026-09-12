@@ -51,9 +51,11 @@ class ExtendedThemeChecks extends munit.FunSuite:
   test("record-composed templates survive a generic mount and inherited extras") {
     summon[RevealTheme.Templates =:= (
       stack: TemplateFunction, `end-stack`: TemplateFunction,
-      columns: TemplateFunction, `end-columns`: TemplateFunction, br: TemplateFunction
+      columns: TemplateFunction, `end-columns`: TemplateFunction, br: TemplateFunction, spacer: TemplateFunction
     )]
     summon[RevealTheme.Extra =:= (slides: Slides.Deck)]
+    assert(RevealTheme.templates.renderDefault("spacer").contains("aria-hidden=\"true\""))
+    intercept[IllegalArgumentException](RevealTheme.templates.renderDefault("spacer unexpected"))
     val configured = new RevealTheme()
     summon[configured.Templates =:= RevealTheme.Templates]
     summon[configured.Extra =:= RevealTheme.Extra]
@@ -126,5 +128,31 @@ class ExtendedThemeChecks extends munit.FunSuite:
       assert(nesting.getMessage.contains("mismatched"))
       os.write.over(file, original.replace("{{marker}}", "{{not-registered}}"))
       intercept[Exception](Context.fromTheme(root / "content", theme))
+    }
+  }
+
+  test("font sizes are optional, fixed when supplied, and validated on edits") {
+    fixture { root =>
+      given SiteRoot = SiteRoot(root)
+      val theme = new ExtendedReveal("font test")
+      val session = new model.BuildSession
+      val file = root / "content" / "deck" / "slides" / "010 - sample.md"
+      val original = os.read(file)
+      def rendered(): String =
+        val context = Context.fromTheme(root / "content", theme, session)
+        given theme.Context = context
+        context.extra.slides.read().head.slide.render
+      assert(!rendered().contains("data-font-size"))
+      for size <- Seq(40, 32) do
+        os.write.over(file, original.replace("layout = \"standard\"", s"layout = \"standard\", fontSize = $size"))
+        val html = rendered()
+        assert(html.contains(s"data-font-size=\"$size\""), html)
+        assert(html.contains(s"--slide-font-size:${size}px"), html)
+      for size <- Seq(0, -1) do
+        os.write.over(file, original.replace("layout = \"standard\"", s"layout = \"standard\", fontSize = $size"))
+        val error = intercept[IllegalArgumentException](rendered())
+        assert(error.getMessage.contains("fontSize must be a positive pixel size"))
+      os.write.over(file, original)
+      assert(!rendered().contains("data-font-size"))
     }
   }

@@ -94,6 +94,7 @@ object Slides:
       val m = page.frontMatter
       require(m.id.matches("[a-z][a-z0-9-]*"), s"${page.path}: invalid id ${m.id}")
       require(layouts(m.layout), s"${page.path}: unknown layout ${m.layout}")
+      require(m.fontSize.forall(_ > 0), s"${page.path}: fontSize must be a positive pixel size")
       val appendix = m.layout == "appendix"
       require(if appendix then m.seconds == 0 else m.seconds > 0, s"${page.path}: invalid timing")
       require(!reachedAppendix || appendix, "Appendices must follow the main slides")
@@ -123,7 +124,12 @@ object Slides:
           if appendix then attr("data-visibility") := "uncounted" else frag(),
           if m.layout == "dark-slide" then attr("data-background-color") := "#19242a" else frag()
         )(
-          div(cls := "slide-body", raw(audienceHtml)),
+          div(
+            cls := "slide-body",
+            m.fontSize.map(size => attr("data-font-size") := size),
+            m.fontSize.map(size => style := s"--slide-font-size:${size}px"),
+            raw(audienceHtml)
+          ),
           aside(cls := "notes", notesWithTiming)
         )
         Rendered(m.id, title, m.seconds, appendix, elapsed, sectionTag,

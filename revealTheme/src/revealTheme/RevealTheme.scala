@@ -6,8 +6,11 @@ import model.SiteMapSchema.auto.given
 case class DeckMeta(title: String, author: String, event: String, description: String)
     derives scalanotation.Reader
 
-case class SlideMeta(id: String, seconds: Int, layout: String)
-    derives scalanotation.Reader
+case class SlideMeta(id: String, seconds: Int, layout: String, fontSize: Option[Int] = None)
+
+object SlideMeta:
+  given scalanotation.Configured[SlideMeta] = scalanotation.Configured.skippable
+  given scalanotation.Reader[SlideMeta] = scalanotation.Reader.configured.derived[SlideMeta]
 
 case class NotesMeta(title: String) derives scalanotation.Reader
 
@@ -32,7 +35,11 @@ class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm
       `end-stack` = template(_ => "</div>\n"),
       columns = template(args => s"<div class=\"columns ${classes(args)}\">\n"),
       `end-columns` = template(_ => "</div>\n"),
-      br = template(_ => "<br>")
+      br = template(_ => "<br>"),
+      spacer = template { args =>
+        require(args.isEmpty, "{{spacer}} takes no arguments")
+        "<span class=\"inline-spacer\" aria-hidden=\"true\"></span>"
+      }
     )
   )
 
