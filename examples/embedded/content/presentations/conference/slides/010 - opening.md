@@ -1,6 +1,5 @@
-```scala
+---scala
 (id = "opening", seconds = 30, layout = "standard")
-```
 ---
 
 ## Conference opening

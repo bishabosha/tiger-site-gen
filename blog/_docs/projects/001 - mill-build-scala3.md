@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   layout = "project",
   title = "Port Mill build.sc files to Scala 3",
@@ -12,7 +12,6 @@
   endDate = "19-Oct-2024",
   isInProgress = false
 )
-```
 ---
 ## About the Project
 

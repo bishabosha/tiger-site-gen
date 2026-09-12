@@ -3,27 +3,20 @@ package breezeSite
 import model.sctx
 import scalatags.Text.all.*
 
-import breeze.Breeze as parent
+import breeze.Breeze
+
 import model.TemplateFunction
 import model.Record
+import model.Directory
 import model.Record.++
 import model.SiteMapSchema.auto.given
 
 object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.InferredTemplates:
 
   val metadata = new:
-    val name = parent.metadata.name
+    val name = Breeze.metadata.name
 
-  val layouts = Record:
-    (
-      about = breezeSite.about,
-      talks = breezeSite.talks,
-      projects = breezeSite.projects,
-      project = breezeSite.project,
-      raw = breezeSite.rawTemplate
-    )
-
-  val templateDefs = parent.templates ++ model.TemplateFunctions:
+  val templateDefs = Breeze.templates ++ model.TemplateFunctions:
     (
       `match-sim-embed` = TemplateFunction(
         args =>
@@ -39,29 +32,29 @@ object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.Inf
       )
     )
 
-  type SiteMap = parent.SiteMap ++ (
-      talks: model.Directory[
+  type SiteMap = Breeze.SiteMap ++ (
+      talks: Directory[
         (index: DocOf[FrontMatter.Talks], posts: VarArgDocsOf[FrontMatter.Talk])
       ],
       videos: DocsOf[FrontMatter.Video],
-      projects: model.Directory[
+      projects: Directory[
         (index: DocOf[FrontMatter.Projects], posts: VarArgDocsOf[FrontMatter.Project])
       ],
-      `match-type-simulator`: model.Directory[(index: DocOf[FrontMatter.Raw])]
+      `match-type-simulator`: Directory[(index: DocOf[FrontMatter.Raw])]
   )
 
-  override val siteMapMeta = parent.siteMapMeta
+  override val siteMapMeta = Breeze.siteMapMeta
     .extend(defaultSiteMeta)
-    .about(_.index(_.layout(dict((about = layouts.about)))))
-    .talks(_.index(_.indexed.layout(dict((talks = layouts.talks)))))
+    .about(_.index(_.layout(dict((about = breezeSite.about)))))
+    .talks(_.index(_.indexed.layout(dict((talks = breezeSite.talks)))))
     .projects(
-      _.index(_.indexed.layout(dict((projects = layouts.projects))))
-        .posts(_.layout(dict((project = layouts.project))))
+      _.index(_.indexed.layout(dict((projects = breezeSite.projects))))
+        .posts(_.layout(dict((project = breezeSite.project))))
     )
-    .`match-type-simulator`(_.index(_.layout(dict((raw = layouts.raw)))))
+    .`match-type-simulator`(_.index(_.layout(dict((raw = breezeSite.rawTemplate)))))
 
   val extraDefs = defineExtraRecord {
-    parent.extendExtras(
+    Breeze.extendExtras(
       extraNav = Seq(sctx.site.projects, sctx.site.talks),
       extraHead = Seq(meta(name := "twitter:site", content := "@bishabosha")) ++
         HljsExtra.hljsHead ++ KatexExtra.katexHead ++ AdmonitionExtra.admonitionHead,
@@ -70,7 +63,7 @@ object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.Inf
   }
 
   object FrontMatter:
-    export parent.FrontMatter.*
+    export Breeze.FrontMatter.*
     type Talks = BasePage
     type Talk = Link {
       val ordered: String
@@ -87,4 +80,4 @@ object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.Inf
       val url: String
     }
 
-  export parent.whoAmI
+  export Breeze.whoAmI

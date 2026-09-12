@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   layout = "about",
   title = "About",
@@ -14,7 +14,6 @@
     Vector("Mastodon","social","fa-brands fa-mastodon","https://fosstodon.org/@jrthompson"),
   )
 )
-```
 ---
 Compiler hacker. This is an archive for my thoughts on programming, past and future.
 

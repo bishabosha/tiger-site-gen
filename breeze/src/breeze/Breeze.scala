@@ -3,6 +3,7 @@ package breeze
 import model.ctx
 import model.sctx
 import model.Record
+import model.Directory
 import model.TemplateFunction
 import model.ContentNode
 import scalatags.Text.Modifier
@@ -34,8 +35,8 @@ object Breeze extends model.DictionaryTheme, model.InferredExtras, model.Inferre
     )
 
   type SiteMap = (
-      about: model.Directory[(index: DocOf[FrontMatter.About])],
-      articles: model.Directory[
+      about: Directory[(index: DocOf[FrontMatter.About])],
+      articles: Directory[
         (index: DocOf[FrontMatter.Articles], posts: VarArgDocsOf[FrontMatter.Article])
       ]
   )

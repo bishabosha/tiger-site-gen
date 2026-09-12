@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   layout = "project",
   title = "Add method unrolling to Scala 3",
@@ -11,7 +11,6 @@
   endDate = "27-Jan-2025",
   isInProgress = false
 )
-```
 ---
 ## About the Project
 

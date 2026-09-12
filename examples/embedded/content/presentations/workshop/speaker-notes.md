@@ -1,6 +1,5 @@
-```scala
+---scala
 (title = "Speaker notes")
-```
 ---
 
 # Notes

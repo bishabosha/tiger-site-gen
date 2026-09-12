@@ -4,12 +4,13 @@ import model.ctx
 import model.SiteMapSchema.auto.given
 import model.Doc
 import model.Record
+import model.Directory
 
 object Homepage extends model.EmptyExtras, model.EmptyTemplates:
   val metadata = new:
     val name = "Homepage"
 
-  type SiteMap = (about: model.Directory[(index: Doc[FrontMatter.About])])
+  type SiteMap = (about: Directory[(index: Doc[FrontMatter.About])])
 
   override val siteMapMeta =
     defaultSiteMeta.about(

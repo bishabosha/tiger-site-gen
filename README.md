@@ -45,6 +45,33 @@ A Scala CLI consumer uses:
 //> using dep "io.github.bishabosha::tiger-site-gen-reveal:0.1.0-SNAPSHOT"
 ```
 
+## Document sources
+
+Start Markdown documents with a Scala Object Notation value between `---scala`
+and a closing `---` on its own line:
+
+```markdown
+---scala
+(
+  layout = "article",
+  title = "Hello",
+  description = "A typed document",
+  published = "01/Jan/2026"
+)
+---
+
+# Document content
+```
+
+The fields come from the document's metadata type. The value is still SON,
+including record parentheses, imports, comments and dedented strings; it is not
+YAML. The opening delimiter must be on the first line (a UTF-8 BOM is accepted).
+The closing delimiter is reserved and ends the metadata block. Both LF and CRLF
+line endings work, and the body after the delimiter is passed to Markdown.
+
+Existing sources using a fenced `scala` block followed by `---`, optionally
+preceded by another `---`, remain supported.
+
 ## Content model
 
 ```scala

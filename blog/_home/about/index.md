@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   title = "About",
   name = "Jamie Thompson",
@@ -15,7 +15,6 @@
     ("Mastodon","social","fa-brands fa-mastodon","https://fosstodon.org/@jrthompson"),
   )
 )
-```
 ---
 I am a software engineer with 8 years experience building to improve the developer experience. Currently at [Elevatic Software](https://www.elevatic.com/) creating solutions for pull request workflow automation. My specialization is in programming language design, compilers, and embedded DSLs.
 

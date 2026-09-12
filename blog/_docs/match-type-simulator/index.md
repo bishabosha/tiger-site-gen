@@ -1,8 +1,7 @@
-```scala
+---scala
 (
   layout = "raw"
 )
-```
 ---
 
 <html>

@@ -1,6 +1,6 @@
 package revealTheme
 
-import model.{TemplateFunction, TemplateFunctions}
+import model.{TemplateFunction, TemplateFunctions, Directory}
 import model.SiteMapSchema.auto.given
 
 case class DeckMeta(title: String, author: String, event: String, description: String)
@@ -48,7 +48,7 @@ class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm
       `speaker-notes`: model.Doc[NotesMeta],
       slides: model.Docs[SlideMeta]
   )
-  type Deck = model.Directory[DeckSources]
+  type Deck = Directory[DeckSources]
   type SiteMap = (deck: Deck)
 
   override val siteMapMeta = defaultSiteMeta

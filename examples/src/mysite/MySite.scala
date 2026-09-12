@@ -3,7 +3,7 @@ package mysite
 /* DEMO SITE for testing embedding of presentations within articles */
 
 import revealTheme.{DeckLayouts, RevealTheme, RevealAssets}
-import model.{Layout, TemplateFunction, TemplateFunctions, ctx}
+import model.{Layout, TemplateFunction, TemplateFunctions, Directory, ctx}
 import model.SiteMapSchema.auto.given
 import scalatags.Text.all.*
 
@@ -23,8 +23,8 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
   )
 
   type SiteMap = (
-      articles: model.Directory[(index: DocOf[ArticleMeta], posts: VarArgDocsOf[ArticleMeta])],
-      presentations: model.Directory[(conference: RevealTheme.Deck, workshop: RevealTheme.Deck)]
+      articles: Directory[(index: DocOf[ArticleMeta], posts: VarArgDocsOf[ArticleMeta])],
+      presentations: Directory[(conference: RevealTheme.Deck, workshop: RevealTheme.Deck)]
   )
 
   val slideTheme = new RevealTheme(assets)

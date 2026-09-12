@@ -615,12 +615,9 @@ object md:
     def frontMatterError(msg: String): Nothing =
       throw new Exception(s"failed to read front matter of $path:$msg")
     val rawText = os.read(path)
-    val (rawSON, rawDoc) =
-      val imports = "import language.experimental.dedentedStringLiterals\n"
-      rawText.match
-        case s"---\n```scala\n$son\n```\n---\n$rest" => (imports + son, rest)
-        case s"```scala\n$son\n```\n---\n$rest"      => (imports + son, rest)
-        case _                                       => frontMatterError(" no front matter found")
+    val (son, rawDoc) = try FrontMatter.split(rawText)
+      catch case error: IllegalArgumentException => frontMatterError(" " + error.getMessage)
+    val rawSON = "import language.experimental.dedentedStringLiterals\n" + son
 
     val documentNoSplices = parseDryRun(rawDoc, theme)
     val data: T = Readers.experimental.readAs[T](rawSON) match
