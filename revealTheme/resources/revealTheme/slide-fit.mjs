@@ -18,6 +18,20 @@ export function chooseFontSize(fits, fixedSize) {
   return { size: low, overflow };
 }
 
+// Only annotate geometry; source and accessibility order remain column by column.
+function prepareAlignedColumns(body) {
+  for (const group of body.querySelectorAll('.columns.aligned')) {
+    const columns = [...group.children].filter(node => !node.matches('link,style,[hidden]'));
+    if (!columns.length || columns.some(node => !node.classList.contains('stack'))) {
+      throw new Error('Aligned columns require one stack per column');
+    }
+    const rows = Math.max(1, ...columns.map(column =>
+      [...column.children].filter(node => !node.matches('link,style,[hidden]')).length));
+    group.style.setProperty('--aligned-rows', rows);
+    group.dataset.alignedRows = rows;
+  }
+}
+
 // Fit the whole composition at one type scale, keeping its hierarchy consistent.
 // Measure an offscreen copy: inactive Reveal slides have no usable layout boxes.
 export function fitSlides(slides, scope = document.body) {
@@ -30,6 +44,7 @@ export function fitSlides(slides, scope = document.body) {
   try {
     for (const slide of slides) {
       const source = slide.querySelector('.slide-body');
+      prepareAlignedColumns(source);
       const section = document.createElement('section');
       section.className = slide.className;
       const body = source.cloneNode(true);

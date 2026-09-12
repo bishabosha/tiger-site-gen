@@ -106,6 +106,25 @@ body.reveal-standalone,.reveal-viewport { background:var(--paper); }
 .reveal .asides blockquote p+p { margin-top:1em; }
 .reveal .asides strong { color:var(--accent); }
 
+/* Aligned columns keep complete columns in DOM order while sharing row sizes.
+   The fitter counts the blocks, so authors never have to specify a row count. */
+.reveal .columns.aligned[data-aligned-rows] {
+  grid-template-rows:repeat(var(--aligned-rows),auto);
+  align-items:stretch;
+  row-gap:.65em;
+}
+.reveal .columns.aligned[data-aligned-rows]>.stack {
+  display:grid;
+  grid-template-rows:subgrid;
+  grid-row:span var(--aligned-rows);
+  row-gap:inherit;
+  align-items:center;
+}
+.reveal .columns.aligned.top[data-aligned-rows]>.stack { align-items:start; }
+/* Let images shrink within their shared row instead of overlapping the next. */
+.reveal .columns.aligned[data-aligned-rows]>.stack>p:has(>img:only-child) { align-self:stretch; }
+.reveal .columns.aligned.top[data-aligned-rows]>.stack>p>img:only-child { object-position:center top; }
+
 /* A standalone Markdown image takes the space left by its siblings, without cropping. */
 .reveal p:has(>img:only-child) { display:flex; flex:1; min-height:0; }
 .reveal p>img:only-child { display:block; width:100%; height:100%; max-width:100%; max-height:100%; min-height:0; margin:0; object-fit:contain; }
