@@ -154,7 +154,7 @@ body.reveal-standalone,.reveal-viewport { background:var(--paper); }
 .presentation-tools button { font:16px var(--r-main-font); color:inherit; background:var(--paper); border:1px solid var(--rule); border-radius:4px; padding:6px 10px; cursor:pointer; }
 .presentation-tools button:hover { color:var(--accent); }
 .presentation-tools button:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
-.fullscreen-control { position:relative; }
+.fullscreen-control { display:flex; align-items:center; position:relative; }
 .fullscreen-status { position:absolute; bottom:calc(100% + 8px); left:0; width:280px; padding:12px; font:16px/1.3 var(--r-main-font); color:var(--ink); background:var(--paper); border:1px solid var(--rule); border-radius:4px; z-index:40; }
 .fullscreen-status[hidden] { display:none; }
 .pdf-toolbar .fullscreen-status { top:calc(100% + 8px); bottom:auto; right:0; left:auto; }
