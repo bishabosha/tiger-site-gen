@@ -32,10 +32,11 @@ object DeckLayouts:
         link(rel := "stylesheet", href := assets.url("vendor/reveal/dist/reset.css")),
         link(rel := "stylesheet", href := assets.url("vendor/reveal/dist/reveal.css")),
         link(rel := "stylesheet", href := assets.url("theme.css")),
+        link(rel := "stylesheet", href := assets.url("fonts.css")),
         link(rel := "stylesheet", href := assets.url("vendor/pdfjs/pdf_viewer.css")),
         link(rel := "stylesheet", href := assets.url("pdf-explorer.css"))
       ),
-      body(cls := "reveal-standalone")(
+      body(cls := "reveal-standalone", style := ctx.extra.fonts.cssVariables)(
         slidesFragment(fullscreen = true),
         tag("dialog")(id := "pdf-tour", cls := "pdf-tour", attr("aria-label") := "PDF viewer")(
           div(cls := "pdf-controls")(
@@ -83,9 +84,10 @@ object DeckLayouts:
         meta(charset := "utf-8"),
         meta(name := "viewport", content := "width=device-width, initial-scale=1"),
         scalatags.Text.tags2.title(s"${page.frontMatter.title}: ${data.title}"),
-        link(rel := "stylesheet", href := assets.url("notes.css"))
+        link(rel := "stylesheet", href := assets.url("notes.css")),
+        link(rel := "stylesheet", href := assets.url("fonts.css"))
       ),
-      body(
+      body(style := ctx.extra.fonts.cssVariables)(
         h1(data.title),
         p(s"${data.author}. ${data.event}. ${Slides.stamp(slides.map(_.seconds).sum)} total."),
         p(a(href := "index.html", "Open slides")),
@@ -99,7 +101,7 @@ object DeckLayouts:
   /** Shared by the standalone page and each embedded player. */
   def slidesFragment(fullscreen: Boolean = false)(using RevealTheme.Context): ConcreteHtmlTag[String] =
     val slides = ctx.extra.slides.read()
-    div(cls := "reveal")(
+    div(cls := "reveal", style := ctx.extra.fonts.cssVariables)(
       div(cls := "slides")(slides.map(_.slide)),
       if fullscreen then div(cls := "presentation-tools")(fullscreenControl()) else frag()
     )
@@ -115,6 +117,8 @@ object DeckLayouts:
       "Embedded content needs a site-absolute asset directory ending in /")
     val title = ctx.site.deck.index.frontMatter.title
     frag(
+      // Font faces belong to the document's font set, outside the player's shadow root.
+      link(rel := "stylesheet", href := assets.url("fonts.css")),
       tag("reveal-deck")(
         attr("data-assets") := assets.baseUrl,
         attr("data-content-base") := contentBaseUrl,

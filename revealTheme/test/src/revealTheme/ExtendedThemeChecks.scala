@@ -5,13 +5,14 @@ import model.Record.++
 import model.SiteMapSchema.auto.given
 
 class ExtendedThemeChecks extends munit.FunSuite:
-  private class ExtendedReveal(label: String) extends model.InferredExtras, model.InferredTemplates:
-    val metadata = RevealTheme.metadata
+  private class ExtendedReveal(label: String, fonts: DeckFonts = DeckFonts()) extends model.InferredExtras, model.InferredTemplates:
+    private val base = new RevealTheme(fonts = fonts)
+    val metadata = base.metadata
     type SiteMap = RevealTheme.SiteMap
     val templateDefs = RevealTheme.templates ++ TemplateFunctions((
       marker = TemplateFunction(_ => label, _ => label)
     ))
-    val extraDefs = RevealTheme.extraDefs
+    val extraDefs = base.extraDefs
     override val siteMapMeta = RevealTheme.siteMapMeta.extend(defaultSiteMeta)
 
   private def fixture(body: os.Path => Unit): Unit =
@@ -53,7 +54,7 @@ class ExtendedThemeChecks extends munit.FunSuite:
       stack: TemplateFunction, `end-stack`: TemplateFunction,
       columns: TemplateFunction, `end-columns`: TemplateFunction, br: TemplateFunction, spacer: TemplateFunction
     )]
-    summon[RevealTheme.Extra =:= (slides: Slides.Deck)]
+    summon[RevealTheme.Extra =:= (slides: Slides.Deck, fonts: DeckFonts)]
     assert(RevealTheme.templates.renderDefault("spacer").contains("aria-hidden=\"true\""))
     intercept[IllegalArgumentException](RevealTheme.templates.renderDefault("spacer unexpected"))
     val configured = new RevealTheme()
@@ -61,7 +62,8 @@ class ExtendedThemeChecks extends munit.FunSuite:
     summon[configured.Extra =:= RevealTheme.Extra]
     fixture { root =>
       given SiteRoot = SiteRoot(root)
-      val extension = new ExtendedReveal("extended")
+      val fonts = DeckFonts(body = "Georgia, serif", headings = "Arial, sans-serif", code = "Courier New, monospace")
+      val extension = new ExtendedReveal("extended", fonts)
       summon[extension.Templates =:= (RevealTheme.Templates ++ (marker: TemplateFunction))]
       assert(extension.templates eq extension.templateDefs)
       assertEquals(extension.templates.marker.renderDefault(""), "extended")
@@ -85,10 +87,17 @@ class ExtendedThemeChecks extends munit.FunSuite:
       val embedded = context.extra.presentation.render { DeckLayouts.embedded().render }
       assert(embedded.contains("<reveal-deck"))
       assert(embedded.contains("Value extended"))
+      assert(embedded.contains(fonts.cssVariables))
+      assert(embedded.indexOf("/deck/fonts.css") < embedded.indexOf("<reveal-deck"))
+      assertEquals(mounted.extra.fonts, fonts)
       assert(mounted.site.deck eq context.site.deck)
       io.util.paths.renderSite(root / "dist", host, os.walk(root / "content").filter(os.isFile).toSet)(using context, summon[SiteRoot])
       assert(os.read(root / "dist" / "deck" / "index.html").contains("Value extended"))
       assert(os.read(root / "dist" / "deck" / "speaker-notes.html").contains("Notes extended"))
+      for page <- Seq("index.html", "speaker-notes.html") do
+        val html = os.read(root / "dist" / "deck" / page)
+        assert(html.contains(fonts.cssVariables))
+        assert(html.contains("/deck/fonts.css"))
       assert(!os.exists(root / "dist" / "deck" / "slides"))
     }
   }

@@ -15,9 +15,12 @@ object SlideMeta:
 case class NotesMeta(title: String) derives scalanotation.Reader
 
 /** Reveal layouts expressed through Tiger's existing Markdown template system. */
-object RevealTheme extends RevealTheme(RevealAssets.fromNpm)
+object RevealTheme extends RevealTheme(RevealAssets.fromNpm, DeckFonts())
 
-class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm)
+class RevealTheme(
+    val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm,
+    val fonts: DeckFonts = DeckFonts()
+)
     extends model.InferredExtras, model.InferredTemplates:
   val metadata: model.Theme.Metadata = new:
     val name = "Reveal"
@@ -56,7 +59,7 @@ class RevealTheme(val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm
       .`speaker-notes`(_.layoutAlways(DeckLayouts.notes)))
 
   val extraDefs = defineExtras {
-    (slides = Slides.render())
+    (slides = Slides.render(), fonts = RevealTheme.this.fonts)
   }
 
   override def afterRender(outputRoot: os.Path)(using Context): Unit =

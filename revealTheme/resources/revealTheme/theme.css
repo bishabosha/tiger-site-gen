@@ -24,6 +24,9 @@
   --syntax-title:#324d78;
   --r-background-color:var(--paper);
   --r-main-font:Source Sans,Arial,sans-serif;
+  --r-heading-font:var(--r-main-font);
+  --r-focus-font:var(--r-main-font);
+  --r-code-font:Menlo,Consolas,monospace;
   --r-main-color:var(--ink);
   --r-link-color:var(--accent);
   --r-link-color-hover:var(--accent);
@@ -64,16 +67,32 @@ body.reveal-standalone,.reveal-viewport { background:var(--paper); }
 .reveal :is(p,li):has(>.inline-spacer)>:not(.inline-spacer) { min-width:0; }
 
 /* Three independent intentions: prominence, alignment and supporting material. */
-.reveal .focus { font-size:1.7em; font-weight:600; line-height:1.12; letter-spacing:-.025em; }
+.reveal .focus {
+  font-family:var(--r-focus-font);
+  font-size:1.7em;
+  font-weight:var(--r-focus-font-weight,600);
+  line-height:var(--r-focus-line-height,1.12);
+  letter-spacing:var(--r-focus-letter-spacing,-.025em);
+}
 .reveal .center { text-align:center; align-items:center; justify-content:center; }
 .reveal .slide-body>.footer { flex:0 0 auto; margin-top:auto; }
 .reveal .footer { font-size:max(24px,.65em); color:var(--muted); }
+/* Readable detail text, sized from the slide so nested asides do not shrink it again. */
+.reveal .body { font-size:max(28px,calc(var(--slide-font-size,40px) * .8)); }
 
 /* Markdown supplies the content types. Sizes and spacing follow the fitted type. */
-.reveal :is(h1,h2,h3) { font-weight:600; line-height:1.12; letter-spacing:-.02em; }
-.reveal h1 { font-size:2.3em; }
-.reveal h2 { font-size:1.5em; }
-.reveal h3 { font-size:1.1em; }
+.reveal :is(h1,h2,h3,h4,h5,h6) { font-family:var(--r-heading-font); }
+/* Source Sans uses the theme's compact treatment; custom families keep their own metrics. */
+.reveal :is(h1,h2,h3) {
+  font-weight:var(--r-heading-font-weight,600);
+  letter-spacing:var(--r-heading-letter-spacing,-.02em);
+}
+.reveal h1 { font-size:2.3em; font-weight:var(--r-h1-font-weight,var(--r-heading-font-weight,600)); }
+.reveal h2 { font-size:1.5em; font-weight:var(--r-h2-font-weight,var(--r-heading-font-weight,600)); }
+.reveal h3 { font-size:1.1em; font-weight:var(--r-h3-font-weight,var(--r-heading-font-weight,600)); }
+.reveal h4 { font-weight:var(--r-h4-font-weight,normal); }
+.reveal h5 { font-weight:var(--r-h5-font-weight,normal); }
+.reveal h6 { font-weight:var(--r-h6-font-weight,normal); }
 .reveal p { font-size:inherit; line-height:inherit; }
 .reveal :is(p,h1,h2,h3,li,td,th) { overflow-wrap:anywhere; }
 .reveal :is(ul,ol) { padding-left:1.1em; }
@@ -84,7 +103,7 @@ body.reveal-standalone,.reveal-viewport { background:var(--paper); }
 .reveal a { color:var(--accent); text-decoration:none; text-underline-offset:4px; }
 .reveal a:hover { text-decoration:underline; }
 .reveal a:focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
-.reveal code { font-family:Menlo,Consolas,monospace; font-size:.82em; }
+.reveal code { font-family:var(--r-code-font); font-size:.82em; }
 .reveal pre { width:100%; box-sizing:border-box; padding:.7em; background:var(--code-bg); border-left:3px solid var(--accent); box-shadow:none; font-size:.8em; line-height:1.35; }
 .reveal pre code { padding:0; font-size:inherit; white-space:pre; max-height:none; overflow:visible; background:none; color:var(--ink); }
 .hljs-keyword,.hljs-type { color:var(--syntax-keyword); }

@@ -7,6 +7,7 @@ private[revealTheme] object DeckOutput:
   def write(outputRoot: os.Path, assets: RevealAssets)(using RevealTheme.Context): Unit =
     val dest = outputRoot / ctx.site.deck.outputPath
     DeckAssets.install(assets, dest)
+    ctx.extra.fonts.write(dest)
 
     val meta = ctx.site.deck.index.frontMatter
     val slides = ctx.extra.slides.read()
