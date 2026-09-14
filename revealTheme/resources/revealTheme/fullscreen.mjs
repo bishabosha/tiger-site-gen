@@ -1,4 +1,4 @@
-// Fullscreen belongs to the document, so slides and the PDF share one mode.
+// Fullscreen belongs to the document, so slides and document viewers share one mode.
 const buttons = [...document.querySelectorAll('[data-fullscreen]')];
 const statuses = [...document.querySelectorAll('.fullscreen-status')];
 
@@ -29,8 +29,9 @@ document.addEventListener('fullscreenchange', updateControls);
 document.addEventListener('click', event => {
   if (event.target.closest('[data-fullscreen]')) toggleFullscreen();
 });
-// Capture before Reveal or the PDF dialog handles keys, without changing their controls.
+// Let open dialogs handle Escape before the presentation exits fullscreen.
 document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.querySelector('dialog[open]')) return;
   const exiting = event.key === 'Escape' && document.fullscreenElement;
   if (!exiting && (event.key.toLowerCase() !== 'f' || event.ctrlKey || event.metaKey || event.altKey)) return;
   if (!exiting && event.target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;

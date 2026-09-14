@@ -38,10 +38,10 @@ object DeckLayouts:
       ),
       body(cls := "reveal-standalone", style := ctx.extra.fonts.cssVariables)(
         slidesFragment(fullscreen = true),
-        tag("dialog")(id := "pdf-tour", cls := "pdf-tour", attr("aria-label") := "PDF viewer")(
+        tag("dialog")(id := "pdf-tour", cls := "pdf-tour", attr("aria-label") := "Document viewer")(
           div(cls := "pdf-controls")(
             div(id := "pdf-toolbar", cls := "pdf-toolbar")(
-              pdfButton("close", "Back to slides (Esc)", "×"),
+              pdfButton("close", "Back to slides (X)", "×")(attr("aria-keyshortcuts") := "x"),
               pdfButton("fit", "Fit page", "Fit"),
               pdfButton("out", "Zoom out (−)", "−"),
               button(tpe := "button", id := "pdf-zoom", attr("data-pdf-action") := "actual",
