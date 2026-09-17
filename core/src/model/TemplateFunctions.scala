@@ -12,6 +12,9 @@ class TemplateFunctions[T <: AnyNamedTuple] private[model] (
   inline def selectDynamic(name: String): Any =
     functions.selectDynamic(name)
 
+  private[model] def entries: Seq[(String, TemplateFunction | BlockTemplateFunction)] =
+    lookup.names.map(name => name -> get(name).get)
+
   private[model] def get(name: String): Option[TemplateFunction | BlockTemplateFunction] =
     val index = try Some(lookup(name))
       catch case _: NoSuchElementException => None

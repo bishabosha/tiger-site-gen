@@ -72,6 +72,7 @@ object Record:
   trait Lookup[T <: AnyNamedTuple] extends Selectable:
     type Fields <: NamedTuple.Map[T, [_] =>> Int]
     def apply(name: String): Int
+    def names: Seq[String]
     def selectDynamic(name: String): Int = apply(name)
 
   object Lookup:
@@ -82,6 +83,7 @@ object Record:
     private class LookupImpl[T <: AnyNamedTuple](val fields: Map[String, Int]) extends Lookup[T]:
       type Fields = NamedTuple.Map[T, [_] =>> Int]
       def apply(name: String): Int = fields(name)
+      def names: Seq[String] = fields.toSeq.sortBy(_._2).map(_._1)
 
     object auto:
       inline given autoderived[T <: AnyNamedTuple]: Lookup[T] =

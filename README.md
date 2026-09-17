@@ -512,3 +512,29 @@ particular presentation or preview server.
 Originally based on Chapter 9 of
 [Hands-on Scala Programming](https://www.handsonscala.com/chapter-9-self-contained-scala-scripts.html),
 the design has evolved separately.
+
+### Editor grammars for block templates
+
+A block can associate fenced DSLs with self-contained TextMate JSON grammars:
+
+```scala
+decoder = BlockTemplateFunction(
+  DecoderTrace.render,
+  DecoderTrace.render,
+  editor = Seq(FencedGrammar("trace", "grammars/decoder-trace.tmLanguage.json"))
+)
+```
+
+After rendering, call `model.EditorManifest.write(siteTheme, Seq("content"))`
+with the site's `SiteRoot` in scope. It writes `.tiger-editor.json` at that root,
+collecting registered blocks through theme mounts with local-first precedence.
+An overriding function without editor metadata suppresses a mounted grammar.
+Unchanged metadata does not rewrite the file. Grammar and source paths are
+relative to the site root; grammar files use the `.tmLanguage.json` extension.
+
+The manifest is an editor integration contract, independent of any renderer:
+version `1`, `sources` (source-directory paths), and `blocks` (each with `name`
+and `fences`, whose entries have `fence` and `grammar`). Editors can watch the
+manifest and grammar files, apply grammars only to matching fences inside their
+owning block, and keep ordinary Markdown highlighting intact. The manifest is
+build output; regenerate it after changing registrations or mounting themes.
