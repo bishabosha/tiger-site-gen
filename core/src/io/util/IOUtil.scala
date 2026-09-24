@@ -199,10 +199,17 @@ object paths:
     )
     os.write.over(cachePath, upickle.default.write(newCache))
 
+  /** Load the site's documents.
+    *
+    * @param overrides in-memory source text by path, used instead of the file for
+    *   those documents (e.g. unsaved editor buffers). Overridden documents bypass
+    *   the session's source cache and are never written anywhere.
+    */
   def buildSiteDb(
       src: os.Path,
       theme: model.Theme,
-      session: model.BuildSession = new model.BuildSession
+      session: model.BuildSession = new model.BuildSession,
+      overrides: Map[os.Path, String] = Map.empty
   )(using model.SiteRoot): model.Site[theme.SiteMap] =
     val seenSources = mutable.Set.empty[os.Path]
     def readDocument[A: scalanotation.Reader](
@@ -212,7 +219,9 @@ object paths:
         output: os.RelPath
     ): model.Doc[A] =
       seenSources += path
-      md.cached[A](index, name, path, output, theme, session)
+      overrides.get(path) match
+        case Some(text) => md.renderText[A](index, name, path, output, theme, text)
+        case None       => md.cached[A](index, name, path, output, theme, session)
 
     def numberedDocument(path: os.Path): Option[(Int, String, os.Path)] =
       path.last match
@@ -307,15 +316,48 @@ object paths:
       loaded.nodes
     )
 
-  def renderSite(
-      dest: os.Path,
-      theme: model.Theme,
-      changed: Set[os.Path]
-  )(using theme.Context, model.SiteRoot): Map[String, Set[String]] = {
-    val deps = mutable.Map[String, Set[String]]()
-    val outputs = mutable.Map[String, String]()
+  /** Every document the site loaded, in sitemap order (directories depth-first). */
+  def siteDocuments(site: model.Site[?]): Vector[model.Doc[?]] =
+    def visit(nodes: Iterable[model.ContentNode]): Vector[model.Doc[?]] =
+      nodes.toVector.flatMap {
+        case doc: model.Doc[?] => Vector(doc)
+        case many: model.DocumentCollection[?] => many.toIterable.toVector
+        case group: model.Directory[?] => visit(group.children.nodes.values)
+      }
+    visit(site.nodes.values)
+
+  /** One page of a [[SitePlan]]: a document, its output route and its selected layout. */
+  final class PlannedPage private[util] (
+      val source: os.Path,
+      val output: os.RelPath,
+      val url: String,
+      val isRoot: Boolean,
+      /** Dependencies recorded while selecting the layout. */
+      val selectorDependencies: Set[String],
+      run: () => (String, Set[String])
+  ):
+    /** The output path relative to the output root, e.g. `articles/post.html`. */
+    def route: String = output.toString
+    /** Render the page to HTML (with doctype) without writing it, collecting its dependencies. */
+    def render(): RenderedPage =
+      val (html, used) = run()
+      RenderedPage(source, route, url, html, selectorDependencies ++ used)
+
+  /** A rendered page. `dependencies` are absolute source paths (see [[Templates.recordDependency]]). */
+  final case class RenderedPage(source: os.Path, route: String, url: String, html: String,
+      dependencies: Set[String])
+
+  /** The pages a prepared context produces, and the optional root redirect. */
+  final case class SitePlan(pages: Vector[PlannedPage], rootRedirect: Option[String]):
+    def routes: Set[String] = pages.map(_.route).toSet
+    def forSource(source: os.Path): Option[PlannedPage] = pages.find(_.source == source)
+
+  /** Select layouts and output routes for every document, validating routes and roots.
+    * Nothing is rendered or written; see [[PlannedPage.render]].
+    */
+  def planSite(theme: model.Theme)(using theme.Context): SitePlan =
+    val pages = mutable.ArrayBuffer.empty[PlannedPage]
     val roots = mutable.ArrayBuffer.empty[String]
-    val jobs = mutable.ArrayBuffer.empty[() => Unit]
     val routes = mutable.Set.empty[String]
 
     def document[A](
@@ -334,18 +376,10 @@ object paths:
       selected.foreach { layout =>
         val route = output.toString
         require(routes.add(route), s"Duplicate output route: $route")
-        val source = page.path.relativeTo(curr).toString
-        outputs(source) = route
         if isRoot then roots += url
-        jobs += (() =>
-          if changed.contains(page.path) || !os.isFile(dest / output) then
-            val (rendered, usedDeps) = Templates.withDependencyCollection { layout.run(page) }
-            os.write.over(
-              dest / output,
-              scalatags.Text.all.doctype("html")(rendered),
-              createFolders = true
-            )
-            deps(source) = selectorDeps ++ usedDeps
+        pages += PlannedPage(page.path, output, url, isRoot, selectorDeps, () =>
+          val (rendered, usedDeps) = Templates.withDependencyCollection { layout.run(page) }
+          (scalatags.Text.all.doctype("html")(rendered).render, usedDeps)
         )
       }
 
@@ -381,6 +415,24 @@ object paths:
       roots.headOption.forall(_ == "/") || !routes.contains("index.html"),
       "Root redirect would overwrite index.html"
     )
+    SitePlan(pages.toVector, roots.headOption.filter(_ != "/"))
+
+  /** Render the selected pages in memory; nothing is written. */
+  def renderPages(theme: model.Theme)(select: PlannedPage => Boolean)(using theme.Context): Vector[RenderedPage] =
+    planSite(theme).pages.filter(select).map(_.render())
+
+  /** Render the page of one source document in memory, if it has a layout. */
+  def renderSource(theme: model.Theme, source: os.Path)(using theme.Context): Option[RenderedPage] =
+    planSite(theme).forSource(source).map(_.render())
+
+  def renderSite(
+      dest: os.Path,
+      theme: model.Theme,
+      changed: Set[os.Path]
+  )(using theme.Context, model.SiteRoot): Map[String, Set[String]] = {
+    val deps = mutable.Map[String, Set[String]]()
+    val plan = planSite(theme)
+    val outputs = plan.pages.map(page => page.source.relativeTo(curr).toString -> page.route).toMap
     os.makeDir.all(dest)
     // Persist exact routes so deleted nested sources and removed layouts clean up correctly.
     val outputManifest = dest / ".outputs.json"
@@ -388,13 +440,18 @@ object paths:
       if os.isFile(outputManifest) then
         upickle.default.read[Map[String, String]](os.read(outputManifest))
       else Map.empty[String, String]
-    val currentRoutes = outputs.values.toSet ++ roots.headOption.map(_ => "index.html")
+    val currentRoutes = outputs.values.toSet ++ plan.rootRedirect.map(_ => "index.html")
     (previous.values.toSet -- currentRoutes).foreach { route =>
       val path = dest / os.RelPath(route)
       if os.isFile(path) then os.remove(path)
     }
-    jobs.foreach(_())
-    roots.headOption.filter(_ != "/").foreach { url =>
+    plan.pages.foreach { page =>
+      if changed.contains(page.source) || !os.isFile(dest / page.output) then
+        val rendered = page.render()
+        os.write.over(dest / page.output, rendered.html, createFolders = true)
+        deps(page.source.relativeTo(curr).toString) = rendered.dependencies
+    }
+    plan.rootRedirect.foreach { url =>
       os.write.over(dest / "index.html", rootPage(redirect = url))
     }
     for static <- ctx.site.optStatic do
@@ -419,8 +476,7 @@ object paths:
       )
 
     model.Context.afterRender(theme, dest)
-    val tracked =
-      outputs.toMap ++ roots.headOption.filter(_ != "/").map(_ => "@root" -> "index.html")
+    val tracked = outputs ++ plan.rootRedirect.map(_ => "@root" -> "index.html")
     os.write.over(outputManifest, upickle.default.write(tracked))
     deps.toMap
   }
@@ -611,10 +667,19 @@ object md:
       outputPath: os.RelPath,
       theme: model.Theme
   ): model.Doc[T] =
-    import org.virtuslab.yaml.*
+    renderText[T](index, name, path, outputPath, theme, os.read(path))
+
+  /** Like [[render]], but reads `rawText` in place of the file at `path` (which need not exist). */
+  def renderText[T: scalanotation.Reader](
+      index: Int,
+      name: String,
+      path: os.Path,
+      outputPath: os.RelPath,
+      theme: model.Theme,
+      rawText: String
+  ): model.Doc[T] =
     def frontMatterError(msg: String): Nothing =
       throw new Exception(s"failed to read front matter of $path:$msg")
-    val rawText = os.read(path)
     val (son, rawDoc) = try FrontMatter.split(rawText)
       catch case error: IllegalArgumentException => frontMatterError(" " + error.getMessage)
     val rawSON = "import language.experimental.dedentedStringLiterals\n" + son

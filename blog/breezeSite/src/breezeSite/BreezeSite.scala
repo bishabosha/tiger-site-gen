@@ -16,6 +16,11 @@ object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.Inf
   val metadata = new:
     val name = Breeze.metadata.name
 
+  /** Busts cached simulator pages once per build process. Per render, it would change every
+   *  embed on every live draft, reloading each simulator while typing.
+   */
+  private lazy val simulatorStamp = io.util.Templates.stamp
+
   val templateDefs = Breeze.templates ++ model.TemplateFunctions:
     (
       `match-sim-embed` = TemplateFunction(
@@ -23,7 +28,7 @@ object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.Inf
           args match
             case s"""$size "$query"""" =>
               val height = if size == "S" then "400px" else size
-              s"""<iframe src="/match-type-simulator/$query&stamp=${io.util.Templates.stamp}" width="100%" height="$height"></iframe>"""
+              s"""<iframe src="/match-type-simulator/$query&stamp=$simulatorStamp" width="100%" height="$height"></iframe>"""
             case _ =>
               throw new Exception(
                 s"Invalid match-sim-embed template arguments: $args"

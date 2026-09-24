@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Content studio</title>
+<style>
+:root{font:15px/1.5 system-ui,sans-serif;color:#242d32;background:#f5f6f3;--green:#256b54;--line:#dce1db}*{box-sizing:border-box}body{margin:0}button,a,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:white;color:inherit;border-radius:8px;padding:8px 13px}button:hover:not(:disabled){border-color:var(--green);background:#edf5ef}button:disabled{opacity:.4;cursor:default}button:focus-visible,a:focus-visible{outline:3px solid #75bfa0;outline-offset:3px}header{height:78px;padding:0 30px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid var(--line)}.brand{font-weight:750;font-size:20px;letter-spacing:-.6px}.brand span{background:var(--green);color:white;padding:6px 10px;border-radius:9px;margin-right:12px}.tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#6b7770}.shell{display:grid;grid-template-columns:255px minmax(0,1fr);min-height:calc(100vh - 78px)}aside{background:#fff;border-right:1px solid var(--line);padding:28px 18px}aside h2{font-size:11px;letter-spacing:1.5px;color:#758078;text-transform:uppercase;margin:0 12px 18px}nav button{border:0;width:100%;text-align:left;font-size:13px;overflow-wrap:anywhere;margin:2px 0}nav button.active{background:#e6f1e9;color:var(--green);font-weight:650}main{padding:32px 38px 110px;max-width:1500px;width:100%;margin:auto}.crumb{font:12px ui-monospace,monospace;color:#708078}h1{font-size:32px;letter-spacing:-1px;margin:12px 0 6px}.sub{color:#6a756f;margin:0 0 25px}.toolbar{display:flex;align-items:center;gap:9px;margin-bottom:20px}.toolbar .count{margin-right:auto;color:#58665d;font-size:13px}.primary{background:var(--green);color:white;border-color:var(--green)}.primary:hover:not(:disabled){background:#17513d}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}.card{background:white;border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:box-shadow .15s}.card[draggable=true]{cursor:grab}.card.dragging{opacity:.35}.card.over{box-shadow:0 0 0 3px #448666}.preview{height:140px;padding:22px;background:#eef1e8;display:flex;flex-direction:column;justify-content:space-between;border-bottom:1px solid var(--line)}.card:nth-child(3n+2) .preview{background:#e9eef1}.card:nth-child(3n) .preview{background:#f3ede3}.preview h3{font-size:19px;line-height:1.2;letter-spacing:-.45px;margin:9px 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.preview small{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:#62705f}.meta{padding:13px 15px}.filename{font:11px/1.7 ui-monospace,monospace;overflow-wrap:anywhere;color:#526158}.changed{color:#256b54;font-weight:650}.old{color:#929c95;text-decoration:line-through}.actions{display:flex;align-items:center;gap:5px;margin-top:10px}.actions button{padding:3px 9px}.actions .inspect{margin-left:auto;font-size:12px}.fixed{margin-bottom:22px;display:flex;gap:8px;flex-wrap:wrap}.fixed button{font-size:12px;color:#626e66}.notice{padding:12px 16px;background:#e8efe7;border-radius:9px;font-size:13px;margin-bottom:18px}.notice.error{background:#ffe9e5;color:#8b3225}.bottom{position:fixed;bottom:0;left:255px;right:0;background:#ffffffef;backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:15px 38px;display:flex;gap:20px;align-items:center;font-size:13px}.bottom span{flex:1;color:#66736b}dialog{border:1px solid var(--line);border-radius:14px;width:min(850px,90vw);max-height:85vh;padding:25px}dialog::backdrop{background:#18231b88}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.6 ui-monospace,monospace}dialog header{height:auto;padding:0 0 15px;gap:20px}dialog h2{font-size:19px;margin:0}a{color:var(--green)}@media(max-width:750px){.shell{grid-template-columns:1fr}aside{border-bottom:1px solid var(--line)}nav{display:flex;overflow:auto}nav button{min-width:170px;padding-left:12px!important}main{padding:24px 18px 130px}.bottom{left:0;padding:14px 18px}header{padding:0 18px}.tag{display:none}}
+</style>
+<header><div class="brand"><span>▤</span>Content studio</div><div class="tag">Local authoring workspace</div><a id="site" href="/" target="_blank" rel="noopener">Open site ↗</a></header>
+<div class="shell"><aside><h2>Content hierarchy</h2><nav id="tree" aria-label="Content directories"></nav></aside><main>
+<div class="crumb" id="crumb">content /</div><h1 id="heading">Content</h1><p class="sub" id="sub">Drag pages into place. Save to write their order into the filenames.</p>
+<div id="notice" class="notice" role="status" aria-live="polite">Loading content…</div>
+<div class="toolbar"><span class="count" id="count"></span><button id="reload">Reload</button><button id="undo" disabled>Undo move</button><button id="reset" disabled>Discard changes</button></div>
+<div class="fixed" id="fixed"></div><div class="grid" id="cards" aria-label="Ordered pages"></div>
+</main></div><footer class="bottom"><span id="summary">No changes yet.</span><button class="primary" id="save" disabled>Save order</button></footer>
+<dialog id="detail"><header><h2 id="detailTitle">Page source</h2><button id="close">Close</button></header><pre id="source"></pre></dialog>
+<script type="module">
+const $ = id => document.getElementById(id);
+let state, order = [], history = [], dragged, busy = false, loading = 0;
+const changed = () => state && order.some((name, i) => name !== state.files.filter(f => f.ordered)[i]?.name);
+const message = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
+async function api(url, options) { const response = await fetch(url, options); const data = await response.json(); if (!response.ok) throw Error(data.error); return data; }
+const capital = text => text.charAt(0).toUpperCase() + text.slice(1);
+async function openFile(file) { try { await api('/__author/open', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ file: [state.directory, file.name].filter(Boolean).join('/') }) }); message(`Opened ${file.name} in your editor.`); } catch (error) { message(error.message, true); } }
+function inspect(file) { $('detailTitle').textContent = file.title; $('source').textContent = file.source; $('detail').showModal(); }
+function filename(name, i) { return `${String((i + 1) * 10).padStart(Math.max(3, String(order.length * 10).length), '0')} - ${name.replace(/^\d+ - /, '')}`; }
+function move(from, to) {
+  if (busy || from === to || from < 0 || to < 0 || to >= order.length) return;
+  const next = [...order]; next.splice(to, 0, next.splice(from, 1)[0]);
+  // Groups keep their declared order, e.g. main slides before appendices.
+  const ranks = next.map(n => Math.max(0, state.groups.indexOf(state.files.find(f => f.name === n).group)));
+  if (ranks.some((rank, i) => i && rank < ranks[i - 1])) { message(`Keep ${state.plural} grouped as ${state.groups.join(', then ')}.`, true); return; }
+  history.push([...order]); order = next; render(); message('Order updated locally. Save when you’re ready.');
+}
+function render() {
+  const dirty = changed();
+  $('save').disabled = !dirty || busy; $('reset').disabled = !dirty || busy; $('undo').disabled = !history.length || busy; $('reload').disabled = busy;
+  $('summary').textContent = dirty ? `${order.filter((n, i) => filename(n, i) !== n).length} filenames will change · contents stay intact` : 'Order saved on disk · drag a card or use its arrow buttons';
+  $('count').textContent = `${order.length} ordered ${state.plural} · ${state.files.filter(f => !f.ordered).length} fixed pages`;
+  $('cards').replaceChildren(); $('fixed').replaceChildren();
+  for (const file of state.files.filter(f => !f.ordered)) { const b = document.createElement('button'); b.textContent = `▧ ${file.name}`; b.onclick = () => inspect(file); $('fixed').append(b); }
+  order.forEach((name, i) => {
+    const file = state.files.find(f => f.name === name), card = document.createElement('article');
+    card.className = 'card'; card.draggable = !busy;
+    const preview = document.createElement('div'); preview.className = 'preview';
+    const small = document.createElement('small'); small.textContent = [`${String(i + 1).padStart(2, '0')} / ${capital(file.group || state.noun)}`, ...file.badges].join(' · ');
+    const title = document.createElement('h3'); title.textContent = file.title; preview.append(small, title);
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const original = document.createElement('div'); original.className = 'filename'; original.textContent = name;
+    meta.append(original);
+    if (dirty && filename(name, i) !== name) { original.classList.add('old'); const next = document.createElement('div'); next.className = 'filename changed'; next.textContent = `→ ${filename(name, i)}`; meta.append(next); }
+    const actions = document.createElement('div'); actions.className = 'actions';
+    for (const [label, delta] of [['↑', -1], ['↓', 1]]) { const b = document.createElement('button'); b.textContent = label; b.setAttribute('aria-label', `Move ${file.title} ${delta < 0 ? 'earlier' : 'later'}`); b.disabled = busy || i + delta < 0 || i + delta >= order.length; b.onclick = () => { move(i, i + delta); $('cards').children[i + delta]?.querySelector('button')?.focus(); }; actions.append(b); }
+    const inspectButton = document.createElement('button'); inspectButton.className = 'inspect'; inspectButton.textContent = 'View source'; inspectButton.onclick = () => inspect(file); actions.append(inspectButton);
+    const editButton = document.createElement('button'); editButton.textContent = 'Edit'; editButton.title = 'Open in your editor'; editButton.onclick = () => openFile(file); actions.append(editButton); meta.append(actions); card.append(preview, meta);
+    card.ondragstart = e => { dragged = name; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', name); card.classList.add('dragging'); };
+    card.ondragend = () => { dragged = undefined; document.querySelectorAll('.over,.dragging').forEach(el => el.classList.remove('over','dragging')); };
+    card.ondragover = e => { if (dragged && !busy) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; card.classList.add('over'); } };
+    card.ondragleave = () => card.classList.remove('over');
+    card.ondrop = e => { e.preventDefault(); card.classList.remove('over'); if (dragged) move(order.indexOf(dragged), i); dragged = undefined; };
+    $('cards').append(card);
+  });
+}
+async function load(directory, discard = false) {
+  if (busy) return;
+  if (!discard && changed() && !confirm('Discard the unsaved order and load this directory?')) return;
+  const request = ++loading;
+  busy = true; if (state) render();
+  try {
+    const result = await api(`/__author/collection?directory=${encodeURIComponent(directory)}`);
+    if (request !== loading) return;
+    state = result; order = state.files.filter(f => f.ordered).map(f => f.name); history = [];
+    $('crumb').textContent = `content / ${directory.replaceAll('/', ' / ')}`;
+    $('heading').textContent = order.length ? `Arrange your ${state.plural}` : directory.split('/').at(-1) || 'Content';
+    $('sub').textContent = `Drag ${state.plural} into place. Save to write their order into the filenames.`;
+    document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.path === directory));
+    message(order.length ? 'Drop a card on another to move it to that position. Arrow buttons work with keyboard and touch.' : 'This directory has no numbered pages (010 - name.md). Choose a collection in the hierarchy.');
+  } catch (error) { message(error.message, true); }
+  finally { busy = false; if (state) render(); }
+}
+$('save').onclick = async () => {
+  busy = true; render(); message('Saving filenames…');
+  try { state = await api('/__author/reorder', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({directory:state.directory, revision:state.revision, order}) }); order = state.files.filter(f => f.ordered).map(f => f.name); history = []; message('Saved. The running build watcher will refresh open pages.'); }
+  catch (error) { message(error.message, true); }
+  finally { busy = false; render(); }
+};
+$('undo').onclick = () => { order = history.pop(); render(); };
+$('reset').onclick = () => { order = state.files.filter(f => f.ordered).map(f => f.name); history = []; render(); message('Local changes discarded.'); };
+$('reload').onclick = () => load(state?.directory || '');
+$('close').onclick = () => $('detail').close();
+window.addEventListener('beforeunload', e => { if (changed()) { e.preventDefault(); e.returnValue = ''; } });
+try {
+  const config = await api('/__author/config');
+  $('site').href = config.siteUrl;
+  const tree = await api('/__author/tree');
+  function branch(node, depth = 0) { const button = document.createElement('button'); button.dataset.path = node.path; button.style.paddingLeft = `${12 + depth * 12}px`; button.textContent = `${node.children.length ? '▾' : '▤'} ${node.name}${node.pages ? ` (${node.pages})` : ''}`; button.onclick = () => load(node.path); $('tree').append(button); node.children.forEach(child => branch(child, depth + 1)); }
+  branch(tree);
+  await load(config.directory);
+  if (!config.directory) message('Choose a collection in the hierarchy.');
+} catch (error) { message(error.message, true); }
+</script>
+</html>

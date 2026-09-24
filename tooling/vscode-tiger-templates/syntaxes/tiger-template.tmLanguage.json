@@ -1,0 +1,106 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Tiger Markdown Templates",
+  "scopeName": "tiger-template.injection",
+  "injectionSelector": "L:text.html.markdown -markup.fenced_code -markup.raw -markup.inline.raw -meta.embedded -comment -meta.template.tiger -meta.attributes.tiger",
+  "patterns": [
+    { "include": "#frontmatter" },
+    { "include": "#closing-call" },
+    { "include": "#call" },
+    { "include": "#block-open" },
+    { "include": "#block-close" },
+    { "include": "#attributes" }
+  ],
+  "repository": {
+    "frontmatter": {
+      "name": "meta.frontmatter.tiger",
+      "contentName": "meta.embedded.block.scala",
+      "begin": "\\A\\x{FEFF}?(---)(scala)[ \\t]*\\r?$",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.frontmatter.begin.tiger" },
+        "2": { "name": "entity.name.type.language.tiger" }
+      },
+      "end": "^(---)[ \\t]*\\r?$",
+      "endCaptures": { "1": { "name": "punctuation.definition.frontmatter.end.tiger" } },
+      "patterns": [
+        {
+          "begin": "'''",
+          "end": "'''",
+          "name": "string.quoted.triple.single.scala"
+        },
+        { "include": "source.scala" }
+      ]
+    },
+    "closing-call": {
+      "name": "meta.template.tiger",
+      "begin": "(?<![\\\\{])(\\{\\{)(end-[^\\s{}]+)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.template.begin.tiger" },
+        "2": { "name": "keyword.control.template.end.tiger" }
+      },
+      "end": "(\\}\\})|(?=$)",
+      "endCaptures": { "1": { "name": "punctuation.definition.template.end.tiger" } },
+      "patterns": [{ "include": "#arguments" }]
+    },
+    "call": {
+      "name": "meta.template.tiger",
+      "begin": "(?<![\\\\{])(\\{\\{)([^\\s{}]+)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.template.begin.tiger" },
+        "2": { "name": "entity.name.function.template.tiger" }
+      },
+      "end": "(\\}\\})|(?=$)",
+      "endCaptures": { "1": { "name": "punctuation.definition.template.end.tiger" } },
+      "patterns": [{ "include": "#arguments" }]
+    },
+    "block-open": {
+      "name": "meta.template.tiger",
+      "begin": "(?:^|\\G)[ ]{0,3}(:::)([A-Za-z][A-Za-z0-9_-]*)(?=\\s|$)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.template.begin.tiger" },
+        "2": { "name": "entity.name.function.template.tiger" }
+      },
+      "end": "$",
+      "patterns": [{ "include": "#arguments" }]
+    },
+    "block-close": {
+      "match": "(?:^|\\G)[ ]{0,3}(:::)[ \\t]*$",
+      "captures": { "1": { "name": "keyword.control.template.end.tiger" } }
+    },
+    "attributes": {
+      "name": "meta.attributes.tiger",
+      "begin": "(?<![\\\\{])(\\{)(?=[ \\t]*(?:[.#][A-Za-z_]|[A-Za-z_][\\w:-]*[ \\t]*=))",
+      "beginCaptures": { "1": { "name": "punctuation.definition.attributes.begin.tiger" } },
+      "end": "(\\})|(?=$)",
+      "endCaptures": { "1": { "name": "punctuation.definition.attributes.end.tiger" } },
+      "patterns": [{ "include": "#arguments" }]
+    },
+    "arguments": {
+      "patterns": [
+        { "include": "#attributes" },
+        {
+          "begin": "\"",
+          "end": "\"|(?=$)",
+          "name": "string.quoted.double.tiger",
+          "patterns": [{ "match": "\\\\.", "name": "constant.character.escape.tiger" }]
+        },
+        {
+          "begin": "'",
+          "end": "'|(?=$)",
+          "name": "string.quoted.single.tiger",
+          "patterns": [{ "match": "\\\\.", "name": "constant.character.escape.tiger" }]
+        },
+        {
+          "match": "([A-Za-z_][\\w:-]*)([ \\t]*)(=)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.tiger" },
+            "3": { "name": "keyword.operator.assignment.tiger" }
+          }
+        },
+        { "match": "[.#][A-Za-z_][\\w-]*", "name": "entity.other.attribute-name.class.tiger" },
+        { "match": "(?<![\\w.])-?\\d+(?:\\.\\d+)?(?:%|px|em)?(?=\\s|[}]|$)", "name": "constant.numeric.tiger" },
+        { "match": "[^\\s{}\"'=]+", "name": "variable.parameter.template.tiger" }
+      ]
+    }
+  }
+}

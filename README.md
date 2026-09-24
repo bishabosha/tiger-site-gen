@@ -13,22 +13,28 @@ version (currently `0.1.0-SNAPSHOT`). All published artifacts use organization
 | --- | --- | --- |
 | `core` | `tiger-site-gen-core` | — |
 | `revealTheme` | `tiger-site-gen-reveal` | core |
+| `live` | `tiger-site-gen-live` | core |
+| `revealLive` | `tiger-site-gen-reveal-live` | live, Reveal |
 | `breeze` | `tiger-site-gen-breeze` | core |
 | `blog.breezeSite` | Not published | breeze |
 | `blog.home` | Not published | core |
-| `examples` | Not published | Reveal |
-| `blog` | Not published | blog.breezeSite, blog.home |
+| `examples` | Not published | Reveal, Reveal live |
+| `blog` | Not published | blog.breezeSite, blog.home, live |
 
 Sources live in each module's `src/`; integration tests live in
-`examples/test/src/`, blog build tests in `blog/test/src/`, and Reveal asset
-tests in `revealTheme/test/src/`.
+`examples/test/src/`, blog build tests in `blog/test/src/`, Reveal asset
+tests in `revealTheme/test/src/`, live-server tests in `live/test/src/` and
+slide authoring tests in `revealLive/test/src/`.
+The VS Code extension for Tiger Markdown is in `tooling/vscode-tiger-templates/`.
 Open the repository in Metals, import Mill, and compile/run tests there.
 
-After verification, publish the core and Reveal jars to the local Ivy repository:
+After verification, publish the jars to the local Ivy repository:
 
 ```sh
 ./mill core.publishLocal --doc false
 ./mill revealTheme.publishLocal --doc false
+./mill live.publishLocal --doc false
+./mill revealLive.publishLocal --doc false
 ```
 
 `publishLocal` includes sources and dependency metadata. Omit `--doc false` to
@@ -43,6 +49,8 @@ A Scala CLI consumer uses:
 //> using repository ivy2local
 //> using dep "io.github.bishabosha::tiger-site-gen-core:0.1.0-SNAPSHOT"
 //> using dep "io.github.bishabosha::tiger-site-gen-reveal:0.1.0-SNAPSHOT"
+//> using dep "io.github.bishabosha::tiger-site-gen-live:0.1.0-SNAPSHOT"          # optional: live editing for any site
+//> using dep "io.github.bishabosha::tiger-site-gen-reveal-live:0.1.0-SNAPSHOT"   # optional: live Reveal decks
 ```
 
 ## Document sources
@@ -355,7 +363,7 @@ Shared article links follow their documents' and collections' URLs.
 `revealTheme/src/revealTheme/` contains `revealTheme.RevealTheme`, Scala layouts, slide validation, timing
 manifest, and browser styles. `revealTheme/resources/revealTheme/` contains generic player assets, fonts,
 slide fitting, fullscreen controls, and an optional PDF viewer.
-There is no presentation-specific content or Node preview server.
+There is no presentation-specific content; the preview server lives in `live`.
 
 Install browser dependencies with `npm ci` (Node 22.13 or newer).
 `package.json` is only an asset dependency manifest; it contains no server.
@@ -468,6 +476,177 @@ Run `mysite.buildEmbeddedExample` or `mysite.buildEmbeddedOnlyExample` to build
 the two-deck article examples. Serve each output directory with any static
 server. See [the embedding guide](examples/embedded/README.md) for details.
 
+## Live editing: preview server, Content studio and drafts
+
+`tiger-site-gen-live` (`live/`, depends on core only) turns any Tiger site into a
+local authoring environment. One JVM builds the site, watches its sources, renders
+unsaved VS Code buffers and serves the output with automatic refresh; no Node server
+is involved.
+
+```scala
+import live.LiveSite
+
+object Blog extends LiveSite(MyTheme, contentDirectory = "content", outputDirectory = "dist",
+    watched = Seq("theme", "public"))(using SiteRoot.here)
+@main def blog(args: String*): Unit = Blog.main(args)
+```
+
+| Command | Effect |
+| --- | --- |
+| `blog dev [--port N]` | build, watch, render drafts and serve with live features at 8123 (default command) |
+| `blog build` | one build |
+| `blog watch` | build, then rebuild on save |
+| `blog serve [--static] [--port N]` | serve the output: live (8123), or unchanged with `--static` (8127) |
+
+`PORT` also selects the port. Scala changes need a restart. Override `siteUrl`
+(the page announced on start), `studio` (Content studio's first collection and
+policies), `noReload` and `editorSources` to customise. The Breeze blog is a
+runnable example: `./mill blog.runMain blog.liveBlog` (see `blog/src/blog/makeSite.scala`).
+
+**Builds.** `LiveSite#build` prepares a context, runs `renderSite` (including every
+`afterRender` hook), writes `.tiger-editor.json`, and finally writes the build marker
+`<output>/.tiger-build.json`: a `BuildStatus` with a unique revision, `ok`, and a
+failure's message and stack trace. A failed build keeps the previous output. In `dev`
+the builder also hands the status to the server directly; a server in another process
+(`watch` plus `serve`) polls the marker.
+
+**Browser client** (`/__preview/client.js`). The server injects it into generated
+pages only: HTML routes listed in the build's `.outputs.json`, so copied HTML assets
+(standalone viewers, embeds) are untouched. A page opts out with `data-live="off"`
+on any element, and `LiveSite#noReload` lists output-relative globs to skip. Static
+serving (`serve --static`) never injects it. On each completed build the client
+refetches the page, swaps changed stylesheets after the replacement has loaded (no
+flash), morphs `<body>` in place (keeping scroll position and unchanged DOM), refreshes
+same-origin images when nothing else changed, and reloads when scripts change (the
+page's script list, or the content of any same-origin script). A failed build shows a
+red overlay with the message and trace (isolated in a shadow root); the next success
+removes it. Pages the failed build could not produce are served as a placeholder (503)
+that reloads on recovery. Alt+Shift+E opens the page's source in the editor.
+
+Site scripts can take over patching with a plugin:
+
+```js
+(window.tigerLivePlugins ||= []).push({
+  name: 'my-widget', base: new URL('.', import.meta.url),
+  codePaths: ['widget.mjs'],             // extra code whose change forces a reload
+  async beforeUpdate() {},               // e.g. wait for pending UI actions
+  async update({ previous, next, draft, stylesChanged, morph, refreshImages }) {
+    return false;                        // true: handled; false: generic body morph; 'reload'
+  }
+});
+```
+
+After every update the client dispatches `tiger-live:updated` on `document`
+(`detail: {revision, draft, stylesChanged, handledBy}`); `window.tigerLive` exposes
+`register`, `openSource`, `morph` and `reload`.
+
+**Drafts.** `SiteDrafts` renders any Markdown document of the site from unsaved text
+with the site's real theme, without writing sources or output. It loads the site with
+in-memory overrides (`paths.buildSiteDb(..., overrides)`), plans pages with
+`paths.planSite`, and renders the document's own page plus every page whose last
+render depended on it (an index listing an article, a deck containing a slide). A
+`draft` event carries `{file, pages: [{route, url, html}]}`; each browser applies only
+the page it shows. Every render includes all current drafts; clearing one re-renders
+the rest, and drafts whose text was saved clear after the next build.
+
+**Server** (`LiveServer`, tapir 1.13 on the sync Netty server, JSON via upickle):
+
+- Static files from the output root: path escapes, symlinks leaving it and dot files
+  (`.outputs.json`, `.tiger-build.json`, `.cache`) are refused, directories redirect
+  to a trailing slash, `Cache-Control: no-cache`, known content types (including PDF
+  and WebAssembly), `HEAD` keeps `Content-Length`.
+- `/__preview/events`: server-sent events (an ox `Flow`). Unnamed events carry the
+  `BuildStatus` JSON; the current status and drafts are replayed to new clients.
+- `/__preview/draft`: unsaved buffers from the VS Code extension, which discovers the
+  server through `.live-preview.json` (`{port, token, project}`, mode 0600, removed on
+  exit). Requests need `POST` and the per-run bearer token and stay under 2 MiB.
+  Out-of-order renders are dropped by `(session, sequence)`; invalid drafts answer 422
+  and publish `draft-error` (the last valid preview stays); files that are not documents
+  of the site answer 404.
+- `/__author/`: **Content studio** and its JSON API (`config`, `tree`, `collection`,
+  `reorder`, `insert`, `duplicate`, `delete`, `recalculate`, `open`). It browses the
+  content hierarchy and orders numbered collections (`010 - name.md`). `open` takes a
+  content-relative `file`, a collection `directory` and page `id`, or a page `route`
+  (resolved through `.outputs.json`). Requests must use `Host: 127.0.0.1:<port>` or
+  `localhost:<port>`; writes also need a matching `Origin` and `Content-Type:
+  application/json` and stay under 1 MiB. Renames are staged in a temporary directory
+  with rollback, stale revisions and concurrent saves get 409, traversal and symlinked
+  directories are refused, and deleted pages move to a recoverable `.deleted-*/` backup.
+  "Open in editor" goes through `LiveServerConfig.openEditor`, an `EditorOpener`. The default,
+  `EditorOpener.vscodeExtension()`, hands `vscode://bishabosha.tiger-templates/open?file=…` to
+  whichever application registered `vscode://`; pass another extension id for a differently
+  published build. `EditorOpener.vscodeFile` needs no extension (VS Code's built-in file handler,
+  opening in the active group), and `EditorOpener.command(Seq("idea"))` runs any editor command.
+
+A `CollectionPolicy` describes what a collection's files mean: identity (default: the
+filename), ordering groups, card badges, the minimum page count, and the text of new
+and duplicated pages (default: the neighbor's front matter with a placeholder body, and
+exact copies). Themes supply policies for their collections; everything else is plain
+pages.
+
+### Reveal decks
+
+`tiger-site-gen-reveal-live` (`revealLive/`, depends on live and Reveal) adds what is
+specific to slides:
+
+```scala
+import scala.language.experimental.modularity
+import model.SiteMapSchema.auto.autoDerived
+import revealLive.{LiveDeck, LivePage, LiveRevealTheme, SlideDeck}
+
+object TalkTheme extends LiveRevealTheme(
+  RevealTheme.templates ++ MyTemplates.templates,     // must start with Reveal's templates
+  fonts = MyFonts,
+  page = LivePage(stylesheets = Seq("assets/style.css"), moduleScripts = Seq("assets/extras.mjs")))
+
+object TalkSite extends SlideDeck["my-talk"](TalkTheme)      // content/my-talk/ → /my-talk/
+
+object Talk extends LiveDeck(TalkSite)(using SiteRoot.here)
+@main def deck(args: String*): Unit = Talk.main(args)
+```
+
+| Command | Effect |
+| --- | --- |
+| `deck dev [--port N]` | build, watch, render drafts and serve `dist/` at 8123 (default command) |
+| `deck build [--display]` | one build into `dist/` or `dist-display/` |
+| `deck watch [--display]` | build, then rebuild on save |
+| `deck serve [--display] [--port N]` | serve `dist/` (live, 8123) or `dist-display/` (static, 8127) |
+
+`TIGER_RENDER_MODE=live|display` selects the mode for code that builds without
+`LiveDeck#main`. `LiveDeck` is a `LiveSite` whose output follows the render mode, whose
+site URL is the deck, and whose Content studio opens the deck's `slides/` with the
+`SlidePolicy`: slides are identified by their front matter `id`, main slides stay before
+appendices (`layout = "appendix"`), cards show timings, a deck keeps at least one slide,
+new slides get a fresh ID and notes, and duplicates change only the ID. The studio labels
+the collection as slides. `LiveDeck#draftSlide(file, text)` renders one slide's
+`<section>` from a draft.
+
+**Render modes.** `LiveRevealTheme` renders the deck index with `LiveLayouts`:
+*live* pages carry `data-render-mode="live"`, the authoring toolbar, thumbnails
+sidebar and 16:9 preview frame (`authoring/*.js`, installed next to the deck);
+*display* pages are a maximized Reveal canvas with navigation only and no editor
+scripts. `LivePage` adds deck-relative stylesheets and ES modules to both. Builds keep
+the large vendor bundles installed across content-only edits and reinstall them when
+`theme/`/`public/` files change or output is cleared. `deck.json` remains Reveal's
+manifest; it is no longer the reload signal.
+
+**Slide client.** `authoring/live.js` registers a plugin with the live client
+(`authoring/patch.js`): builds and drafts patch only the changed `<section>`s, keeping
+their identity, so Reveal, the preview frame, the thumbnail sidebar and presentation
+mode stay mounted. Insertions, removals and reordering update navigation, timings and
+slide numbers; slides are re-fitted and re-highlighted and the slide picker is rebuilt
+when titles change. `deck.js`, the authoring scripts, `slide-fit.mjs`, `slide-picker.mjs`
+and every `moduleScripts` entry count as code: a change reloads the page. The toolbar's
+**Edit slide** opens the current slide's source by ID; the thumbnail sidebar inserts,
+duplicates, cuts/pastes, deletes and respaces slides through the Content studio API.
+
+Sidebar thumbnails run no scripts. Deck modules can prepare them by listening for
+`slide-thumbnail:source` (`detail.slide`, before cloning) and
+`slide-thumbnail:copy` (`detail.copy`, the static copy) on `document`.
+
+Run `mysite.liveDemo` for a runnable deck (`examples/live/`, see its README). Ignore
+`dist-display/`, `.live-preview.json` and `.tiger-editor.json` in Git.
+
 ## Incremental builds
 
 `Context.fromTheme` loads the source tree and prepares extras.
@@ -492,6 +671,21 @@ Reveal caches individual slide fragments, rebuilding timing wrappers when order
 or durations change. Each context remains a separate snapshot.
 Restart the watcher when Scala code changes.
 
+Pages can also be rendered without writing anything. `paths.planSite(theme)` selects
+each document's layout and output route (validating routes and the root document, as
+`renderSite` does, which shares this plan); each `PlannedPage` renders to a
+`RenderedPage(source, route, url, html, dependencies)`. `paths.renderSource(theme, file)`
+renders one document's page and `paths.renderPages(theme)(select)` a selection.
+`paths.buildSiteDb(src, theme, session, overrides)` loads the site with in-memory
+source text for some paths (bypassing the session's source cache for them), e.g. unsaved
+editor buffers; `paths.siteDocuments(site)` lists every loaded document.
+
+```scala
+val site = paths.buildSiteDb(contentRoot, theme, session, Map(file -> unsavedText))
+given theme.Context = Context.fromSite(theme)(site, session)
+val page = paths.renderSource(theme, file)   // Option[RenderedPage]
+```
+
 ## Tests
 
 Compile and run through Metals:
@@ -503,6 +697,16 @@ Compile and run through Metals:
 - `checks.ExistingThemes`: full Breeze and Homepage rendering with existing URLs.
 
 The filesystem-watch regression is in `revealTheme.WatchTiming`.
+
+`./mill live.test` covers the generic live server with a small non-Reveal site
+(`live.Journal`): static files, reload-client injection and opt-outs, build markers,
+the error status, Content studio filesystem operations and security checks on plain
+numbered collections, draft relaying, `SiteDrafts` and the `LiveSite` dev loop.
+`./mill revealLive.test` covers the slide policy (IDs, appendices, templates);
+`checks.LiveDeckChecks` builds the example live deck in both modes, renders slide
+drafts and runs the watch/serve loop; `checks.LiveBlogChecks` previews a Breeze
+article draft. Browser-side checks run with `npm run test:js`, the VS Code
+extension's with `npm run test:vscode` (after `npm ci` in `tooling/vscode-tiger-templates`).
 
 Authoring checks use generated generic slide fixtures and do not depend on a
 particular presentation or preview server.
