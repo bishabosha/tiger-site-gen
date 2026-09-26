@@ -36,6 +36,28 @@
     catch { return null; } // Cross-origin top window.
   })();
   let updates = null;
+  let lastNavigation;
+  const navigationListeners = new Set();
+  function onNavigation(event) {
+    const value = JSON.parse(event.data);
+    if (value.route !== route) return;
+    lastNavigation = value;
+    for (const listener of navigationListeners) listener(value);
+  }
+  const navigation = {
+    subscribe(listener) {
+      navigationListeners.add(listener);
+      if (lastNavigation) listener(lastNavigation);
+      return () => navigationListeners.delete(listener);
+    },
+    async publish(value) {
+      const response = await fetch('/__author/navigate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...value, route })
+      });
+      if (!response.ok) throw new Error(`Navigation sync failed: ${response.status}`);
+    }
+  };
 
   /** Update `current` (live DOM) from `before` to `after` (parsed pages), touching only differences. */
   function morph(current, before, after) {
@@ -328,6 +350,7 @@
     // Drafts carry only this page's HTML (a blog draft re-renders every page listing the post).
     updates = new EventSource(`/__preview/events?route=${encodeURIComponent(route)}`);
     updates.onmessage = event => onStatus(event.data);
+    updates.addEventListener('navigation', onNavigation);
     listenForDrafts(updates);
   }
 
@@ -370,7 +393,7 @@
       for (const path of plugin.codePaths || []) track(new URL(path, plugin.base || location.href));
       return api;
     },
-    openSource, morph, reload, follow
+    openSource, morph, reload, follow, navigation
   };
   const queued = Array.isArray(window.tigerLivePlugins) ? window.tigerLivePlugins : [];
   window.tigerLivePlugins = { push: plugin => api.register(plugin) };

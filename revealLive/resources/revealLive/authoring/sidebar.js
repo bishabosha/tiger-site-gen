@@ -60,12 +60,29 @@ export function installSidebar(reveal, toolbar) {
     reveal.slide(h, v);
     return true;
   }
+  let scrollScheduled = false;
+  function followSelection() {
+    if (scrollScheduled) return;
+    scrollScheduled = true;
+    requestAnimationFrame(() => {
+      scrollScheduled = false;
+      if (sidebar.hidden || !list.clientHeight) return;
+      const item = [...list.children].find(item => item.dataset.id === currentId());
+      if (!item) return;
+      const bounds = item.getBoundingClientRect(), viewport = list.getBoundingClientRect();
+      // Move only this scroll container, by just enough to keep the selected card visible.
+      // Hidden presentation UI has no geometry; the frame event retries after it returns.
+      if (bounds.top < viewport.top) list.scrollTop += bounds.top - viewport.top;
+      else if (bounds.bottom > viewport.bottom) list.scrollTop += bounds.bottom - viewport.bottom;
+    });
+  }
   function updateSelection() {
     for (const item of list.children) {
       const selected = item.dataset.id === currentId();
       item.querySelector('button').setAttribute('aria-current', selected ? 'true' : 'false');
       item.classList.toggle('is-cut', item.dataset.id === cutId);
     }
+    followSelection();
     paste.disabled = busy || !cutId || cutId === currentId() || !state;
     cut.disabled = busy || !state;
     sidebar.querySelector('[data-action="duplicate"]').disabled = busy || !state || !state.files.some(file => file.ordered && file.id === currentId());
@@ -205,6 +222,7 @@ export function installSidebar(reveal, toolbar) {
     sessionStorage.setItem(storageKey, String(open));
     reveal.layout();
     if (open && !state) run(refresh);
+    if (open) followSelection();
   }
   function markCut() {
     cutId = currentId(); sessionStorage.setItem(cutKey, cutId);
@@ -259,6 +277,7 @@ export function installSidebar(reveal, toolbar) {
     }
   });
   reveal.on('slidechanged', updateSelection);
+  document.addEventListener('preview:frame', followSelection);
   document.addEventListener('preview:updated', async event => {
     const { changedIds, structural, stylesChanged } = event.detail;
     if (structural) {

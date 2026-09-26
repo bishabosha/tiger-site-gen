@@ -17,14 +17,31 @@ exports.activate = context => {
         vscode.window.showErrorMessage('Tiger can only open Markdown sources in the open workspace.');
         return;
       }
-      // A browser tab has no activeTextEditor: use the tab group itself.
       const groups = vscode.window.tabGroups;
       const current = groups.activeTabGroup;
-      const opposite = groups.all.filter(group => group !== current)
-        .sort((a, b) => Math.abs(a.viewColumn - current.viewColumn) - Math.abs(b.viewColumn - current.viewColumn))[0];
+      // Every group's active tab is visible, even when another split has keyboard focus.
+      // Native integrated-browser tabs have undefined input in VS Code's public API.
+      // Protect opaque tabs and webviews rather than guessing from their page titles.
+      const protectedGroup = group => {
+        const tab = group.activeTab;
+        if (!tab) return false;
+        const input = tab.input;
+        return !input || (vscode.TabInputWebview && input instanceof vscode.TabInputWebview) ||
+          ['workbench.editor.browser', 'simpleBrowser.view', 'browserPreview'].includes(input.viewType);
+      };
+      const candidates = groups.all.filter(group => !protectedGroup(group));
+      const existing = candidates.find(group => group.tabs?.some(tab =>
+        tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === resource.toString()));
+      const target = existing || (candidates.includes(current) ? current : candidates.sort((a, b) =>
+        Math.abs(a.viewColumn - current.viewColumn) - Math.abs(b.viewColumn - current.viewColumn))[0]);
+      // Beside can reuse a browser split. An explicit new column cannot obscure one.
+      const viewColumn = target?.viewColumn ?? Math.max(...groups.all.map(group => group.viewColumn)) + 1;
       try {
+        if (viewColumn > vscode.ViewColumn.Nine) {
+          throw new Error('No source split is available. Free an editor group while keeping the browser visible.');
+        }
         await vscode.window.showTextDocument(resource, {
-          viewColumn: opposite?.viewColumn ?? vscode.ViewColumn.Beside,
+          viewColumn,
           preview: true,
           preserveFocus: true
         });

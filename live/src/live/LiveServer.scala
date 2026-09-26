@@ -135,6 +135,9 @@ object LiveServer:
   final case class OpenRequest(directory: String = "", id: Option[String] = None, file: Option[String] = None,
       route: Option[String] = None) derives ReadWriter
 
+  /** Ephemeral navigation within a page; target is a stable element ID, step an optional reveal step. */
+  final case class Navigation(route: String, target: String, client: String, step: Int = -1) derives ReadWriter
+
   private val contentTypes = Map(
     "html" -> "text/html; charset=utf-8", "css" -> "text/css; charset=utf-8",
     "js" -> "text/javascript; charset=utf-8", "mjs" -> "text/javascript; charset=utf-8",
@@ -169,6 +172,7 @@ object LiveServer:
     @volatile private var boundPort = -1
     /** Subscribers and the page each one shows (`None`: every page), so drafts carry only that page's HTML. */
     private val clients = new ConcurrentHashMap[Channel[ServerSentEvent], Option[String]]()
+    private val navigation = scala.collection.mutable.Map.empty[String, Navigation]
     private val root = config.outputRoot
     private val drafts = new DraftPreview(config.project, config.drafts, publish, lock)
     private val authoring = new Authoring(config.contentRoot, config.studio.policies)
@@ -261,6 +265,7 @@ object LiveServer:
       lock.synchronized {
         channel.send(ServerSentEvent(data = Some(ujson.write(current.json))))
         if config.live then drafts.replay().foreach(draft => channel.send(draftEvent("draft", draft, page)))
+        page.flatMap(navigation.get).foreach(value => channel.send(navigationEvent(value)))
         if closed then channel.done() else clients.put(channel, page)
       }
       try
@@ -270,6 +275,24 @@ object LiveServer:
             case _: ChannelClosed => open = false
             case event: ServerSentEvent @unchecked => emit(event)
       finally clients.remove(channel)
+    }
+
+    private def navigationEvent(value: Navigation): ServerSentEvent =
+      ServerSentEvent(data = Some(upickle.default.write(value)), eventType = Some("navigation"))
+
+    private def navigate(value: Navigation): Navigation = lock.synchronized {
+      if !value.route.startsWith("/") || value.route.startsWith("//") || value.route.length > 2048 ||
+          value.target.isEmpty || value.target.length > 512 || value.client.isEmpty || value.client.length > 128 ||
+          value.step < -1 || value.step > 100000 then throw AuthoringError("Invalid navigation", 400)
+      val normalized = value.copy(route = pageRoute(value.route))
+      // Only built HTML pages can acquire shared state; no arbitrary room names or URLs.
+      if normalized.route.split('/').exists(_.startsWith(".")) then throw AuthoringError("Invalid page route", 400)
+      val path = root / os.RelPath(normalized.route.stripPrefix("/"))
+      if !normalized.route.endsWith(".html") || !os.isFile(path) || !path.toNIO.toRealPath().startsWith(root.toNIO.toRealPath()) then throw AuthoringError("Page not found", 404)
+      navigation(normalized.route) = normalized
+      val event = navigationEvent(normalized)
+      clients.forEach((channel, route) => if route.contains(normalized.route) then channel.sendOrClosed(event))
+      normalized
     }
 
     // -- Static files -------------------------------------------------------------------
@@ -421,6 +444,8 @@ object LiveServer:
           .out(jsonBody[Authoring.Collection])
           .handle(_ => directory => run(authoring.collection(directory.getOrElse(""))))) ++
         List(
+          authorPost.in("navigate").in(jsonBody[Navigation]).out(jsonBody[Navigation])
+            .handle(_ => request => run(navigate(request))),
           authorPost.in("reorder").in(jsonBody[Authoring.ReorderRequest]).out(jsonBody[Authoring.Collection])
             .handle(_ => request => run(authoring.reorder(request))),
           authorPost.in("insert").in(jsonBody[Authoring.InsertRequest]).out(jsonBody[Authoring.Inserted])

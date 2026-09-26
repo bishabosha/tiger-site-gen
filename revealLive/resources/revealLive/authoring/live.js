@@ -1,6 +1,7 @@
 // Included only in Live builds: the Reveal plugin for the live client, the thumbnail sidebar and
 // the toolbar's Edit slide action.
 import { revealPlugin } from './patch.js';
+import { installNavigation } from './navigation.js';
 
 const deck = new URL('..', import.meta.url);
 (window.tigerLivePlugins ||= []).push(revealPlugin(deck));
@@ -10,6 +11,11 @@ const installEditor = () => {
   const reveal = window.Reveal;
   const tools = document.querySelector('.reveal .presentation-tools');
   if (!reveal || !tools || new URLSearchParams(location.search).has('print-pdf')) return;
+  const sync = () => {
+    if (window.tigerLive?.navigation) installNavigation(reveal, window.tigerLive.navigation);
+  };
+  if (window.tigerLive) sync();
+  else document.addEventListener('tiger-live:ready', sync, { once: true });
   import('./sidebar.js').then(({ installSidebar }) => installSidebar(reveal, tools)).catch(console.error);
   const button = document.createElement('button');
   button.type = 'button';

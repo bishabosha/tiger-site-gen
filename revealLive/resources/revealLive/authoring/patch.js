@@ -11,12 +11,13 @@ export function revealPlugin(base) {
     name: 'reveal',
     base,
     codePaths: ['deck.js', 'slide-fit.mjs', 'slide-picker.mjs', 'authoring/live.js', 'authoring/patch.js',
-      'authoring/sidebar.js', 'authoring/frame.js'],
+      'authoring/sidebar.js', 'authoring/frame.js', 'authoring/navigation.js'],
     async beforeUpdate() {
       const reveal = window.Reveal;
       if (reveal && !reveal.isReady()) await new Promise(resolve => reveal.on('ready', resolve));
       // Studio actions finish before the build they caused is applied.
       await window.slideAuthoringPending;
+      document.dispatchEvent(new Event('preview:updating'));
     },
     async update({ previous, next, revision, draft, stylesChanged, morph, refreshImages }) {
       const reveal = window.Reveal;

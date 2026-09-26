@@ -557,6 +557,8 @@ the rest, and drafts whose text was saved clear after the next build.
   and WebAssembly), `HEAD` keeps `Content-Length`.
 - `/__preview/events`: server-sent events (an ox `Flow`). Unnamed events carry the
   `BuildStatus` JSON; the current status and drafts are replayed to new clients.
+  Named `navigation` events carry the latest `{route, target, step, client}` for the
+  subscribed page, replayed when reconnecting.
 - `/__preview/draft`: unsaved buffers from the VS Code extension, which discovers the
   server through `.live-preview.json` (`{port, token, project}`, mode 0600, removed on
   exit). Requests need `POST` and the per-run bearer token and stay under 2 MiB.
@@ -564,7 +566,7 @@ the rest, and drafts whose text was saved clear after the next build.
   and publish `draft-error` (the last valid preview stays); files that are not documents
   of the site answer 404.
 - `/__author/`: **Content studio** and its JSON API (`config`, `tree`, `collection`,
-  `reorder`, `insert`, `duplicate`, `delete`, `recalculate`, `open`). It browses the
+  `reorder`, `insert`, `duplicate`, `delete`, `recalculate`, `open`, `navigate`). It browses the
   content hierarchy and orders numbered collections (`010 - name.md`). `open` takes a
   content-relative `file`, a collection `directory` and page `id`, or a page `route`
   (resolved through `.outputs.json`). Requests must use `Host: 127.0.0.1:<port>` or
@@ -639,6 +641,14 @@ when titles change. `deck.js`, the authoring scripts, `slide-fit.mjs`, `slide-pi
 and every `moduleScripts` entry count as code: a change reloads the page. The toolbar's
 **Edit slide** opens the current slide's source by ID; the thumbnail sidebar inserts,
 duplicates, cuts/pastes, deletes and respaces slides through the Content studio API.
+
+Live viewers of the same deck on the same server share slide and fragment navigation,
+including Chrome and VS Code's browser. The most recent navigation wins; newly opened
+or reconnected viewers follow the server's current position. Different deck routes stay
+independent. This uses the existing server-sent event stream and same-origin navigation
+POSTs, with no extra WebSocket connection. It does not open sources in other viewers or
+synchronize fullscreen, and is absent from Display builds. The thumbnail strip follows
+the selected slide and reveals it when returning from presentation mode.
 
 Sidebar thumbnails run no scripts. Deck modules can prepare them by listening for
 `slide-thumbnail:source` (`detail.slide`, before cloning) and

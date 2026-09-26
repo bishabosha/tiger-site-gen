@@ -140,3 +140,12 @@ semantic highlighting for Markdown by default; an explicit user/workspace
 `editor.semanticHighlighting.enabled` setting takes precedence. Use **Developer:
 Inspect Editor Tokens and Scopes** to inspect these semantic types. This provides
 coloring, not completion, validation or embedded-language bracket/comment rules.
+
+## Opening sources alongside a browser
+
+The live server's Open/Edit slide action preserves visible browsers in every editor
+split, regardless of which split was last focused (including clicks from Chrome).
+It reuses a source already open in a safe split, otherwise the active code split or
+the nearest available split. If every split shows a browser, it creates a new one.
+Focus is preserved. Native integrated-browser tabs currently have no typed input in
+VS Code's tab API, so opaque tabs and webviews are conservatively protected too.

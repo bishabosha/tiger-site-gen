@@ -171,3 +171,38 @@ class PreviewServerChecks extends munit.FunSuite:
       stream.close()
       os.remove.all(root)
   }
+
+  test("navigation is scoped, replayed on reconnect and protected like authoring") {
+    val root = os.temp.dir(prefix = "navigation-preview-")
+    os.write(root / "dist" / "deck" / "index.html", "<html>deck</html>", createFolders = true)
+    os.write(root / "dist" / "other" / "index.html", "<html>other</html>", createFolders = true)
+    completeBuild(root)
+    val server = start(root)
+    val chrome = new Http.EventStream(s"${server.origin}/__preview/events?route=/deck/")
+    val editor = new Http.EventStream(s"${server.origin}/__preview/events?route=/deck/index.html")
+    val other = new Http.EventStream(s"${server.origin}/__preview/events?route=/other/")
+    try
+      chrome.next(); editor.next(); other.next()
+      val move = ujson.Obj("route" -> "/deck/", "target" -> "stable-slide-id", "step" -> 2, "client" -> "chrome")
+      val response = Http.postJson(server.origin, "/__author/navigate", move)
+      assertEquals(response.status, 200)
+      assertEquals(response.json("route").str, "/deck/index.html")
+      for stream <- Seq(chrome, editor) do
+        val (kind, data) = stream.next()
+        assertEquals(kind, "navigation")
+        assertEquals(ujson.read(data), response.json)
+      assert(other.events.poll(100, TimeUnit.MILLISECONDS) == null)
+      val late = new Http.EventStream(s"${server.origin}/__preview/events?route=/deck/")
+      try
+        late.next()
+        assertEquals(ujson.read(late.next()._2), response.json)
+      finally late.close()
+      assertEquals(Http.postJson(server.origin, "/__author/navigate", move, Some("https://example.com")).status, 403)
+      move("route") = "/../deck/index.html"
+      assertEquals(Http.postJson(server.origin, "/__author/navigate", move).status, 400)
+      move("route") = "/missing.html"
+      assertEquals(Http.postJson(server.origin, "/__author/navigate", move).status, 404)
+    finally
+      chrome.close(); editor.close(); other.close(); server.close()
+      os.remove.all(root)
+  }

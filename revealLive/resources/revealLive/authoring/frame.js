@@ -38,6 +38,7 @@ export function installPreviewFrame(reveal, toolbar) {
     const bounds = previewBounds(innerWidth, innerHeight, sidebarWidth, footerHeight, presenting ? 0 : 16);
     for (const [property, value] of Object.entries(bounds)) root.style[property] = `${value}px`;
     reveal.layout();
+    document.dispatchEvent(new Event('preview:frame'));
   }
   function schedule() {
     if (!scheduled) { scheduled = true; requestAnimationFrame(layout); }

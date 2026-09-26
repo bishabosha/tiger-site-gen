@@ -5,7 +5,7 @@ package revealLive
  *  the thumbnail sidebar and the 16:9 presentation frame.
  */
 object RevealLiveResources:
-  val authoringFiles: Seq[String] = Seq("live.js", "patch.js", "sidebar.js", "sidebar.css", "frame.js")
+  val authoringFiles: Seq[String] = Seq("live.js", "patch.js", "sidebar.js", "sidebar.css", "frame.js", "navigation.js")
 
   def authoring(name: String): Array[Byte] =
     val stream = Option(getClass.getResourceAsStream(s"/revealLive/authoring/$name"))
