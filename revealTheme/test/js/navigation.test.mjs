@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { installNavigation } from '../../resources/revealLive/authoring/navigation.js';
+import { installNavigation } from '../../resources/revealTheme/authoring/navigation.js';
 
 function viewer(client, bus) {
   const events = new EventTarget(), handlers = new Map();

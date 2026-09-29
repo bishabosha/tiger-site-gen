@@ -11,15 +11,15 @@ class RevealAssetChecks extends munit.FunSuite:
       val sources = RevealAssets.fromNpm(model.SiteRoot(root))
       assertEquals(sources.revealJs, root / "node_modules" / "reveal.js")
       assertEquals(sources.pdfJs, root / "node_modules" / "pdfjs-dist")
-      assertEquals(sources.themeDirectory, None)
-      assertEquals(sources.publicDirectory, None)
+      assertEquals(sources.themeDirectory, Some(root / "theme"))
+      assertEquals(sources.publicDirectory, Some(root / "public"))
     }
   }
 
   test("missing external packages fail with actionable paths") {
     fixture { root =>
       val error = intercept[IllegalArgumentException] {
-        DeckAssets.install(RevealAssets(root / "external-reveal", root / "external-pdfjs"), root / "output")
+        DeckAssets.prepare(RevealAssets(root / "external-reveal", root / "external-pdfjs"), DeckFonts(), new model.BuildSession).bundle
       }
       assert(error.getMessage.contains((root / "external-reveal").toString))
       assert(error.getMessage.contains("assetSources ="))

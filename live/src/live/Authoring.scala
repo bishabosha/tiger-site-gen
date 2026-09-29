@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
 import upickle.default.ReadWriter
+import io.util.FrontMatter
 
 /** A failed authoring request, reported to the browser as `{"error": message}` with `status`. */
 final class AuthoringError(message: String, val status: Int = 400) extends Exception(message)
@@ -39,21 +40,15 @@ object Authoring:
   final case class RevisionRequest(directory: String = "", revision: String = "") derives ReadWriter
 
   private val numbered = Pattern.compile("^(\\d+) - (.+)\\.md$")
-  private val frontMatterPattern = "\\A(?:---scala|```scala)\\s*\\r?\\n([\\s\\S]*?)\\r?\\n(?:---|```)"
-  private[live] val frontMatter = Pattern.compile(frontMatterPattern)
-  /** The whole front matter block, including its closing line (and a legacy `---` separator). */
-  private val frontMatterBlock = Pattern.compile(
-    "\\A\\uFEFF?(?:---scala[^\\n]*\\n[\\s\\S]*?\\n---[ \\t]*(?:\\r?\\n|\\z)|(?:---[ \\t]*\\r?\\n)?```scala[^\\n]*\\n[\\s\\S]*?\\n```[ \\t]*\\r?\\n---[ \\t]*(?:\\r?\\n|\\z))")
   private val heading = Pattern.compile("^#{1,2}\\s+(.+)$", Pattern.MULTILINE | Pattern.UNIX_LINES)
   private val MaxSafeInteger = 9007199254740991L
   private val collator = java.text.Collator.getInstance(java.util.Locale.ROOT)
 
   /** The front matter's SON contents, or "" without front matter. */
-  def metadata(source: String): String = group(frontMatter, source).getOrElse("")
+  def metadata(source: String): String = FrontMatter.unapply(source).map(_._1).getOrElse("")
   /** The complete front matter block of `source`, including delimiters, or "". */
   def frontMatterOf(source: String): String =
-    val matcher = frontMatterBlock.matcher(source)
-    if matcher.find() then matcher.group() else ""
+    FrontMatter.unapply(source).map((_, body) => source.dropRight(body.length)).getOrElse("")
 
   private def fail(message: String, status: Int = 400): Nothing = throw AuthoringError(message, status)
   private[live] def group(pattern: Pattern, text: String, index: Int = 1): Option[String] =
@@ -123,7 +118,7 @@ final class Authoring(contentRoot: os.Path, policies: Seq[CollectionPolicy] = Ni
       val name = entry.getFileName.toString
       val source = new String(Files.readAllBytes(entry), UTF_8)
       val number = parts(name).map(_._1)
-      val body = source.replaceFirst(frontMatterPattern, "")
+      val body = FrontMatter.unapply(source).map(_._2).getOrElse(source)
       Page(name = name, ordered = number.nonEmpty, number = number.map(n => BigDecimal(n).toLong),
         title = group(heading, body).getOrElse(name.stripSuffix(".md")).replaceAll("[*_`]", ""),
         id = rules.id(source).orElse(Some(name)),

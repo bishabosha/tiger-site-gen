@@ -7,6 +7,8 @@ import scala.compiletime.testing.typeCheckErrors
 
 class MountChecks extends munit.FunSuite:
   private val project = example.ExamplePaths.root
+  private def bundle(output: os.Path): os.Path =
+    os.list(output / "static").find(_.last.startsWith("reveal_")).get
 
   private def fixture(body: os.Path => Unit): Unit =
     val root = os.temp.dir(prefix = "reveal-mount-")
@@ -26,8 +28,8 @@ class MountChecks extends munit.FunSuite:
         type SiteMap = MySite.SiteMap
         type Templates = NamedTuple.Empty
         val templates = model.TemplateFunctions.Empty
-        val conference = mount(RevealTheme)(paths => (deck = paths.presentations.conference))
-        val workshop = mount(RevealTheme)(paths => (deck = paths.presentations.workshop))
+        val conference = mount(RevealTheme())(paths => (deck = paths.presentations.conference))
+        val workshop = mount(RevealTheme())(paths => (deck = paths.presentations.workshop))
         type Extra = (conference: conference.Prepared, workshop: workshop.Prepared)
         def extras(using SiteContext): model.Record[Extra] =
           model.Record((conference = conference.prepare(), workshop = workshop.prepare()))
@@ -90,17 +92,17 @@ class MountChecks extends munit.FunSuite:
   test("selectors reject absent names and incompatible metadata") {
     assertEquals(typeCheckErrors("""
       import revealTheme.*
-      mysite.MySite.mount(RevealTheme)(site =>
+      mysite.MySite.mount(RevealTheme())(site =>
         (deck = site.presentations.conference))
     """), Nil)
     assert(typeCheckErrors("""
       import revealTheme.*
-      mysite.MySite.mount(RevealTheme)(site =>
+      mysite.MySite.mount(RevealTheme())(site =>
         (deck = site.presentations.missing))
     """).nonEmpty)
     assert(typeCheckErrors("""
       import revealTheme.*
-      mysite.MySite.mount(RevealTheme)(site =>
+      mysite.MySite.mount(RevealTheme())(site =>
         (deck = site.articles))
     """).nonEmpty)
     assert(typeCheckErrors("""
@@ -191,7 +193,7 @@ class MountChecks extends munit.FunSuite:
       }(using host)
       assert(fragment.contains("<reveal-deck"))
       assert(!fragment.contains("<html") && !fragment.contains("<body"))
-      assert(fragment.contains("/presentations/conference/embed.mjs"))
+      assert(fragment.contains("/embed.mjs"))
       assert(fragment.contains("data-content-base=\"/presentations/conference/\""))
       assert(!fragment.contains("href=\"/presentations/conference/\""))
       assert(fragment.contains("Conference opening"))
@@ -212,27 +214,27 @@ class MountChecks extends munit.FunSuite:
           val name = "Renamed"
         type SiteMap = (`renamed-conference`: RevealTheme.Deck)
         type Templates = RevealTheme.Templates
-        val templates = RevealTheme.templates
+        val templates = RevealTheme.defaultTemplates
         type Extra = NamedTuple.Empty
         def extras(using SiteContext): model.Record[Extra] = model.Record(NamedTuple.Empty)
       val host = Context.fromTheme(root / "content", renamedHost)
-      val renamed = renamedHost.mount(RevealTheme)(paths => (deck = paths.`renamed-conference`))
+      val renamed = renamedHost.mount(RevealTheme())(paths => (deck = paths.`renamed-conference`))
       val prepared = renamed.prepare()(using host)
       assertEquals(prepared.context.site.deck.url, "/renamed-conference/")
       val fragment = prepared.render { DeckLayouts.embedded(linkToStandalone = true).render }
       assert(fragment.contains("data-content-base=\"/renamed-conference/\""))
-      assert(fragment.contains("src=\"/renamed-conference/embed.mjs\""))
+      assert(fragment.contains("/static/reveal_") && fragment.contains("/embed.mjs\""))
       assert(fragment.contains("href=\"/renamed-conference/\""))
       assert(!fragment.contains("href=\"/presentations/conference/\""))
       assert(!fragment.contains("data-deck-url=\"/deck/\""))
       paths.renderSite(root / "dist", renamedHost, Set.empty)(using host, summon[SiteRoot])
       val output = root / "dist" / "renamed-conference"
       assertEquals(output, root / "dist" / "renamed-conference")
-      assert(os.isFile(output / "embed.mjs"))
-      assert(os.isFile(output / "vendor" / "reveal" / "dist" / "reveal.mjs"))
+      assert(os.isFile(bundle(root / "dist") / "embed.mjs"))
+      assert(os.isFile(bundle(root / "dist") / "vendor" / "reveal" / "dist" / "reveal.mjs"))
       assert(!os.exists(output / "index.html"))
       val page = DeckLayouts.index.run(prepared.context.site.deck.index)(using prepared.context).render
-      assert(page.contains("/renamed-conference/deck.js"))
+      assert(page.contains("/deck.js"))
     }
   }
 
@@ -248,7 +250,7 @@ class MountChecks extends munit.FunSuite:
       assert(os.read(root / "dist" / "index.html").contains("/articles/"))
       val index = os.read(root / "dist" / "presentations" / "conference" / "index.html")
       assert(index.contains("Conference opening") && !index.contains("Workshop opening"))
-      assert(index.contains("/presentations/conference/deck.js"))
+      assert(index.contains("/deck.js"))
       assert(os.read(root / "dist" / "presentations" / "conference" / "speaker-notes.html").contains("Conference notes"))
       assert(!os.exists(root / "dist" / "presentations" / "conference" / "slides"))
       assert(!os.exists(root / "dist" / "presentations" / "workshop" / "slides"))
@@ -421,7 +423,7 @@ class MountChecks extends munit.FunSuite:
       assertEquals(calls, 1)
       val output = root / "dist"
       val manifest = output / "presentations" / "conference" / "deck.json"
-      val script = output / "presentations" / "conference" / "embed.mjs"
+      val script = bundle(output) / "embed.mjs"
       assert(os.isFile(manifest) && os.isFile(script))
       val data = ujson.read(os.read(manifest))
       assertEquals(data("title").str, "Conference")
@@ -456,14 +458,14 @@ class MountChecks extends munit.FunSuite:
       collection <- Seq("conference", "workshop")
     do
       val output = project / "dist" / directory / "presentations" / collection
-      assert(os.isFile(output / "embed.mjs"))
-      assert(os.isFile(output / "theme.css"))
+      assert(os.isFile(bundle(project / "dist" / directory) / "embed.mjs"))
+      assert(os.isFile(bundle(output / os.up / os.up) / "theme.css"))
       assertEquals(ujson.read(os.read(output / "deck.json"))("slides").arr.size, 2)
       assertEquals(os.isFile(output / "index.html"), hasPages)
       if hasPages then
-        assert(os.read(output / "index.html").contains(s"/presentations/$collection/deck.js"))
-        assert(os.read(output / "speaker-notes.html").contains(s"/presentations/$collection/notes.css"))
-        assert(os.isFile(output / "vendor" / "reveal" / "dist" / "reveal.js"))
+        assert(os.read(output / "index.html").contains("/deck.js"))
+        assert(os.read(output / "speaker-notes.html").contains("/notes.css"))
+        assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "reveal" / "dist" / "reveal.js"))
   }
 
   test("mounted hooks resolve third-party packages outside the host site") {
@@ -483,13 +485,13 @@ class MountChecks extends munit.FunSuite:
       assertEquals(seen.toList, List(root, root))
       for collection <- Seq("conference", "workshop") do
         val output = root / "dist" / "presentations" / collection
-        assert(os.isFile(output / "vendor" / "reveal" / "dist" / "reveal.js"))
-        assert(os.isFile(output / "vendor" / "pdfjs" / "pdf.mjs"))
-        assert(os.isFile(output / "theme.css"))
+        assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "reveal" / "dist" / "reveal.js"))
+        assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "pdfjs" / "pdf.mjs"))
+        assert(os.isFile(bundle(output / os.up / os.up) / "theme.css"))
         assert(os.isFile(output / "deck.json"))
         assert(!os.exists(output / "index.html"))
       paths.renderSite(root / "dist", theme, Set.empty)(using context, summon[SiteRoot])
-      assertEquals(seen.size, 4)
+      assertEquals(seen.size, 2)
     }
   }
 

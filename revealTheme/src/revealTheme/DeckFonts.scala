@@ -32,9 +32,4 @@ final case class DeckFonts(
       .map((level, weight) => s";--r-h$level-font-weight:$weight").mkString
     s"--r-main-font:$body;--r-heading-font:$headings;--r-code-font:$code;--r-focus-font:$focus$headingStyles$focusStyles$weights"
 
-  /** Always overwrite the stylesheet, including when all custom faces are removed. */
-  private[revealTheme] def write(directory: os.Path): Unit =
-    for face <- faces do
-      val path = directory / "assets" / "fonts" / os.RelPath(face.file)
-      require(os.isFile(path), s"Missing font file: $path. Put ${face.file} in public/assets/fonts/.")
-    os.write.over(directory / "fonts.css", faces.map(_.css).mkString("\n"), createFolders = true)
+  private[revealTheme] def stylesheet: String = faces.map(_.css).mkString("\n")

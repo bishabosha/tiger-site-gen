@@ -22,6 +22,9 @@ trait DraftRenderer:
    */
   def render(file: os.Path, drafts: Map[os.Path, String]): Seq[DraftPage]
 
+  /** Learn source → dependency paths from a completed build, when the renderer uses them. */
+  def learn(built: Map[String, Set[String]]): Unit = ()
+
   /** Prepare caches before the first keystroke arrives. */
   def warm(): Unit = ()
 
@@ -33,7 +36,8 @@ trait DraftRenderer:
  *  index listing the edited article). Dependencies come from [[learn]] (completed
  *  builds), [[warm]], or rendering pages this session has not seen yet.
  */
-class SiteDrafts(theme: model.Theme, content: os.Path)(using SiteRoot) extends DraftRenderer:
+final class SiteDrafts(theme: model.Theme, content: os.Path,
+    displayMode: model.DisplayMode = model.DisplayMode.Live)(using SiteRoot) extends DraftRenderer:
   private val session = new model.BuildSession
   @volatile private var dependencies = Map.empty[os.Path, Set[String]]
 
@@ -47,7 +51,7 @@ class SiteDrafts(theme: model.Theme, content: os.Path)(using SiteRoot) extends D
     content / real.relativeTo(root)
 
   /** Record page dependencies from a build (`renderSite`'s result: site-root-relative source → paths). */
-  def learn(built: Map[String, Set[String]]): Unit = synchronized {
+  override def learn(built: Map[String, Set[String]]): Unit = synchronized {
     dependencies = dependencies ++ built.map((source, deps) => os.Path(source, curr) -> deps)
   }
 
@@ -57,7 +61,7 @@ class SiteDrafts(theme: model.Theme, content: os.Path)(using SiteRoot) extends D
       try Some(sitePath(path) -> text) catch case _: DraftRejected => None) + (target -> drafts.getOrElse(file, ""))
     val site = paths.buildSiteDb(content, theme, session, overrides)
     if !paths.siteDocuments(site).exists(_.sourcePath == target) then throw DraftRejected("Not a document of this site")
-    given theme.Context = Context.fromSite(theme)(site, session)
+    given theme.Context = Context.fromSite(theme)(site, session, displayMode)
     val known = dependencies
     def shows(source: os.Path, deps: Set[String]) = source == target || deps.contains(target.toString)
     // Pages never rendered in this session are rendered to learn whether they show the draft.
@@ -75,7 +79,7 @@ class SiteDrafts(theme: model.Theme, content: os.Path)(using SiteRoot) extends D
   /** Render every page once (without writing) to warm caches and learn dependencies. */
   override def warm(): Unit = synchronized {
     if dependencies.isEmpty then try
-      given theme.Context = Context.fromSite(theme)(paths.buildSiteDb(content, theme, session), session)
+      given theme.Context = Context.fromSite(theme)(paths.buildSiteDb(content, theme, session), session, displayMode)
       val rendered = paths.planSite(theme).pages.map(_.render())
       dependencies = dependencies ++ rendered.map(page => page.source -> page.dependencies)
     catch case scala.util.control.NonFatal(_) => () // Invalid saved input is reported per request.

@@ -155,13 +155,12 @@ class AuthoringChecks extends munit.FunSuite:
       assertEquals(Http.postJson(origin, "/__author/open", ujson.Obj("file" -> s"$dir/index.md")).status, 200)
       assertEquals(Http.postJson(origin, "/__author/open", ujson.Obj("route" -> "/posts/same.html?x#y")).status, 200)
       assertEquals(Http.postJson(origin, "/__author/open", ujson.Obj("route" -> "/posts/")).status, 200)
-      assertEquals(Http.postJson(origin, "/__author/open-slide", ujson.Obj("directory" -> dir, "id" -> "010 - same.md")).status, 200)
       assertEquals(opened.toSeq, Seq(f.posts / "020 - same.md", f.posts / "index.md", f.posts / "010 - same.md",
-        f.posts / "index.md", f.posts / "010 - same.md"))
+        f.posts / "index.md"))
       assertEquals(Http.postJson(origin, "/__author/open", ujson.Obj("route" -> "/")).status, 404, "The root redirect has no source")
       assertEquals(Http.postJson(origin, "/__author/open", ujson.Obj("file" -> "../secret.md")).status, 400)
       assertEquals(Http.postJson(origin, "/__author/open", ujson.Obj("file" -> s"$dir/index.md"), Some("https://example.com")).status, 403)
-      assertEquals(opened.length, 5)
+      assertEquals(opened.length, 4)
       val state = Http.get(s"$origin/__author/collection?directory=$dir").json
       val inserted = Http.postJson(origin, "/__author/insert",
         ujson.Obj("directory" -> dir, "revision" -> state("revision"), "afterId" -> "010 - same.md"))

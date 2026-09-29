@@ -13,7 +13,7 @@ class FrontMatterChecks extends munit.FunSuite:
     try
       val file = root / "example.md"
       os.write(file, source)
-      md.render[FrontMatterMeta](0, "example", file, os.RelPath("example.html"), revealTheme.RevealTheme)
+      md.render[FrontMatterMeta](0, "example", file, os.RelPath("example.html"), revealTheme.RevealTheme())
     finally os.remove.all(root)
 
   test("compact and both legacy forms read the same typed metadata and Markdown") {

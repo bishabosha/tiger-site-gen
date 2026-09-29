@@ -20,9 +20,12 @@ object DeckLayouts:
     button(tpe := "button", attr("data-pdf-action") := action,
       attr("aria-label") := label, title := label, symbol)
 
-  val index: RevealTheme.LayoutOf[DeckMeta] = Layout { page =>
-    val assets = DeckAssets(ctx.site.deck.url)
+  val index: RevealTheme.LayoutOf[DeckMeta] = standalone(DeckPage())
+
+  def standalone(config: DeckPage): RevealTheme.LayoutOf[DeckMeta] = Layout { page =>
+    val assets = ctx.extra.assets
     val data = page.frontMatter
+    val live = ctx.displayMode == model.DisplayMode.Live
     html(lang := "en")(
       head(
         meta(charset := "utf-8"),
@@ -34,9 +37,14 @@ object DeckLayouts:
         link(rel := "stylesheet", href := assets.url("theme.css")),
         link(rel := "stylesheet", href := assets.url("fonts.css")),
         link(rel := "stylesheet", href := assets.url("vendor/pdfjs/pdf_viewer.css")),
-        link(rel := "stylesheet", href := assets.url("pdf-explorer.css"))
+        link(rel := "stylesheet", href := assets.url("pdf-explorer.css")),
+        config.stylesheets.map(file => link(rel := "stylesheet", href := assets.url(file))),
+        if live then AuthoringAssets.head else frag()
       ),
-      body(cls := "reveal-standalone", style := ctx.extra.fonts.cssVariables)(
+      body(cls := "reveal-standalone", style := ctx.extra.fonts.cssVariables,
+        attr("data-render-mode") := (if live then "live" else "static"),
+        attr("data-deck-assets") := assets.baseUrl,
+        attr("data-preview-code") := config.moduleScripts.mkString(" "))(
         slidesFragment(fullscreen = true),
         tag("dialog")(id := "pdf-tour", cls := "pdf-tour", attr("aria-label") := "Document viewer")(
           div(cls := "pdf-controls")(
@@ -68,14 +76,16 @@ object DeckLayouts:
         script(src := assets.url("vendor/reveal/dist/plugin/notes.js")),
         script(src := assets.url("vendor/reveal/dist/plugin/highlight.js")),
         script(src := assets.url("deck.js")),
-        script(tpe := "module", src := assets.url("fullscreen.mjs")),
-        script(tpe := "module", src := assets.url("pdf-explorer.mjs"))
+        if !live then script(tpe := "module", src := assets.url("fullscreen.mjs")) else frag(),
+        script(tpe := "module", src := assets.url("pdf-explorer.mjs")),
+        config.moduleScripts.map(file => script(tpe := "module", src := assets.url(file))),
+        if live then script(tpe := "module", src := AuthoringAssets.scriptUrl) else frag()
       )
     )
   }
 
   val notes: RevealTheme.LayoutOf[NotesMeta] = Layout { page =>
-    val assets = DeckAssets(ctx.site.deck.url)
+    val assets = ctx.extra.assets
     val indexPage = ctx.site.deck.index
     val data = indexPage.frontMatter
     val slides = ctx.extra.slides.read()
@@ -111,7 +121,7 @@ object DeckLayouts:
       linkToStandalone: Boolean = false,
       contentBaseUrl: String = context.site.deck.url
   ): Frag =
-    val assets = DeckAssets(context.site.deck.url)
+    val assets = context.extra.assets
     require(assets.baseUrl.nonEmpty, "Embedded decks need an absolute asset location")
     require(contentBaseUrl.startsWith("/") && !contentBaseUrl.startsWith("//") && contentBaseUrl.endsWith("/"),
       "Embedded content needs a site-absolute asset directory ending in /")

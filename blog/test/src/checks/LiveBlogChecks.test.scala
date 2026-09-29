@@ -9,7 +9,7 @@ class LiveBlogChecks extends munit.FunSuite:
     val root = os.temp.dir(prefix = "live-blog-")
     try
       os.copy(blog.BlogPaths.content / "_docs", root / "content")
-      val site = LiveSite(breezeSite.BreezeSite, "content", "dist", Nil)(using SiteRoot(root))
+      val site = LiveSite(breezeSite.BreezeSite, live.LiveSiteSettings(watched = Nil))(using SiteRoot(root))
       assert(site.build().ok)
       assert(BuildStatus.read(root / "dist").exists(_.ok))
       val file = root / "content" / "articles" / "001 - the-beginning.md"
@@ -27,7 +27,7 @@ class LiveBlogChecks extends munit.FunSuite:
       val server = site.serve(0)
       try
         val page = live.Http.get(s"${server.origin}/articles/the-beginning.html").body
-        assert(page.contains("/__preview/client.js"))
+        assert(page.contains("/static/live/client_"))
         val studio = live.Http.get(s"${server.origin}/__author/collection?directory=articles").json
         assertEquals(studio("noun").str, "page")
         assert(studio("files").arr.exists(_("name").str == "001 - the-beginning.md"))

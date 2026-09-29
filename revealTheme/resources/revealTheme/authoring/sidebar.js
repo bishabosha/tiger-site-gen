@@ -1,16 +1,10 @@
-import { installPreviewFrame } from './frame.js';
+import { installPreviewFrame } from 'tiger/reveal/frame';
 
 export function installSidebar(reveal, toolbar) {
   const directory = decodeURIComponent(new URL('.', location.href).pathname).replace(/^\/+|\/+$/g, '') + '/slides';
   const storageKey = `slide-sidebar:${directory}`;
   const cutKey = `${storageKey}:cut`;
   const pendingKey = `${storageKey}:pending`;
-  const stylesheet = document.createElement('link');
-  stylesheet.rel = 'stylesheet';
-  stylesheet.href = new URL('./sidebar.css', import.meta.url).href;
-  stylesheet.dataset.previewStyles = 'true';
-  stylesheet.addEventListener('load', () => reveal.layout());
-  document.head.append(stylesheet);
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.textContent = 'Thumbnails';

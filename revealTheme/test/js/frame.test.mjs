@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { previewBounds } from '../../resources/revealLive/authoring/frame.js';
+import { previewBounds } from '../../resources/revealTheme/authoring/frame.js';
 
 test('16:9 preview fits wide, tall and split editor windows outside the sidebar and footer', () => {
   for (const [width, height, sidebar, footer] of [[1920,1080,252,72], [640,1000,252,160], [1400,500,0,72]]) {

@@ -1,10 +1,11 @@
-// Included only in Live builds: the Reveal plugin for the live client, the thumbnail sidebar and
+// Included by live layouts: the Reveal plugin for the live client, the thumbnail sidebar and
 // the toolbar's Edit slide action.
-import { revealPlugin } from './patch.js';
-import { installNavigation } from './navigation.js';
+import { revealPlugin } from 'tiger/reveal/patch';
+import { installNavigation } from 'tiger/reveal/navigation';
 
-const deck = new URL('..', import.meta.url);
-(window.tigerLivePlugins ||= []).push(revealPlugin(deck));
+const deck = new URL('.', location.href);
+const assets = new URL(document.body.dataset.deckAssets, location.href);
+(window.tigerLivePlugins ||= []).push(revealPlugin(assets));
 
 // Shared Reveal toolbar: source lookup by slide ID stays current after slide reordering.
 const installEditor = () => {
@@ -16,7 +17,7 @@ const installEditor = () => {
   };
   if (window.tigerLive) sync();
   else document.addEventListener('tiger-live:ready', sync, { once: true });
-  import('./sidebar.js').then(({ installSidebar }) => installSidebar(reveal, tools)).catch(console.error);
+  import('tiger/reveal/sidebar').then(({ installSidebar }) => installSidebar(reveal, tools)).catch(console.error);
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = 'Edit slide';

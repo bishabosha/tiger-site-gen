@@ -54,17 +54,23 @@ object sanatise:
       size: Long,
       modified: java.nio.file.attribute.FileTime,
       created: java.nio.file.attribute.FileTime,
+      changed: Option[java.nio.file.attribute.FileTime],
       fileKey: Any
   )
   def fileVersion(path: os.Path): FileVersion =
     val stat = java.nio.file.Files
       .readAttributes(path.toNIO, classOf[java.nio.file.attribute.BasicFileAttributes])
-    FileVersion(stat.size, stat.lastModifiedTime, stat.creationTime, stat.fileKey)
+    val changed = try Some(java.nio.file.Files.getAttribute(path.toNIO, "unix:ctime")
+      .asInstanceOf[java.nio.file.attribute.FileTime])
+      catch case _: UnsupportedOperationException | _: IllegalArgumentException => None
+    FileVersion(stat.size, stat.lastModifiedTime, stat.creationTime, changed, stat.fileKey)
 
   private val regex = raw"[:/()!?&*^$$#@,']".r
 
   def md5Hashed(path: os.Path): String =
-    val bytes = os.read.bytes(path)
+    md5Hashed(os.read.bytes(path))
+
+  def md5Hashed(bytes: Array[Byte]): String =
     val md = java.security.MessageDigest.getInstance("MD5")
     val digest = md.digest(bytes)
     digest.map("%02x".format(_)).mkString
@@ -87,20 +93,52 @@ object paths:
     val hashedName = s"${path.baseName}_$hashedSuffix.${path.ext}"
     (path / os.up / hashedName)
 
+  private def resourcePath(asset: model.StaticAsset): os.RelPath =
+    val path = os.RelPath(asset.path.stripPrefix("/"))
+    path / os.up / s"${path.baseName}_${asset.hash}.${path.ext}"
+
+  def resolveStaticAsset(asset: model.StaticAsset)(using model.SiteContext): String =
+    resolveStaticAsset(asset, sctx.staticAssets)
+
+  /** Resolve a tree as one content-addressed unit, preserving its internal relative URLs. */
+  def resolveStaticAsset(bundle: model.StaticBundle)(using model.SiteContext): String =
+    sctx.staticAssets.register(bundle)
+    Templates.recordMultiDependency(bundle.dependencies)
+    s"/static/${bundle.outputDirectory}/"
+
+  /** Also used by live serving to install its client through the ordinary static pipeline. */
+  def resolveStaticAsset(asset: model.StaticAsset, assets: model.StaticAssets): String =
+    assets.register(asset)
+    s"/static/${resourcePath(asset)}"
+
+  def writeStaticAssets(dest: os.Path, assets: model.StaticAssets): Unit = assets.synchronized {
+    for asset <- assets.resources do
+      val target = dest / "static" / resourcePath(asset)
+      if !os.isFile(target) then os.write(target, asset.bytes, createFolders = true)
+    for bundle <- assets.bundles; (path, asset) <- bundle.files do
+      val target = dest / "static" / bundle.outputDirectory / path
+      if !os.isFile(target) then os.write(target, asset.bytes, createFolders = true)
+  }
+
   def resolveStaticAsset(relURL: String)(using model.SiteContext): String =
     relURL match
       case s"/static/$rest" =>
-        sctx.site.optStatic match
-          case Some(static) =>
-            val path = os.Path(rest, static)
-            // Record dependency on this static asset for the current page render, if enabled
-            Templates.recordDependency(path)
-            if os.exists(path) then
-              val hashedPath = hashPath(path).relativeTo(static).toString
-              s"/static/$hashedPath"
-            else throw Exception(s"Static asset not found: $path")
-          case None => throw Exception("No static directory found")
+        sctx.staticAssets.get(s"/$rest") match
+          case Some(asset) => s"/static/${resourcePath(asset)}"
+          case None => resolveStaticFile(rest)
       case _ => throw Exception(s"Invalid static asset path: $relURL")
+
+  private def resolveStaticFile(rest: String)(using model.SiteContext): String =
+    sctx.site.optStatic match
+      case Some(static) =>
+        val path = os.Path(rest, static)
+        // Record dependency on this static asset for the current page render, if enabled
+        Templates.recordDependency(path)
+        if os.exists(path) then
+          val hashedPath = hashPath(path).relativeTo(static).toString
+          s"/static/$hashedPath"
+        else throw Exception(s"Static asset not found: $path")
+      case None => throw Exception("No static directory found")
 
   def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(using
       model.SiteRoot
@@ -134,12 +172,19 @@ object paths:
       if !ignoreCache then Cache.readFrom(cachePath)
       else Cache.empty
 
-    val allFiles = os.walk(os.Path(src, curr)).filter(os.isFile)
+    // Previous page dependencies include theme/public trees outside the Markdown source root.
+    def dependencyFiles(dependencies: Iterable[String]): Seq[os.Path] = dependencies.toSet.toSeq.flatMap { dependency =>
+      val path = os.Path(dependency, curr)
+      if os.isDir(path) then os.walk(path).filter(os.isFile)
+      else if os.isFile(path) then Seq(path)
+      else Nil
+    }
+    val allFiles = (os.walk(os.Path(src, curr)).filter(os.isFile) ++ dependencyFiles(cache.deps.valuesIterator.flatten.toSeq)).distinct
     val hashes = session.cache(fileHashes)
     def sourceHash(path: os.Path): String =
       val version = sanatise.fileVersion(path)
       hashes.get(path) match
-        case Some((cachedVersion, hash)) if cachedVersion == version => hash
+        case Some((cachedVersion, hash)) if version.changed.nonEmpty && cachedVersion == version => hash
         case _                                                       =>
           val hash = sanatise.md5Hashed(path)
           hashes(path) = (version, hash)
@@ -166,7 +211,9 @@ object paths:
 
     val dependentDocs: Set[os.Path] =
       cache.deps.collect {
-        case (docPath, deps) if deps.exists(changedAbsPaths.contains) =>
+        case (docPath, deps) if deps.exists(dependency =>
+            changedAbsPaths.contains(dependency) || (os.isDir(os.Path(dependency)) &&
+              changed.exists(_.startsWith(os.Path(dependency))))) =>
           os.Path(docPath, curr)
       }.toSet
 
@@ -192,7 +239,7 @@ object paths:
     val mergedDeps: Map[String, Set[String]] = prevDepsKept ++ depsFromRender
 
     val newCache = Cache(
-      files = (changed ++ unchanged)
+      files = (changed ++ unchanged ++ dependencyFiles(mergedDeps.valuesIterator.flatten.toSeq)).distinct
         .map(p => p.relativeTo(curr).toString -> sourceHash(p))
         .toMap,
       deps = mergedDeps
@@ -476,6 +523,7 @@ object paths:
       )
 
     model.Context.afterRender(theme, dest)
+    writeStaticAssets(dest, ctx.staticAssets)
     val tracked = outputs ++ plan.rootRedirect.map(_ => "@root" -> "index.html")
     os.write.over(outputManifest, upickle.default.write(tracked))
     deps.toMap
@@ -613,8 +661,13 @@ object md:
   end ContentSampler
 
   def renderDoc(document: String)(using Context): String =
-    renderer.render(BlockTemplates.expand(parser.parse(renderRaw(document)),
-      (expression, body) => ctx.templates(expression, body)))
+    val ast = parseDoc(document)
+    HtmlRenderer.builder(ast).build().render(ast)
+
+  def parseDoc(document: String)(using Context): Document =
+    val ast = parser.parse(renderRaw(document))
+    MarkdownLinks.install(ast, ctx.resolveAsset)
+    BlockTemplates.expand(ast, (expression, body) => ctx.templates(expression, body))
   def renderRaw(document: String)(using Context): String =
     Templates.interpolate(document)
 

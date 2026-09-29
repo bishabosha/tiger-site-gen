@@ -27,7 +27,7 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
       presentations: Directory[(conference: RevealTheme.Deck, workshop: RevealTheme.Deck)]
   )
 
-  val slideTheme = new RevealTheme(assets)
+  val slideTheme = RevealTheme(assetSources = assets)
   val conference = mount(slideTheme)(paths => (deck = paths.presentations.conference))
   val workshop = mount(slideTheme)(paths => (deck = paths.presentations.workshop))
 

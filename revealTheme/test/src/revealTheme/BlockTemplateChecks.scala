@@ -37,7 +37,7 @@ class BlockTemplateChecks extends munit.FunSuite:
     )]
     val block: BlockTemplateFunction = child.templates.panel
     val inline: TemplateFunction = child.templates.inline
-    val combined = RevealTheme.templates ++ child.templates
+    val combined = RevealTheme.defaultTemplates ++ child.templates
     summon[combined.Fields =:= (RevealTheme.Templates ++ child.Templates)]
     assert(combined.panel eq block)
     assert(combined.inline eq inline)
@@ -162,7 +162,7 @@ class BlockTemplateChecks extends munit.FunSuite:
     object extended extends model.InferredTemplates, model.EmptyExtras:
       val metadata = child.metadata
       type SiteMap = NamedTuple.Empty
-      val templateDefs = RevealTheme.templates ++ child.templates
+      val templateDefs = RevealTheme.defaultTemplates ++ child.templates
     val html = render("{{stack}}\n\n:::panel Links\n\n[Link][target]\n\n:::\n\n{{end-stack}}\n\n[target]: https://example.com", extended)
     assert(html.contains("class=\"stack \""))
     assert(html.contains("href=\"https://example.com\""), html)

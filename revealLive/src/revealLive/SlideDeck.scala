@@ -3,10 +3,10 @@ package revealLive
 import scala.language.experimental.modularity
 import revealTheme.RevealTheme
 
-/** A presentation website that owns its sources and routes, and mounts a live Reveal theme
+/** A presentation website that owns its sources and routes, and mounts a Reveal theme
  *  on its single collection `content/<DeckName>/` (served at `/<DeckName>/`).
  */
-trait SlideDeck[DeckName <: String: ValueOf](tracked val slideTheme: LiveRevealTheme[?])
+trait SlideDeck[DeckName <: String: ValueOf](tracked val slideTheme: model.Theme { type SiteMap = RevealTheme.SiteMap })
 extends model.InferredExtras, model.EmptyTemplates:
   val collection: DeckName = valueOf[DeckName]
   val metadata: model.Theme.Metadata = new:

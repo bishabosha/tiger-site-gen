@@ -113,9 +113,9 @@ class ProjectedMetadataChecks extends munit.FunSuite:
     assertEquals(typeCheckErrors("""
       import model.*
       import revealTheme.*
-      val child = new RevealTheme()
+      val child = RevealTheme()
       val inferred: ThemeMount[RevealTheme.SiteMap, child.type] =
-        RevealTheme.mount(child)(paths => (deck = paths.deck))
+        RevealTheme().mount(child)(paths => (deck = paths.deck))
     """), Nil)
   }
 

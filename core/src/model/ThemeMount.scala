@@ -23,7 +23,7 @@ final class ThemeMount[HostMap <: AnyNamedTuple, T <: Theme](val theme: T)(
 
   def prepare()(using host: SiteContext.Of[HostMap]): Prepared =
     given SiteRoot = host.siteRoot
-    val prepared = new Prepared(Context.fromSite(theme)(projection(host.site), host.buildSession))
+    val prepared = new Prepared(Context.fromSite(theme)(projection(host.site), host.buildSession, host.displayMode, host.staticAssets))
     host.renderHooks.register(this)(prepared.afterRender)
     prepared
 

@@ -11,7 +11,7 @@ import live.{Authoring, CollectionPolicy}
  *
  *  @param governs which content-relative directories hold slides.
  */
-class SlidePolicy(governs: String => Boolean) extends CollectionPolicy:
+final class SlidePolicy(governs: String => Boolean) extends CollectionPolicy:
   import SlidePolicy.*
   def applies(directory: String): Boolean = governs(directory)
   override def noun = "slide"
@@ -34,23 +34,19 @@ class SlidePolicy(governs: String => Boolean) extends CollectionPolicy:
 
   // Only the metadata ID changes; keep content, notes and formatting intact.
   override def duplicate(source: String, id: Option[String]): String =
-    val matcher = frontMatter.matcher(source)
-    if id.isEmpty || !matcher.find() then source
+    val metadata = Authoring.frontMatterOf(source)
+    if id.isEmpty || metadata.isEmpty then source
     else
-      val metadata = matcher.group(0)
       val field = idReplacement.matcher(metadata)
-      val replaced =
-        if field.find() then metadata.substring(0, field.start()) + field.group(1) + id.get + "\"" + metadata.substring(field.end())
-        else metadata
-      source.substring(0, matcher.start()) + replaced + source.substring(matcher.end())
+      if field.find() then
+        metadata.substring(0, field.start()) + field.group(1) + id.get + "\"" +
+          metadata.substring(field.end()) + source.substring(metadata.length)
+      else source
 
 object SlidePolicy:
   /** Slides in exactly these content-relative directories, e.g. `my-talk/slides`. */
   def apply(directories: String*): SlidePolicy = new SlidePolicy(directories.toSet)
-  /** Slides in any directory named `slides`. */
-  val anySlidesDirectory: SlidePolicy = new SlidePolicy(_.split('/').lastOption.contains("slides"))
 
-  private val frontMatter = Pattern.compile("\\A(?:---scala|```scala)\\s*\\r?\\n([\\s\\S]*?)\\r?\\n(?:---|```)")
   private val idField = Pattern.compile("\\bid\\s*=\\s*\"([^\"\\n]+)\"")
   private val idReplacement = Pattern.compile("(\\bid\\s*=\\s*\")[^\"\\n]+\"")
   private val appendixLayout = Pattern.compile("\\blayout\\s*=\\s*\"appendix\"")

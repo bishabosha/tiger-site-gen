@@ -22,7 +22,7 @@ class EditorManifestChecks extends munit.FunSuite:
     assertEquals(result("blocks").arr.size, 1)
     assertEquals(result("blocks")(0)("name").str, "decoder")
     assertEquals(result("blocks")(0)("fences")(0)("grammar").str, grammar.grammar)
-    val combined = RevealTheme.templates ++ child.templates
+    val combined = RevealTheme.defaultTemplates ++ child.templates
     assertEquals(combined.decoder.editor, Seq(grammar))
   }
   test("a local inline or unannotated block shadows mounted editor metadata") {
@@ -48,7 +48,7 @@ class EditorManifestChecks extends munit.FunSuite:
       val before = os.stat(file).mtime
       EditorManifest.write(child, Seq("content"))
       assertEquals(os.stat(file).mtime, before)
-      EditorManifest.write(RevealTheme, Seq("content"))
+      EditorManifest.write(RevealTheme(), Seq("content"))
       assert(ujson.read(os.read(file))("blocks").arr.isEmpty)
     finally os.remove.all(root)
   }

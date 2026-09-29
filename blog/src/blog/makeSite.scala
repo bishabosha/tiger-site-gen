@@ -18,10 +18,13 @@ given SiteRoot = SiteRoot(BlogPaths.root)
  *  into `dist/breeze`, rebuilds on save, previews unsaved VS Code drafts of any article and
  *  serves with automatic refresh at http://127.0.0.1:8123/ (Content studio at `/__author/`).
  */
-object BreezeLiveSite extends live.LiveSite(breezeSite.BreezeSite, contentDirectory = "blog/_docs",
-    outputDirectory = "dist/breeze", watched = Nil):
-  override def siteUrl: String = "/articles/"
-  override def studio = live.StudioSettings(directory = "articles")
+val breezeLiveSite = live.LiveSite(breezeSite.BreezeSite, live.LiveSiteSettings(
+  contentDirectory = "blog/_docs",
+  output = live.OutputDirectories("dist/breeze", "dist/breeze"),
+  watched = Nil,
+  siteUrl = "/articles/",
+  studio = live.StudioSettings(directory = "articles")
+))
 
 /** `dev` (default), `build`, `watch`, `serve [--static] [--port N]`. */
-@main def liveBlog(args: String*): Unit = BreezeLiveSite.main(args)
+@main def liveBlog(args: String*): Unit = breezeLiveSite.main(args)

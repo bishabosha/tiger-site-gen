@@ -2,6 +2,69 @@ package live
 
 /** LiveSite with a plain (non-Reveal) theme: builds, markers, drafts and the dev loop. */
 class LiveSiteChecks extends munit.FunSuite:
+  test("injected components and settings control builds, drafts, serving and per-call output modes") {
+    val root = os.temp.dir(prefix = "composed-live-")
+    given model.SiteRoot = model.SiteRoot(root)
+    val file = root / "sources" / "note.md"
+    os.write(file, "Saved source", createFolders = true)
+    val calls = scala.collection.mutable.ArrayBuffer.empty[(os.Path, model.DisplayMode)]
+    val dependencies = Map("sources/note.md" -> Set(file.toString))
+    val builder = new SiteBuilder:
+      def build(output: os.Path, mode: model.DisplayMode): Map[String, Set[String]] =
+        calls += output -> mode
+        os.write.over(output / "custom" / "index.html", s"<html><body>$mode</body></html>", createFolders = true)
+        os.write.over(output / ".outputs.json", "{\"sources/note.md\":\"custom/index.html\"}")
+        dependencies
+    var learned = Map.empty[String, Set[String]]
+    val drafts = new DraftRenderer:
+      override def learn(built: Map[String, Set[String]]): Unit = learned = built
+      def render(file: os.Path, drafts: Map[os.Path, String]): Seq[DraftPage] =
+        Seq(DraftPage("custom/index.html", "/custom/", s"<html><body>Injected: ${drafts(file)}</body></html>"))
+    val settings = LiveSiteSettings(contentDirectory = "sources", output = OutputDirectories("preview", "published"),
+      watched = Nil, siteUrl = "/custom/", noReload = Seq("custom/index.html"))
+    val site = new LiveSite(builder, drafts, settings)
+    try
+      site.main(Seq("build", "--display"))
+      assertEquals(calls.toSeq, Seq(root / "published" -> model.DisplayMode.Static))
+      assert(BuildStatus.read(root / "published").exists(_.ok))
+      assertEquals(site.displayMode, model.DisplayMode.Live, "CLI options must not mutate the host")
+      site.build()
+      assertEquals(calls.last, root / "preview" -> model.DisplayMode.Live)
+      assertEquals(learned, dependencies)
+      val static = site.serve(0, model.DisplayMode.Static)
+      try assertEquals(Http.get(static.siteUrl).body, "<html><body>Static</body></html>")
+      finally static.close()
+      val server = site.serve(0, model.DisplayMode.Live)
+      val stream = new Http.EventStream(s"${server.origin}/__preview/events")
+      try
+        stream.next()
+        assertEquals(server.siteUrl, s"${server.origin}/custom/")
+        assertEquals(Http.get(server.siteUrl).body, "<html><body>Live</body></html>", "Injected noReload settings apply")
+        val token = ujson.read(os.read(root / ".live-preview.json"))("token").str
+        val reply = Http.post(s"${server.origin}/__preview/draft", ujson.write(ujson.Obj("file" -> file.toString,
+          "session" -> "custom", "sequence" -> 1, "text" -> "Unsaved")), "Authorization" -> s"Bearer $token")
+        assertEquals(reply.status, 200)
+        val (event, data) = stream.next()
+        assertEquals(event, "draft")
+        assert(ujson.read(data)("pages").arr.exists(_("html").str.contains("Injected: Unsaved")))
+      finally
+        stream.close()
+        server.close()
+    finally os.remove.all(root)
+  }
+
+  test("CLI mode, transport and port selection is generic and invocation-local") {
+    val env = Map("TIGER_RENDER_MODE" -> "display", "PORT" -> "9137")
+    assertEquals(LiveSiteOptions.parse(Seq("build"), model.DisplayMode.Live, env),
+      LiveSiteOptions("build", model.DisplayMode.Static, false, 9137))
+    assertEquals(LiveSiteOptions.parse(Seq("serve", "--live", "--static", "--port", "9011"), model.DisplayMode.Static, env),
+      LiveSiteOptions("serve", model.DisplayMode.Live, false, 9011))
+    assertEquals(LiveSiteOptions.parse(Nil, model.DisplayMode.Live, Map.empty),
+      LiveSiteOptions("dev", model.DisplayMode.Live, true, 8123))
+    for args <- Seq(Seq("dev", "--display"), Seq("serve", "--port"), Seq("build", "--unknown")) do
+      intercept[IllegalArgumentException](LiveSiteOptions.parse(args, model.DisplayMode.Live, Map.empty))
+  }
+
   test("builds write pages, the editor manifest and a success marker; failures keep output and report") {
     val root = Journal.project()
     try
@@ -71,7 +134,7 @@ class LiveSiteChecks extends munit.FunSuite:
       val first = ujson.read(stream.next()._2)
       assert(first("ok").bool)
       val page = Http.get(s"${server.origin}/notes/first.html").body
-      assert(page.contains("/__preview/client.js") && page.contains(first("revision").str))
+      assert(page.contains("/static/live/client_") && page.contains(first("revision").str))
       assert(!Http.get(s"${server.origin}/style.css").body.contains("__preview"))
 
       val file = root / "content" / "notes" / "010 - first.md"

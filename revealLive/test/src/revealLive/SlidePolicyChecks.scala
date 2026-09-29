@@ -33,7 +33,6 @@ class SlidePolicyChecks extends munit.FunSuite:
   fixture.test("the policy applies to its directories only") { f =>
     assertEquals(f.api.collection(dir).noun, "slide")
     assertEquals(f.api.collection("talk").noun, "page")
-    assert(SlidePolicy.anySlidesDirectory.applies("a/b/slides") && !SlidePolicy.anySlidesDirectory.applies("a/slides/b"))
   }
 
   fixture.test("keeps main slides before appendices") { f =>
@@ -131,7 +130,7 @@ class SlidePolicyChecks extends munit.FunSuite:
   }
 
   fixture.test("duplicate preserves legacy metadata and appendix layout across a crowded boundary") { f =>
-    val appendix = "```scala\n(id = \"appendix\", seconds = 0, layout = \"appendix\")\n```\n## Appendix\n"
+    val appendix = "```scala\n(id = \"appendix\", seconds = 0, layout = \"appendix\")\n```\n---\n## Appendix\n"
     os.write(f.slides / "021 - appendix.md", appendix)
     val state = f.api.collection(dir)
     val main = f.api.duplicate(PageRequest(dir, state.revision, Some("second")))
@@ -238,17 +237,27 @@ class SlidePolicyChecks extends munit.FunSuite:
       val duplicate = Http.postJson(origin, "/__author/duplicate", ujson.Obj("directory" -> dir,
         "revision" -> state("revision"), "id" -> "first"))
       assertEquals((duplicate.status, duplicate.json("id").str), (200, "first-1"))
-      val deleted = Http.postJson(origin, "/__author/delete-slide", ujson.Obj("directory" -> dir,
+      val deleted = Http.postJson(origin, "/__author/delete", ujson.Obj("directory" -> dir,
         "revision" -> duplicate.json("state")("revision"), "id" -> "first-1"))
       assertEquals(deleted.status, 200)
       assertEquals(Http.get(s"$origin/__author/config").json, ujson.Obj("siteUrl" -> "/talk/", "directory" -> dir))
     finally server.close()
   }
 
-  test("draft sections are extracted from a deck page, including nested sections") {
-    val html = "<div class=\"slides\"><section id=\"a\" class=\"standard\"><p>A</p></section>" +
-      "<section id=\"b\"><section id=\"b1\">x</section></section ></div>"
-    assertEquals(RevealDrafts.section(html, "a"), Some("<section id=\"a\" class=\"standard\"><p>A</p></section>"))
-    assertEquals(RevealDrafts.section(html, "b"), Some("<section id=\"b\"><section id=\"b1\">x</section></section >"))
-    assertEquals(RevealDrafts.section(html, "missing"), None)
+  test("authoring shares the renderer's front matter formats and preserves source bytes") {
+    val policy = SlidePolicy(dir)
+    val metadata = "(id = \"first\", seconds = 30, layout = \"appendix\")"
+    val body = "\n## Body\n\nid = \"first\" stays in the body.\n"
+    val compact = s"---scala\n$metadata\n---\n$body"
+    val fenced = s"```scala\n$metadata\n```\n---\n$body"
+    for source <- Seq(compact, fenced, "---\n" + fenced, "\uFEFF" + compact.replace("\n", "\r\n")) do
+      val (son, markdown) = io.util.FrontMatter.split(source)
+      assertEquals(Authoring.metadata(source), son)
+      assertEquals(Authoring.frontMatterOf(source) + markdown, source)
+      assertEquals(policy.id(source), Some("first"))
+      assertEquals(policy.group(source), Some("appendix"))
+      assertEquals(policy.duplicate(source, Some("first-1")), source.replaceFirst("\"first\"", "\"first-1\""))
+    assertEquals(Authoring.metadata(body), "")
+    assertEquals(Authoring.frontMatterOf(body), "")
+    assertEquals(policy.duplicate(body, Some("unused")), body)
   }

@@ -8,16 +8,10 @@ trait BlockTemplateFunction:
   def renderDefault(args: String, body: TemplateBody): String
 
 object BlockTemplateFunction:
-  // Keep the original factory signature for already compiled themes.
-  def apply(
-      renderFn: Context ?=> (String, TemplateBody) => String,
-      defaultFn: (String, TemplateBody) => String
-  ): BlockTemplateFunction = apply(renderFn, defaultFn, Seq.empty)
-
   def apply(
       renderFn: Context ?=> (String, TemplateBody) => String,
       defaultFn: (String, TemplateBody) => String,
-      editor: Seq[FencedGrammar]
+      editor: Seq[FencedGrammar] = Seq.empty
   ): BlockTemplateFunction =
     val grammars = editor
     new:

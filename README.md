@@ -181,7 +181,7 @@ the shared theme object.
 Themes with the same sitemap can reuse a definition directly:
 
 ```scala
-val extraDefs = RevealTheme.extraDefs
+val extraDefs = RevealTheme().extraDefs
 ```
 
 `InferredExtras.ExtraDefinition` is indexed by its required site context rather
@@ -378,7 +378,7 @@ This works from a published jar without a checkout of the theme sources.
 Supply a resolver to locate packages elsewhere (including per-mount locations):
 
 ```scala
-val slideTheme = new RevealTheme(assetSources = root =>
+val slideTheme = RevealTheme(assetSources = root =>
   RevealAssets(
     revealJs = root.root / "browser-packages" / "reveal.js",
     pdfJs = root.root / "browser-packages" / "pdfjs-dist",
@@ -389,14 +389,16 @@ val presentation = mount(slideTheme)(paths => (deck = paths.presentation))
 
 The resolver runs in the normal `afterRender` flow with the host's `SiteRoot`,
 including embedded-only mounts. Direct use can configure
-`new RevealTheme(assetSources = resolver)`. Output asset URLs still derive from
+`RevealTheme(assetSources = resolver)`. Output asset URLs still derive from
 the selected collection, independently of package locations on disk.
 
-The `RevealTheme` class uses `InferredExtras` and `InferredTemplates`, including
-its default singleton and instances with custom asset resolvers. `templateDefs`
-defines the five built-in template functions; `extraDefs` defers `Slides.render()`
-until each context is constructed. Both public schemas are inferred from those
-definitions, and composed themes retain the same template and extras types.
+`RevealTheme` is final and uses `InferredExtras` and `InferredTemplates`.
+`RevealTheme(...)` creates a fresh instance with the built-in templates;
+`RevealTheme.withTemplates(dictionary, ...)` accepts a composed dictionary that
+retains the built-in fields. Both factories accept asset sources, fonts, slide layouts
+and page settings. The companion holds `defaultTemplates` and shared schema types;
+it is not itself a theme. `templateDefs` preserves the supplied dictionary's exact
+schema, and `extraDefs` defers `Slides.render()` until each context is constructed.
 
 A deck is a directory containing an index document, a speaker-notes document,
 and a slides collection. See `examples/embedded/content/presentations/` for two
@@ -405,7 +407,7 @@ Inside a `model.InferredExtras` host:
 
 ```scala
 type SiteMap = (presentation: RevealTheme.Deck)
-val presentation = mount(RevealTheme)(paths => (deck = paths.presentation))
+val presentation = mount(RevealTheme())(paths => (deck = paths.presentation))
 
 val extraDefs = defineExtras {
   (presentation = presentation.prepare())
@@ -424,7 +426,7 @@ child's singleton type. The resulting `ThemeMount` uses its declared projection 
 inherit the child's `siteMapMeta`, including a composed extension's overrides:
 
 ```scala
-val presentation = mount(RevealTheme)(paths =>
+val presentation = mount(RevealTheme())(paths =>
   (deck = paths.presentation))
 
 override val siteMapMeta = presentation.extend(defaultSiteMeta)
@@ -484,11 +486,11 @@ unsaved VS Code buffers and serves the output with automatic refresh; no Node se
 is involved.
 
 ```scala
-import live.LiveSite
+import live.{LiveSite, LiveSiteSettings}
 
-object Blog extends LiveSite(MyTheme, contentDirectory = "content", outputDirectory = "dist",
-    watched = Seq("theme", "public"))(using SiteRoot.here)
-@main def blog(args: String*): Unit = Blog.main(args)
+val blogSite = LiveSite(MyTheme, LiveSiteSettings(
+  contentDirectory = "content", watched = Seq("theme", "public")))(using SiteRoot.here)
+@main def blog(args: String*): Unit = blogSite.main(args)
 ```
 
 | Command | Effect |
@@ -498,22 +500,37 @@ object Blog extends LiveSite(MyTheme, contentDirectory = "content", outputDirect
 | `blog watch` | build, then rebuild on save |
 | `blog serve [--static] [--port N]` | serve the output: live (8123), or unchanged with `--static` (8127) |
 
-`PORT` also selects the port. Scala changes need a restart. Override `siteUrl`
-(the page announced on start), `studio` (Content studio's first collection and
-policies), `noReload` and `editorSources` to customise. The Breeze blog is a
-runnable example: `./mill blog.runMain blog.liveBlog` (see `blog/src/blog/makeSite.scala`).
+`PORT` also selects the port. Scala changes need a restart. `LiveSiteSettings`
+configures output directories, `siteUrl` (the page announced on start), `studio`
+(Content studio's first collection and policies), `noReload` and `editorSources`.
+The Breeze blog is a runnable example: `./mill blog.runMain blog.liveBlog`
+(see `blog/src/blog/makeSite.scala`).
 
-**Builds.** `LiveSite#build` prepares a context, runs `renderSite` (including every
-`afterRender` hook), writes `.tiger-editor.json`, and finally writes the build marker
+`LiveSite` is final. Its constructor takes a `SiteBuilder`, a `DraftRenderer` and
+`LiveSiteSettings`; the factory above assembles `ThemeBuilder` and `SiteDrafts` for
+a Tiger theme. Custom components use the same host and HTTP server:
+
+```scala
+val site = new LiveSite(builder = myBuilder, drafts = myDraftRenderer, settings = mySettings)
+```
+
+The builder returns page dependencies, which the host passes to `DraftRenderer.learn`
+before publishing a successful build. Draft renderers that do not track dependencies
+can keep the default no-op. `OutputDirectories(live = "dist", static = "dist-display")`
+selects separate destinations; `build(mode)`, `watch(mode = mode)` and `serve(port, mode)`
+select a mode for each operation. CLI options never mutate the host or an existing watcher.
+
+**Builds.** `ThemeBuilder` prepares a context, runs `renderSite` (including every
+`afterRender` hook) and writes `.tiger-editor.json`. `LiveSite` then writes the build marker
 `<output>/.tiger-build.json`: a `BuildStatus` with a unique revision, `ok`, and a
 failure's message and stack trace. A failed build keeps the previous output. In `dev`
 the builder also hands the status to the server directly; a server in another process
 (`watch` plus `serve`) polls the marker.
 
-**Browser client** (`/__preview/client.js`). The server injects it into generated
+**Browser client** (`/static/live/client_<hash>.js`). The server injects it into generated
 pages only: HTML routes listed in the build's `.outputs.json`, so copied HTML assets
 (standalone viewers, embeds) are untouched. A page opts out with `data-live="off"`
-on any element, and `LiveSite#noReload` lists output-relative globs to skip. Static
+on any element, and `LiveSiteSettings.noReload` lists output-relative globs to skip. Static
 serving (`serve --static`) never injects it. On each completed build the client
 refetches the page, swaps changed stylesheets after the replacement has loaded (no
 flash), morphs `<body>` in place (keeping scroll position and unchanged DOM), refreshes
@@ -594,17 +611,19 @@ specific to slides:
 ```scala
 import scala.language.experimental.modularity
 import model.SiteMapSchema.auto.autoDerived
-import revealLive.{LiveDeck, LivePage, LiveRevealTheme, SlideDeck}
+import live.LiveSite
+import revealLive.{RevealLive, SlideDeck}
+import revealTheme.{DeckPage, RevealTheme}
 
-object TalkTheme extends LiveRevealTheme(
-  RevealTheme.templates ++ MyTemplates.templates,     // must start with Reveal's templates
+val talkTheme = RevealTheme.withTemplates(
+  RevealTheme.defaultTemplates ++ MyTemplates.templates,     // must start with Reveal's templates
   fonts = MyFonts,
-  page = LivePage(stylesheets = Seq("assets/style.css"), moduleScripts = Seq("assets/extras.mjs")))
+  page = DeckPage(stylesheets = Seq("assets/style.css"), moduleScripts = Seq("assets/extras.mjs")))
 
-object TalkSite extends SlideDeck["my-talk"](TalkTheme)      // content/my-talk/ → /my-talk/
+object TalkSite extends SlideDeck["my-talk"](talkTheme)      // content/my-talk/ → /my-talk/
 
-object Talk extends LiveDeck(TalkSite)(using SiteRoot.here)
-@main def deck(args: String*): Unit = Talk.main(args)
+val talk = LiveSite(TalkSite, RevealLive.settings(TalkSite.collection))(using SiteRoot.here)
+@main def deck(args: String*): Unit = talk.main(args)
 ```
 
 | Command | Effect |
@@ -614,23 +633,77 @@ object Talk extends LiveDeck(TalkSite)(using SiteRoot.here)
 | `deck watch [--display]` | build, then rebuild on save |
 | `deck serve [--display] [--port N]` | serve `dist/` (live, 8123) or `dist-display/` (static, 8127) |
 
-`TIGER_RENDER_MODE=live|display` selects the mode for code that builds without
-`LiveDeck#main`. `LiveDeck` is a `LiveSite` whose output follows the render mode, whose
-site URL is the deck, and whose Content studio opens the deck's `slides/` with the
-`SlidePolicy`: slides are identified by their front matter `id`, main slides stay before
-appendices (`layout = "appendix"`), cards show timings, a deck keeps at least one slide,
-new slides get a fresh ID and notes, and duplicates change only the ID. The studio labels
-the collection as slides. `LiveDeck#draftSlide(file, text)` renders one slide's
-`<section>` from a draft.
+`TIGER_RENDER_MODE=live|display` selects the CLI's default mode; `--live` and
+`--display` take precedence. Programmatic callers use an explicit mode or the
+`displayMode` in their settings. `RevealLive.settings(collection)` supplies ordinary
+`LiveSiteSettings`: mode-specific output directories, the deck's site URL, editor
+sources, and a `SlidePolicy` in the studio settings. There is no Reveal-specific
+host subclass. The same components can be configured directly or customised with
+`settings.copy(...)`.
 
-**Render modes.** `LiveRevealTheme` renders the deck index with `LiveLayouts`:
-*live* pages carry `data-render-mode="live"`, the authoring toolbar, thumbnails
-sidebar and 16:9 preview frame (`authoring/*.js`, installed next to the deck);
-*display* pages are a maximized Reveal canvas with navigation only and no editor
-scripts. `LivePage` adds deck-relative stylesheets and ES modules to both. Builds keep
-the large vendor bundles installed across content-only edits and reinstall them when
-`theme/`/`public/` files change or output is cleared. `deck.json` remains Reveal's
-manifest; it is no longer the reload signal.
+`SlidePolicy` identifies slides by their front matter `id`, keeps main slides before
+appendices (`layout = "appendix"`), shows timings, keeps at least one slide, gives new
+slides a fresh ID and notes, and changes only the ID when duplicating. The studio
+labels the collection as slides. Drafts use the ordinary `SiteDrafts` renderer:
+`talk.drafts.render(file, Map(file -> text))` renders the deck and notes through
+their standard layouts with unsaved source overrides. Page dependencies select
+which pages need updating; the Reveal browser plugin patches their slide elements.
+
+**Slide layouts.** `RevealTheme` accepts a `slideLayouts` map
+that extends the built-in `standard`, `dark-slide` and `appendix` layouts:
+
+```scala
+slideLayouts = Map(
+  "title" -> revealTheme.SlideLayout("title-slide"),
+  "chapter" -> revealTheme.SlideLayout("dark-slide chapter-slide", Some("#19242a")),
+  "sunburst" -> revealTheme.SlideLayout("sunburst-slide")
+)
+```
+
+Select one with `layout = "chapter"` in slide front matter. The renderer applies
+its CSS classes to the section and its optional background colour to Reveal's
+background layer. Theme CSS styles ordinary Markdown headings and content;
+whole-slide treatments do not need template calls or heading classes. Unknown
+layout names are rejected. Appendix counting and zero-duration rules still follow
+the reserved `appendix` metadata value.
+
+**Display mode belongs to the rendering context.** `ctx.displayMode` is
+`model.DisplayMode.Live` or `Static`. Ordinary `Context.fromTheme`/`fromSite`
+rendering defaults to `Static`; `LiveSite` builds and draft previews use `Live`.
+The mode is inherited by mounted contexts and is independent of the shared theme
+and build caches. `site.build(DisplayMode.Static)` explicitly requests static
+rendering; the Reveal CLI's `--display` selects static rendering in `dist-display/`.
+There is no global mutable render mode.
+
+The same Reveal layout chooses the editor scripts and controls directly from the
+context. In live mode it includes `authoring/live.js` instead of the standalone
+fullscreen controller. Editor scripts and styles go through the existing
+hashed `/static` resolver. `StaticAsset.resource` supplies classpath resources;
+`paths.resolveStaticAsset` registers them in the context and returns a content-hashed
+URL. The host's normal static output pass writes them, including assets registered
+by mounted themes. An import map links the editor modules to their hashed URLs.
+Static rendering does not request these assets; custom page assets, fonts and the PDF
+viewer work in both modes. There is no HTML-rewriting adapter or virtual editor
+asset route. The generic preview server supplies its reload client through the
+same hashed static pipeline and retains its draft/event transport.
+
+Reveal's bundled files, npm dependencies, public files, local overrides and generated
+font CSS form a `StaticBundle`. Its hash covers every relative filename and file's
+contents. URLs have the form `/static/reveal_<hash>/assets/image.png`; changing a
+public file changes the hash. The resolver registers this immutable bundle, and
+`paths.writeStaticAssets` copies those same bytes to those same paths. Relative CSS
+URLs, JavaScript imports and links inside copied HTML keep their directory structure.
+
+Layouts use `ctx.extra.assets.url(path)` for known Reveal files. Markdown images and
+links use the normal renderer's `Theme.resolveAsset` hook, exposed to templates as
+`ctx.resolveAsset(path)`. Templates that produce HTML attributes call this resolver
+when creating the tag. No generated HTML is parsed or rewritten to discover assets.
+Slide rendering uses the prepared context, so template output and Markdown share
+its resolver. Public/theme directories are dependencies even when initially absent.
+
+Other layouts can branch on `ctx.displayMode` in the same way and use their
+normal static asset handling. Content-addressed assets are reused across content
+edits; fresh static output includes no editor assets.
 
 **Slide client.** `authoring/live.js` registers a plugin with the live client
 (`authoring/patch.js`): builds and drafts patch only the changed `<section>`s, keeping
@@ -638,7 +711,9 @@ their identity, so Reveal, the preview frame, the thumbnail sidebar and presenta
 mode stay mounted. Insertions, removals and reordering update navigation, timings and
 slide numbers; slides are re-fitted and re-highlighted and the slide picker is rebuilt
 when titles change. `deck.js`, the authoring scripts, `slide-fit.mjs`, `slide-picker.mjs`
-and every `moduleScripts` entry count as code: a change reloads the page. The toolbar's
+and every `moduleScripts` entry count as code: a change reloads the page.
+Because Reveal assets share a bundle hash, any public or theme asset change also
+changes these script URLs and reloads the page. Content-only changes still patch slides. The toolbar's
 **Edit slide** opens the current slide's source by ID; the thumbnail sidebar inserts,
 duplicates, cuts/pastes, deletes and respaces slides through the Content studio API.
 

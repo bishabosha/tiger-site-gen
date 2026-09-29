@@ -66,8 +66,8 @@ type SiteMap = (
 The inherited `Theme.mount` helper captures the mapping for each deck:
 
 ```scala
-val conference = mount(RevealTheme)(paths => (deck = paths.presentations.conference))
-val workshop = mount(RevealTheme)(paths => (deck = paths.presentations.workshop))
+val conference = mount(RevealTheme())(paths => (deck = paths.presentations.conference))
+val workshop = mount(RevealTheme())(paths => (deck = paths.presentations.workshop))
 ```
 
 The selected directory must have Reveal's `Deck` type. Missing fields, wrong
@@ -80,16 +80,17 @@ A mount does not require a standalone presentation page. Its collections can
 supply only metadata and slide content for host articles. Publication is a
 separate choice, made by attaching the mount's page layouts to the host schema.
 
-Asset URLs and their installation directory are derived from the selected deck
-directory. The nested `presentations.conference` deck uses
-`/presentations/conference/theme.css`, `/presentations/conference/embed.mjs`, and so on. The convention is the same for public and
-embedded-only decks: an asset directory does not require an `index.html`.
-Renaming or selecting a different collection updates both the URLs and output
-location without an explicit `DeckAssets` value.
+Reveal assets use `/static/reveal_<content-hash>/`, shared by decks with identical
+asset trees. Public files, local theme overrides, npm assets and font declarations
+all contribute to that hash. The resolver returns URLs in that directory and the
+normal static output pass copies the matching bytes. This also works for
+embedded-only decks and preserves relative CSS URLs and module imports.
 
-Embedded relative image/link URLs default to the same directory. For content
-stored elsewhere, pass `contentBaseUrl = "/media/conference/"` to
-`DeckLayouts.embedded` inside the prepared context.
+Markdown image/link URLs for public assets are resolved while rendering. Templates
+use `ctx.resolveAsset(path)` when creating URL attributes. Other relative content
+links default to the selected collection; use `contentBaseUrl = "/media/conference/"`
+to give an embedded player a different base for those links. Renaming a collection
+changes page links and manifest locations without changing identical asset URLs.
 
 If a host publishes standalone pages, `DeckLayouts.embedded(linkToStandalone = true)` adds a
 fallback link derived from the selected collection's `url`. There is no explicit
@@ -97,7 +98,7 @@ deck URL to synchronize. Content asset resolution stays independent of that link
 
 Mounts created inside a theme automatically register with that host. Initial
 Markdown parsing discovers their template functions before any mount is prepared,
-so the host does not need to compose `RevealTheme.templates` into its dictionary.
+so the host does not need to compose `RevealTheme.defaultTemplates` into its dictionary.
 Local templates take precedence, followed by mounted themes in declaration order
 (including nested mounts). Rendering uses the prepared mount's own context and
 typed template dictionary. For mounts defined outside the host, override
@@ -175,8 +176,9 @@ Nested mounts follow the same rule. Preparing the same mount more than once in
 one context replaces its registration rather than duplicating it. Registrations
 belong to each context, so later builds cannot change an earlier build's hooks.
 
-Reveal installs assets under the selected collection and writes `deck.json`
-last, using the same prepared slides as its layouts. This works for both
+Reveal registers its hashed asset bundle and writes `deck.json` under the selected
+collection, using the same prepared slides as its layouts. The static output pass
+writes registered assets after the hooks. This works for both
 standalone and embedded-only decks. A host can still override `afterRender` for
 its own output without forwarding to mounts or calling `super`.
 The build entry point only needs to call `paths.renderSite` or `paths.generateSite`.
@@ -218,7 +220,7 @@ of the example output.
 - `ThemeMount` combines projection, preparation, layout adaptation, and automatic hook registration for any
   Tiger theme, including Reveal.
 - `DeckLayouts.embedded` renders a Reveal fragment in the prepared context, with asset URLs derived from its collection.
-- `new RevealTheme(assetSources = resolver)` configures asset sources before mounting.
+- `RevealTheme(assetSources = resolver)` configures asset sources before mounting.
 
 
 For existing numbered singleton sources, opt into `indexed` metadata:

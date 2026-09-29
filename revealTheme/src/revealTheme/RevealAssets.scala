@@ -17,6 +17,6 @@ object RevealAssets:
   val fromNpm: Resolver = root => RevealAssets(
     revealJs = root.root / "node_modules" / "reveal.js",
     pdfJs = root.root / "node_modules" / "pdfjs-dist",
-    publicDirectory = Some(root.root / "public").filter(os.isDir),
-    themeDirectory = Some(root.root / "theme").filter(os.isDir)
+    publicDirectory = Some(root.root / "public"),
+    themeDirectory = Some(root.root / "theme")
   )

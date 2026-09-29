@@ -68,6 +68,10 @@ trait Theme:
   type Extra <: NamedTuple.AnyNamedTuple
   def extras(using SiteContext): model.Record[Extra]
 
+  /** Resolve asset URLs before a layout or Markdown renderer writes them. */
+  def resolveAsset(url: String)(using Context): String =
+    if url.startsWith("/static/") then io.util.paths.resolveStaticAsset(url) else url
+
   /** Complete theme-owned output after pages, static files and mounted hooks.
     * Called once per successful renderSite pass, including incremental passes
     * with no changed pages. Prepared mounts are wired automatically; overrides

@@ -13,7 +13,6 @@ import scalatags.Text.tags2.aside
 /** Validate slide sources and render fragments for the deck and notes layouts. */
 object Slides:
   private val notesHeading = "## Speaker notes"
-  private val layouts = Set("standard", "dark-slide", "appendix")
   private val directive = raw"\{\{([^}]+)\}\}".r
 
   /** Validate authoring markers without treating fenced code examples as syntax. */
@@ -66,17 +65,24 @@ object Slides:
       start: Int, slide: ConcreteHtmlTag[String], notes: Frag, source: os.Path)
 
   private case class Parsed(title: String, audienceHtml: String, notesHtml: String)
-  private case class Cached(theme: model.Theme, meta: SlideMeta, raw: String, parsed: Parsed, rendered: Rendered)
+  private case class Cached(theme: model.Theme, assetHash: String, mode: model.DisplayMode, meta: SlideMeta, raw: String, parsed: Parsed, rendered: Rendered)
   private val fragments = new model.BuildSession.Cache[os.Path, Cached]
 
-  class Deck(content: Vector[Rendered], sourceDirectory: os.Path):
+  final class Deck(renderContent: RevealTheme.Context => Vector[Rendered], sourceDirectory: os.Path):
+    private var rendered: Option[Vector[Rendered]] = None
     def read()(using RevealTheme.Context): Vector[Rendered] =
+      val content = rendered.getOrElse {
+        val result = renderContent(summon[RevealTheme.Context])
+        rendered = Some(result)
+        result
+      }
+      model.ctx.extra.assets.baseUrl // Register dependencies even when fragments were cached.
       // Membership matters too: a new slide was not among the previous sources.
       Templates.recordDependency(sourceDirectory)
       Templates.recordMultiDependency(content.map(_.source))
       content
 
-  def render()(using RevealTheme.SiteContext): Deck =
+  def render(layouts: Map[String, SlideLayout] = SlideLayout.defaults)(using RevealTheme.SiteContext): Deck =
     val collection = sctx.site.deck.slides
     val theme = sctx.theme
     // Tiger orders articles newest first; a presentation reads forward.
@@ -88,55 +94,61 @@ object Slides:
     val cache = sctx.buildSession.cache(fragments)
     val livePaths = pages.map(_.path).toSet
     cache.keys.filter(path => path / os.up == collection.sourcePath && !livePaths(path)).toVector.foreach(cache.remove)
-    var elapsed = 0
     var reachedAppendix = false
-    val content = pages.map { page =>
+    val prepared = pages.map { page =>
       val m = page.frontMatter
       require(m.id.matches("[a-z][a-z0-9-]*"), s"${page.path}: invalid id ${m.id}")
-      require(layouts(m.layout), s"${page.path}: unknown layout ${m.layout}")
+      val layout = layouts.getOrElse(m.layout,
+        throw IllegalArgumentException(s"${page.path}: unknown layout ${m.layout}"))
       require(m.fontSize.forall(_ > 0), s"${page.path}: fontSize must be a positive pixel size")
       val appendix = m.layout == "appendix"
       require(if appendix then m.seconds == 0 else m.seconds > 0, s"${page.path}: invalid timing")
       require(!reachedAppendix || appendix, "Appendices must follow the main slides")
       reachedAppendix ||= appendix
-      val cached = cache.get(page.path).filter(entry => (entry.theme eq theme) && entry.meta == m && entry.raw == page.rawContent)
-      val parsed = cached.map(_.parsed).getOrElse {
-        val (content, notes) = splitAndValidate(page.rawContent, page.path.toString)
-        val ast = md.parseDryRun(content, theme)
-        val headings = ast.getChildren.asScala.collect { case h: Heading if h.getLevel <= 2 => h }.toVector
-        require(headings.size == 1, s"${page.path}: expected exactly one H1/H2 slide title")
-        val title = TextCollectingVisitor().collectAndGetText(headings.head).replaceAll("\\s+", " ").trim
-        // Reveal uses the same static template function for normal and default expansion.
-        // Reuse Tiger's configured AST directly; no full Context is needed for rendering.
-        val renderer = HtmlRenderer.builder(ast).build()
-        val audienceHtml = renderer.render(ast)
-        val notesHtml = renderer.render(md.parseDryRun(notes, theme))
-        Parsed(title, audienceHtml, notesHtml)
-      }
-      val result = cached.filter(_.rendered.start == elapsed).map(_.rendered).getOrElse {
-        val Parsed(title, audienceHtml, notesHtml) = parsed
-        val time = if appendix then "Appendix" else s"${stamp(elapsed)}-${stamp(elapsed + m.seconds)}"
-        val notesWithTiming = frag(p(cls := "time", strong(time)), raw(notesHtml))
-        val sectionTag = tag("section")(
-          id := m.id,
-          cls := m.layout,
-          attr("data-timing") := m.seconds,
-          if appendix then attr("data-visibility") := "uncounted" else frag(),
-          if m.layout == "dark-slide" then attr("data-background-color") := "#19242a" else frag()
-        )(
-          div(
-            cls := "slide-body",
-            m.fontSize.map(size => attr("data-font-size") := size),
-            m.fontSize.map(size => style := s"--slide-font-size:${size}px"),
-            raw(audienceHtml)
-          ),
-          aside(cls := "notes", notesWithTiming)
-        )
-        Rendered(m.id, title, m.seconds, appendix, elapsed, sectionTag,
-          notesWithTiming, page.path)
-      }
-      cache(page.path) = Cached(theme, m, page.rawContent, parsed, result)
-      elapsed += m.seconds
-      result
+      val (body, notes) = splitAndValidate(page.rawContent, page.path.toString)
+      (page, layout, body, notes)
     }
-    Deck(content, pages.head.path / os.up)
+    def renderContent(using RevealTheme.Context): Vector[Rendered] =
+      val assetHash = model.ctx.extra.assets.bundle.hash
+      var elapsed = 0
+      prepared.map { (page, layout, body, notes) =>
+        val m = page.frontMatter
+        val appendix = m.layout == "appendix"
+        val cached = cache.get(page.path).filter(entry => (entry.theme eq theme) && entry.assetHash == assetHash && entry.mode == model.ctx.displayMode && entry.meta == m && entry.raw == page.rawContent)
+        val parsed = cached.map(_.parsed).getOrElse {
+          val ast = md.parseDoc(body)
+          val headings = ast.getChildren.asScala.collect { case h: Heading if h.getLevel <= 2 => h }.toVector
+          require(headings.size == 1, s"${page.path}: expected exactly one H1/H2 slide title")
+          val title = TextCollectingVisitor().collectAndGetText(headings.head).replaceAll("\\s+", " ").trim
+          val renderer = HtmlRenderer.builder(ast).build()
+          val audienceHtml = renderer.render(ast)
+          val notesHtml = renderer.render(md.parseDoc(notes))
+          Parsed(title, audienceHtml, notesHtml)
+        }
+        val result = cached.filter(_.rendered.start == elapsed).map(_.rendered).getOrElse {
+          val Parsed(title, audienceHtml, notesHtml) = parsed
+          val time = if appendix then "Appendix" else s"${stamp(elapsed)}-${stamp(elapsed + m.seconds)}"
+          val notesWithTiming = frag(p(cls := "time", strong(time)), raw(notesHtml))
+          val sectionTag = tag("section")(
+            id := m.id,
+            cls := layout.classes,
+            attr("data-timing") := m.seconds,
+            if appendix then attr("data-visibility") := "uncounted" else frag(),
+            layout.backgroundColor.map(color => attr("data-background-color") := color)
+          )(
+            div(
+              cls := "slide-body",
+              m.fontSize.map(size => attr("data-font-size") := size),
+              m.fontSize.map(size => style := s"--slide-font-size:${size}px"),
+              raw(audienceHtml)
+            ),
+            aside(cls := "notes", notesWithTiming)
+          )
+          Rendered(m.id, title, m.seconds, appendix, elapsed, sectionTag,
+            notesWithTiming, page.path)
+        }
+        cache(page.path) = Cached(theme, assetHash, model.ctx.displayMode, m, page.rawContent, parsed, result)
+        elapsed += m.seconds
+        result
+      }
+    Deck(context => renderContent(using context), pages.head.path / os.up)

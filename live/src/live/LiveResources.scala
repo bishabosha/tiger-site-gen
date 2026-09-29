@@ -8,8 +8,8 @@ object LiveResources:
     try stream.readAllBytes()
     finally stream.close()
 
-  /** Served as `/__preview/client.js` and injected into generated pages. */
-  lazy val client: Array[Byte] = bytes("client.js")
+  /** Installed and referenced through the hashed /static resolver. */
+  val client: model.StaticAsset = model.StaticAsset.resource("/live/client.js")
 
   /** Content studio, served as `/__author/`. */
   lazy val studio: Array[Byte] = bytes("studio/index.html")

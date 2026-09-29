@@ -130,6 +130,6 @@ class InferredExtrasChecks extends munit.FunSuite:
     assert(typeCheckErrors("""
       val invalid: model.InferredExtras.ExtraDefinition[
         model.Context.Views.SiteView[model.SiteContext.Of[(other: model.Doc[String])]]
-      ] = revealTheme.RevealTheme.extraDefs
+      ] = revealTheme.RevealTheme().extraDefs
     """).nonEmpty)
   }

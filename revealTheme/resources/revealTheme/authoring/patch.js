@@ -1,4 +1,4 @@
-// Reveal plugin for the Tiger live client (/__preview/client.js). Builds and drafts patch only
+// Reveal plugin for the Tiger live client. Builds and drafts patch only
 // the changed <section>s, so Reveal, the preview frame, the thumbnail sidebar and presentation
 // mode stay mounted: section identity is kept (Reveal and the slide picker hold references),
 // insertions, removals and reordering update navigation, timings and slide numbers, slides are
@@ -10,8 +10,7 @@ export function revealPlugin(base) {
   return {
     name: 'reveal',
     base,
-    codePaths: ['deck.js', 'slide-fit.mjs', 'slide-picker.mjs', 'authoring/live.js', 'authoring/patch.js',
-      'authoring/sidebar.js', 'authoring/frame.js', 'authoring/navigation.js'],
+    codePaths: ['deck.js', 'slide-fit.mjs', 'slide-picker.mjs'],
     async beforeUpdate() {
       const reveal = window.Reveal;
       if (reveal && !reveal.isReady()) await new Promise(resolve => reveal.on('ready', resolve));

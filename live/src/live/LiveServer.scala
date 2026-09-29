@@ -174,6 +174,7 @@ object LiveServer:
     private val clients = new ConcurrentHashMap[Channel[ServerSentEvent], Option[String]]()
     private val navigation = scala.collection.mutable.Map.empty[String, Navigation]
     private val root = config.outputRoot
+    @volatile private var outputs: (String, Map[String, String]) = ("", Map.empty)
     private val drafts = new DraftPreview(config.project, config.drafts, publish, lock)
     private val authoring = new Authoring(config.contentRoot, config.studio.policies)
     private val noReload = config.noReload.map(glob => java.nio.file.FileSystems.getDefault.getPathMatcher(s"glob:$glob"))
@@ -297,7 +298,6 @@ object LiveServer:
 
     // -- Static files -------------------------------------------------------------------
 
-    @volatile private var outputs: (String, Map[String, String]) = ("", Map.empty)
 
     /** `.outputs.json` from the last build: site-root-relative source → output route. */
     private def generated(): Option[Map[String, String]] =
@@ -308,8 +308,14 @@ object LiveServer:
         Some(outputs._2)
       catch case scala.util.control.NonFatal(_) => None
 
+    private val clientAssets = new _root_.model.StaticAssets
+    private val clientUrl =
+      if config.live then Some(io.util.paths.resolveStaticAsset(LiveResources.client, clientAssets))
+      else None
+
     private def clientTag(servedRevision: String): String =
-      s"<script src=\"/__preview/client.js\" data-tiger-live data-revision=\"${escape(servedRevision)}\" defer></script>"
+      io.util.paths.writeStaticAssets(root, clientAssets)
+      s"<script src=\"${clientUrl.get}\" data-tiger-live data-revision=\"${escape(servedRevision)}\" defer></script>"
 
     private def reloadable(relative: String, html: String): Boolean =
       config.live &&
@@ -372,7 +378,9 @@ object LiveServer:
           if extension != "html" || !config.live then fileBytes
           else
             val html = new String(fileBytes, UTF_8)
-            if reloadable(relative, html) then withReloadClient(html, servedRevision).getBytes(UTF_8) else fileBytes
+            if reloadable(relative, html) then
+              withReloadClient(html, servedRevision).getBytes(UTF_8)
+            else fileBytes
         (StatusCode.Ok, List(
           Header.contentType(sttp.model.MediaType.unsafeParse(contentTypes.getOrElse(extension, "application/octet-stream"))),
           Header(HeaderNames.CacheControl, "no-cache")), bytes)
@@ -453,15 +461,12 @@ object LiveServer:
           authorPost.in("duplicate").in(jsonBody[Authoring.PageRequest]).out(jsonBody[Authoring.Inserted])
             .handle(_ => request => run(authoring.duplicate(request))),
           authorPost.in("recalculate").in(jsonBody[Authoring.RevisionRequest]).out(jsonBody[Authoring.Collection])
-            .handle(_ => request => run(authoring.recalculate(request)))
-        ) ++
-        // `delete-slide` and `open-slide` remain as aliases for earlier clients.
-        Seq("delete", "delete-slide").map(name =>
-          authorPost.in(name).in(jsonBody[Authoring.PageRequest]).out(jsonBody[Authoring.Deleted])
-            .handle(_ => request => run(authoring.delete(request)))) ++
-        Seq("open", "open-slide").map(name =>
-          authorPost.in(name).in(jsonBody[OpenRequest]).out(jsonBody[Opened])
-            .handle(_ => request => run(open(request)))) :+
+            .handle(_ => request => run(authoring.recalculate(request))),
+          authorPost.in("delete").in(jsonBody[Authoring.PageRequest]).out(jsonBody[Authoring.Deleted])
+            .handle(_ => request => run(authoring.delete(request))),
+          authorPost.in("open").in(jsonBody[OpenRequest]).out(jsonBody[Opened])
+            .handle(_ => request => run(open(request)))
+        ) :+
         // Anything else under /__author/: same host/origin checks, then 404 or 405.
         authorBase.in(paths)
           .securityIn(extractFromRequest(_.method).and(hostHeader)
@@ -492,16 +497,12 @@ object LiveServer:
     // -- Routes -------------------------------------------------------------------------
 
     val endpoints: List[Endpoint] =
-      val client = getOrHead(method => endpoint.method(method).in("__preview" / "client.js")
-        .out(header(HeaderNames.ContentType, "text/javascript; charset=utf-8"))
-        .out(header(HeaderNames.CacheControl, "no-store")).out(byteArrayBody)
-        .handleSuccess(_ => LiveResources.client))
       val stream = getOrHead(method => endpoint.method(method).in("__preview" / "events").in(query[Option[String]]("route"))
         .out(header(HeaderNames.CacheControl, "no-store")).out(header(HeaderNames.Connection, "keep-alive"))
         .out(serverSentEventsBody)
         .handleSuccess(route => if method == Method.HEAD then Flow.empty else events(route)))
       val static: Endpoint = endpoint.in(extractFromRequest(identity)).out(reply).handleSuccess(serveStatic)
-      (if config.live then client ++ stream ++ (draftEndpoint :: authoringEndpoints) else Nil) :+ static
+      (if config.live then stream ++ (draftEndpoint :: authoringEndpoints) else Nil) :+ static
 
   private given Schema[ujson.Value] = Schema.any[ujson.Value]
   // Recursive: derivation would need a lazy self-reference; no documentation is generated.

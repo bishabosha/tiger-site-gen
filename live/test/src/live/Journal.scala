@@ -47,5 +47,5 @@ object Journal extends model.Theme:
     os.write(root / "public" / "style.css", "body { color: black; }", createFolders = true)
     root
 
-  def site(root: os.Path): LiveSite[Journal.type] =
-    LiveSite(Journal, contentDirectory = "content", outputDirectory = "dist", watched = Seq("public"))(using SiteRoot(root))
+  def site(root: os.Path): LiveSite =
+    LiveSite(Journal, LiveSiteSettings(watched = Seq("public")))(using SiteRoot(root))
