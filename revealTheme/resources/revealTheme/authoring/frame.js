@@ -34,7 +34,7 @@ export function installPreviewFrame(reveal, toolbar) {
     const sidebar = document.getElementById('slide-sidebar');
     const sidebarWidth = !presenting && sidebar && !sidebar.hidden ? sidebar.getBoundingClientRect().width : 0;
     document.body.style.setProperty('--preview-sidebar-width', `${sidebarWidth}px`);
-    const footerHeight = presenting ? 56 : Math.max(72, toolbar.getBoundingClientRect().height + 32);
+    const footerHeight = presenting ? 0 : Math.max(72, toolbar.getBoundingClientRect().height + 32);
     const bounds = previewBounds(innerWidth, innerHeight, sidebarWidth, footerHeight, presenting ? 0 : 16);
     for (const [property, value] of Object.entries(bounds)) root.style[property] = `${value}px`;
     reveal.layout();
