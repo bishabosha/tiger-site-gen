@@ -51,7 +51,8 @@ Markdown files under the `sources` listed in the workspace folder's
 `.tiger-editor.json`, which every build writes (see below); the server then checks
 that the file is a document of the site and renders only the pages that show it: an
 article's own page and, for example, the index that lists it, or the deck that
-contains a slide. The extension waits 40 ms after the latest keystroke, then sends
+contains a slide. The extension sends edits immediately, keeping one request in flight and coalescing
+queued edits to the latest text. It sends
 the unsaved buffer to the server, which renders it in-process with the site's real
 theme and templates. Drafts stay in memory: source files and build output are
 unchanged. Invalid or incomplete edits keep the last valid preview, and

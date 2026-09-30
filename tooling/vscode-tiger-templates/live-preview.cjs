@@ -7,8 +7,8 @@ const { randomUUID } = require('node:crypto');
 // .tiger-editor.json (written by every site build); the server checks the rest.
 exports.installLivePreview = (vscode, context) => {
   const session = randomUUID();
-  const timers = new Map(), connections = new Map();
-  let sequence = 0, disposed = false;
+  const pending = new Map(), connections = new Map();
+  let sequence = 0, disposed = false, sending = false;
   const output = vscode.window.createOutputChannel('Tiger live preview');
   const markdown = document => document.uri.scheme === 'file' && document.uri.fsPath.endsWith('.md');
   async function sources(folder) {
@@ -46,13 +46,23 @@ exports.installLivePreview = (vscode, context) => {
       if (error.code !== 'ENOENT') output.appendLine(`Preview connection: ${error.message}`);
     }
   }
-  function schedule(document) {
-    if (!markdown(document)) return;
-    clearTimeout(timers.get(document.uri.fsPath));
-    timers.set(document.uri.fsPath, setTimeout(() => {
-      timers.delete(document.uri.fsPath);
-      send(document);
-    }, 40));
+  // Keep one request in flight, and only the newest buffer for each queued file.
+  // A debounce delays every keystroke; overlapping requests make the renderer spend
+  // time on obsolete buffers and can suppress all previews until typing stops.
+  function schedule(document, clear = false) {
+    if (disposed || !markdown(document)) return;
+    pending.set(document.uri.fsPath, { document, clear });
+    if (sending) return;
+    sending = true;
+    Promise.resolve().then(async () => {
+      try {
+        while (!disposed && pending.size) {
+          const [file, { document, clear }] = pending.entries().next().value;
+          pending.delete(file);
+          await send(document, clear);
+        }
+      } finally { sending = false; }
+    });
   }
   const poll = setInterval(async () => {
     if (disposed || !vscode.workspace.isTrusted) return;
@@ -69,12 +79,11 @@ exports.installLivePreview = (vscode, context) => {
   poll.unref?.();
   context.subscriptions.push(output,
     vscode.workspace.onDidChangeTextDocument(event => { if (event.contentChanges.length) schedule(event.document); }),
-    vscode.workspace.onDidSaveTextDocument(schedule),
+    vscode.workspace.onDidSaveTextDocument(document => schedule(document)),
     vscode.workspace.onDidCloseTextDocument(document => {
-      clearTimeout(timers.get(document.uri.fsPath)); timers.delete(document.uri.fsPath);
-      send(document, true);
+      schedule(document, true);
     }),
-    { dispose() { disposed = true; clearInterval(poll); for (const timer of timers.values()) clearTimeout(timer); } }
+    { dispose() { disposed = true; clearInterval(poll); pending.clear(); } }
   );
   for (const document of vscode.workspace.textDocuments) if (document.isDirty) schedule(document);
 };

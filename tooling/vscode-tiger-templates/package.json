@@ -2,7 +2,7 @@
   "name": "tiger-templates",
   "displayName": "Tiger Markdown Templates",
   "description": "Highlight Tiger SON frontmatter, template calls, block templates, and attributes inside Markdown; preview unsaved drafts on a running Tiger live server.",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "publisher": "bishabosha",
   "private": true,
   "engines": {

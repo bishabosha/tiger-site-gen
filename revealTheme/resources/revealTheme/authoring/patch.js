@@ -51,14 +51,25 @@ export function revealPlugin(base) {
       }
       if (updated.length || stylesChanged || structural) {
         const all = [...container.children].filter(node => node.tagName === 'SECTION');
-        const main = all.filter(slide => slide.dataset.visibility !== 'uncounted');
-        const appendix = all.filter(slide => slide.dataset.visibility === 'uncounted');
-        reveal.configure({
-          totalTime: main.reduce((total, slide) => total + Number(slide.dataset.timing), 0),
-          slideNumber: slide => main.includes(slide) ? [main.indexOf(slide) + 1, '/', main.length] : [`A${appendix.indexOf(slide) + 1}`]
+        // configure() already performs a full sync, rebuilding every slide background.
+        // Text edits only need the changed slides synchronized; retain a full pass for
+        // deck membership, numbering/timing changes, or global stylesheet changes.
+        const configurationChanged = structural || changed.some(slide => {
+          const old = previousSlides.get(slide.id);
+          return slide.dataset.timing !== old?.dataset.timing ||
+            slide.dataset.visibility !== old?.dataset.visibility;
         });
         fitSlides(stylesChanged ? all : updated);
-        reveal.sync();
+        if (configurationChanged) {
+          const main = all.filter(slide => slide.dataset.visibility !== 'uncounted');
+          const appendix = all.filter(slide => slide.dataset.visibility === 'uncounted');
+          reveal.configure({
+            totalTime: main.reduce((total, slide) => total + Number(slide.dataset.timing), 0),
+            slideNumber: slide => main.includes(slide) ? [main.indexOf(slide) + 1, '/', main.length] : [`A${appendix.indexOf(slide) + 1}`]
+          });
+        } else if (stylesChanged) reveal.sync();
+        else updated.forEach(slide => reveal.syncSlide(slide));
+        // slide() below restores fragment state and performs the layout pass.
         const selected = existing.get(currentId);
         if (selected?.isConnected) {
           const position = reveal.getIndices(selected);

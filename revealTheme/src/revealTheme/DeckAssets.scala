@@ -31,26 +31,65 @@ object DeckAssets:
     val asset = StaticAsset.resource("/revealTheme/assets.txt")
     new String(asset.bytes, java.nio.charset.StandardCharsets.UTF_8).linesIterator.toVector
 
-  def prepare(sources: RevealAssets, fonts: DeckFonts, session: BuildSession): DeckAssets =
-    new DeckAssets(() => snapshot(sources, fonts, session))
+  private case class Key(sources: RevealAssets, fonts: DeckFonts)
+  private case class Snapshot(bundle: StaticBundle, versions: Map[os.Path, Option[io.util.sanatise.FileVersion]]):
+    def unchanged: Boolean = versions.forall { (path, previous) =>
+      try
+        // Without ctime, equal-size edits with restored mtime cannot be detected safely.
+        previous.forall(_.changed.nonEmpty) && version(path) == previous
+      catch case scala.util.control.NonFatal(_) => false
+    }
+  private val snapshots = new BuildSession.Cache[Key, Snapshot]
 
-  private def snapshot(sources: RevealAssets, fonts: DeckFonts, session: BuildSession): StaticBundle =
+  private def version(path: os.Path): Option[io.util.sanatise.FileVersion] =
+    if os.exists(path) then Some(io.util.sanatise.fileVersion(path)) else None
+
+  def prepare(sources: RevealAssets, fonts: DeckFonts, session: BuildSession): DeckAssets =
+    new DeckAssets(() => {
+      val cache = session.cache(snapshots)
+      val key = Key(sources, fonts)
+      cache.get(key).filter(_.unchanged) match
+        case Some(cached) => cached.bundle
+        case None =>
+          val fresh = snapshot(sources, fonts, session)
+          cache(key) = fresh
+          fresh.bundle
+    })
+
+  private def snapshot(sources: RevealAssets, fonts: DeckFonts, session: BuildSession): Snapshot =
+    val versions = scala.collection.mutable.Map.empty[os.Path, Option[io.util.sanatise.FileVersion]]
+    // Capture before reading: a concurrent edit invalidates the next snapshot check.
+    def observe(path: os.Path): Unit =
+      versions.getOrElseUpdate(path, version(path))
+      ()
     val files = scala.collection.mutable.Map.empty[os.RelPath, StaticAsset]
     val directories = scala.collection.mutable.LinkedHashSet.empty[os.Path]
     def file(source: os.Path, target: os.RelPath): Unit =
+      observe(source)
       files(target) = StaticAsset.file(s"/reveal/$target", source, session)
     def tree(source: os.Path, target: os.RelPath): Unit =
+      observe(source)
       require(os.exists(source), s"Missing presentation asset: $source")
       if os.isFile(source) then file(source, target)
       else
         directories += source
-        for path <- os.walk(source).filter(os.isFile) do file(path, target / path.relativeTo(source))
+        def visit(directory: os.Path): Unit =
+          // Observe each directory before listing it so concurrent additions cannot
+          // be mistaken for an unchanged snapshot on the next render.
+          observe(directory)
+          for path <- os.list(directory) do
+            observe(path)
+            if os.isFile(path) then file(path, target / path.relativeTo(source))
+            else if os.isDir(path) && !os.isLink(path) then visit(path)
+        visit(source)
 
     for source <- Seq(sources.revealJs, sources.pdfJs) do
+      observe(source / "package.json")
       require(os.isFile(source / "package.json"),
         s"Missing presentation package at $source. Run npm ci or configure RevealTheme(assetSources = ...).")
     for name <- bundledFiles do files(os.RelPath(name)) = StaticAsset.resource(s"/revealTheme/$name")
     for directory <- sources.themeDirectory.toSeq ++ sources.publicDirectory.toSeq do
+      observe(directory) // Also track optional directories that do not exist yet.
       directories += directory // Track creation of a previously absent public/theme directory too.
       if os.exists(directory) then tree(directory, os.RelPath(""))
     tree(sources.revealJs / "LICENSE", os.RelPath("vendor/reveal/LICENSE"))
@@ -63,4 +102,4 @@ object DeckAssets:
     for face <- fonts.faces do
       require(files.contains(os.RelPath(s"assets/fonts/${face.file}")), s"Missing font file: public/assets/fonts/${face.file}")
     files(os.RelPath("fonts.css")) = StaticAsset.text("/reveal/fonts.css", fonts.stylesheet)
-    StaticBundle("reveal", files.toMap, directories.toVector)
+    Snapshot(StaticBundle("reveal", files.toMap, directories.toVector), versions.toMap)
