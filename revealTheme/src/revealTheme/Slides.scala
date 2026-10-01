@@ -68,7 +68,14 @@ object Slides:
   private case class Cached(theme: model.Theme, assetHash: String, mode: model.DisplayMode, meta: SlideMeta, raw: String, parsed: Parsed, rendered: Rendered)
   private val fragments = new model.BuildSession.Cache[os.Path, Cached]
 
-  final class Deck(renderContent: RevealTheme.Context => Vector[Rendered], sourceDirectory: os.Path):
+  /** Wraps the deferred render so `Deck`'s constructor never names `RevealTheme.Context`:
+   *  `RevealTheme.Extra` mentions `Deck`, and Scaladoc cannot unpickle a field type that loops back
+   *  through it. Methods mentioning the context are fine, since their signatures are read lazily. */
+  @FunctionalInterface
+  trait RenderContent:
+    def apply(context: RevealTheme.Context): Vector[Rendered]
+
+  final class Deck(renderContent: RenderContent, sourceDirectory: os.Path):
     private var rendered: Option[Vector[Rendered]] = None
     def read()(using RevealTheme.Context): Vector[Rendered] =
       val content = rendered.getOrElse {
