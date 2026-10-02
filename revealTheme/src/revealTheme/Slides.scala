@@ -123,13 +123,14 @@ object Slides:
         val appendix = m.layout == "appendix"
         val cached = cache.get(page.path).filter(entry => (entry.theme eq theme) && entry.assetHash == assetHash && entry.mode == model.ctx.displayMode && entry.meta == m && entry.raw == page.rawContent)
         val parsed = cached.map(_.parsed).getOrElse {
-          val ast = md.parseDoc(body)
+          val ast = md.parseDoc(body, SlideAnchors.install(_, m.id))
           val headings = ast.getChildren.asScala.collect { case h: Heading if h.getLevel <= 2 => h }.toVector
           require(headings.size == 1, s"${page.path}: expected exactly one H1/H2 slide title")
           val title = TextCollectingVisitor().collectAndGetText(headings.head).replaceAll("\\s+", " ").trim
           val renderer = HtmlRenderer.builder(ast).build()
           val audienceHtml = renderer.render(ast)
-          val notesHtml = renderer.render(md.parseDoc(notes))
+          val notesAst = md.parseDoc(notes, SlideAnchors.install(_, m.id, notes = true))
+          val notesHtml = HtmlRenderer.builder(notesAst).build().render(notesAst)
           Parsed(title, audienceHtml, notesHtml)
         }
         val result = cached.filter(_.rendered.start == elapsed).map(_.rendered).getOrElse {

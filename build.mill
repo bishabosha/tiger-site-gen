@@ -38,6 +38,7 @@ object revealTheme extends PublishedModule:
   def moduleDeps = Seq(core)
   object test extends ScalaTests, TestModule.Munit:
     def munitVersion = "1.3.3"
+    def mvnDeps = Seq(mvn"org.jsoup:jsoup:1.22.2")
 
 object live extends PublishedModule:
   def artifactName = "tiger-site-gen-live"

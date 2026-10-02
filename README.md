@@ -365,6 +365,15 @@ manifest, and browser styles. `revealTheme/resources/revealTheme/` contains gene
 slide fitting, fullscreen controls, and an optional PDF viewer.
 There is no presentation-specific content; the preview server lives in `live`.
 
+Slide routes retain their front-matter IDs (`#/toolkit`). Rendered heading anchors
+are scoped by slide (`heading:scope:toolkit`), with a separate `notes-heading:`
+namespace for speaker notes. Local Markdown links such as `#toolkit` follow the
+scoped heading; `#/toolkit` always addresses the slide. IDs and local links are
+prepared in the Markdown AST before block templates render, without parsing or
+rewriting generated HTML. The build rejects duplicate slide IDs and duplicate
+heading IDs within each slide or its notes. Raw HTML passes through unchanged;
+its author is responsible for any manually assigned IDs.
+
 Install browser dependencies with `npm ci` (Node 22.13 or newer).
 `package.json` is only an asset dependency manifest; it contains no server.
 Reveal installs its pinned assets through the `afterRender` hook.

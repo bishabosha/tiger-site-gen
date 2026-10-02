@@ -665,14 +665,24 @@ object md:
     HtmlRenderer.builder(ast).build().render(ast)
 
   def parseDoc(document: String)(using Context): Document =
+    parseDoc(document, _ => ())
+
+  /** Configure the parsed document before block templates render any of its children. */
+  def parseDoc(document: String, prepare: Document => Unit)(using Context): Document =
     val ast = parser.parse(renderRaw(document))
     MarkdownLinks.install(ast, ctx.resolveAsset)
+    prepare(ast)
     BlockTemplates.expand(ast, (expression, body) => ctx.templates(expression, body))
   def renderRaw(document: String)(using Context): String =
     Templates.interpolate(document)
 
   def parseDryRun(document: String, theme: model.Theme): Document =
-    BlockTemplates.expand(parser.parse(Templates.interpolateDefault(document, theme)),
+    parseDryRun(document, theme, _ => ())
+
+  def parseDryRun(document: String, theme: model.Theme, prepare: Document => Unit): Document =
+    val ast = parser.parse(Templates.interpolateDefault(document, theme))
+    prepare(ast)
+    BlockTemplates.expand(ast,
       (expression, body) => theme.renderTemplateDefault(expression, body))
 
   private case class SourceKey(theme: model.Theme, reader: scalanotation.Reader[?], path: os.Path)

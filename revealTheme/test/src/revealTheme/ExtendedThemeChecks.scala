@@ -143,6 +143,29 @@ class ExtendedThemeChecks extends munit.FunSuite:
     }
   }
 
+  test("heading anchors remain scoped across cached renders and edited slides") {
+    fixture { root =>
+      given SiteRoot = SiteRoot(root)
+      val theme = extendedReveal("anchors")
+      val session = new model.BuildSession
+      val directory = root / "content" / "deck" / "slides"
+      val original = os.read(directory / "010 - sample.md")
+      def rendered(): Vector[Slides.Rendered] =
+        val context = Context.fromTheme(root / "content", theme, session)
+        given theme.Context = context
+        context.extra.slides.read()
+      assert(rendered().head.slide.render.contains("id=\"heading:sample:sample\""))
+      val second = original.replace("id = \"sample\"", "id = \"second\"")
+      os.write(directory / "020 - second.md", second)
+      assertEquals(rendered().size, 2)
+      os.write.over(directory / "020 - second.md", second.replace("Value {{marker}}", "### First {#duplicate}\n\n### Second {#duplicate}"))
+      val error = intercept[IllegalArgumentException](rendered())
+      assert(error.getMessage.contains("duplicate heading IDs: duplicate"), error.getMessage)
+      os.write.over(directory / "020 - second.md", second)
+      assertEquals(rendered().size, 2)
+    }
+  }
+
   test("font sizes are optional, fixed when supplied, and validated on edits") {
     fixture { root =>
       given SiteRoot = SiteRoot(root)
