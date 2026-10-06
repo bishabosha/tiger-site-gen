@@ -606,6 +606,15 @@ the rest, and drafts whose text was saved clear after the next build.
   published build. `EditorOpener.vscodeFile` needs no extension (VS Code's built-in file handler,
   opening in the active group), and `EditorOpener.command(Seq("idea"))` runs any editor command.
 
+Content studio shows rendered thumbnails for Reveal slide collections, using the deck's
+fonts, syntax highlighting and annotations. Checkboxes select individual slides;
+Shift-click adds a range, so several separate runs can be selected together. Choose
+**Cut selected**, then **Paste before** or **Paste after** on a destination card (or
+paste at the start/end). The selection becomes one continuous run in its original
+deck order. Dragging a selected card also moves the entire selection. A group move
+is one undo step; **Save order** persists the whole order in one atomic operation.
+Main slides must still precede appendices. Escape cancels a pending cut.
+
 A `CollectionPolicy` describes what a collection's files mean: identity (default: the
 filename), ordering groups, card badges, the minimum page count, and the text of new
 and duplicated pages (default: the neighbor's front matter with a placeholder body, and

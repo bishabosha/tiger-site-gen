@@ -5,17 +5,51 @@
 <style>
 :root{font:15px/1.5 system-ui,sans-serif;color:#242d32;background:#f5f6f3;--green:#256b54;--line:#dce1db}*{box-sizing:border-box}body{margin:0}button,a,input{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:white;color:inherit;border-radius:8px;padding:8px 13px}button:hover:not(:disabled){border-color:var(--green);background:#edf5ef}button:disabled{opacity:.4;cursor:default}button:focus-visible,a:focus-visible{outline:3px solid #75bfa0;outline-offset:3px}header{height:78px;padding:0 30px;display:flex;align-items:center;justify-content:space-between;background:#fff;border-bottom:1px solid var(--line)}.brand{font-weight:750;font-size:20px;letter-spacing:-.6px}.brand span{background:var(--green);color:white;padding:6px 10px;border-radius:9px;margin-right:12px}.tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#6b7770}.shell{display:grid;grid-template-columns:255px minmax(0,1fr);min-height:calc(100vh - 78px)}aside{background:#fff;border-right:1px solid var(--line);padding:28px 18px}aside h2{font-size:11px;letter-spacing:1.5px;color:#758078;text-transform:uppercase;margin:0 12px 18px}nav button{border:0;width:100%;text-align:left;font-size:13px;overflow-wrap:anywhere;margin:2px 0}nav button.active{background:#e6f1e9;color:var(--green);font-weight:650}main{padding:32px 38px 110px;max-width:1500px;width:100%;margin:auto}.crumb{font:12px ui-monospace,monospace;color:#708078}h1{font-size:32px;letter-spacing:-1px;margin:12px 0 6px}.sub{color:#6a756f;margin:0 0 25px}.toolbar{display:flex;align-items:center;gap:9px;margin-bottom:20px}.toolbar .count{margin-right:auto;color:#58665d;font-size:13px}.primary{background:var(--green);color:white;border-color:var(--green)}.primary:hover:not(:disabled){background:#17513d}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}.card{background:white;border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:box-shadow .15s}.card[draggable=true]{cursor:grab}.card.dragging{opacity:.35}.card.over{box-shadow:0 0 0 3px #448666}.preview{height:140px;padding:22px;background:#eef1e8;display:flex;flex-direction:column;justify-content:space-between;border-bottom:1px solid var(--line)}.card:nth-child(3n+2) .preview{background:#e9eef1}.card:nth-child(3n) .preview{background:#f3ede3}.preview h3{font-size:19px;line-height:1.2;letter-spacing:-.45px;margin:9px 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.preview small{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:#62705f}.meta{padding:13px 15px}.filename{font:11px/1.7 ui-monospace,monospace;overflow-wrap:anywhere;color:#526158}.changed{color:#256b54;font-weight:650}.old{color:#929c95;text-decoration:line-through}.actions{display:flex;align-items:center;gap:5px;margin-top:10px}.actions button{padding:3px 9px}.actions .inspect{margin-left:auto;font-size:12px}.fixed{margin-bottom:22px;display:flex;gap:8px;flex-wrap:wrap}.fixed button{font-size:12px;color:#626e66}.notice{padding:12px 16px;background:#e8efe7;border-radius:9px;font-size:13px;margin-bottom:18px}.notice.error{background:#ffe9e5;color:#8b3225}.bottom{position:fixed;bottom:0;left:255px;right:0;background:#ffffffef;backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:15px 38px;display:flex;gap:20px;align-items:center;font-size:13px}.bottom span{flex:1;color:#66736b}dialog{border:1px solid var(--line);border-radius:14px;width:min(850px,90vw);max-height:85vh;padding:25px}dialog::backdrop{background:#18231b88}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.6 ui-monospace,monospace}dialog header{height:auto;padding:0 0 15px;gap:20px}dialog h2{font-size:19px;margin:0}a{color:var(--green)}@media(max-width:750px){.shell{grid-template-columns:1fr}aside{border-bottom:1px solid var(--line)}nav{display:flex;overflow:auto}nav button{min-width:170px;padding-left:12px!important}main{padding:24px 18px 130px}.bottom{left:0;padding:14px 18px}header{padding:0 18px}.tag{display:none}}
 </style>
+<style>
+.grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}.toolbar{flex-wrap:wrap}.selection-toolbar{position:sticky;top:0;z-index:3;background:#f5f6f3;padding:8px 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:20px}.selection-toolbar span{margin-right:auto;font-size:13px;color:#58665d}.selection-toolbar button{padding:6px 10px;font-size:13px}.card.selected{border-color:var(--green);box-shadow:0 0 0 2px var(--green)}.card.is-cut{border-style:dashed;background:#edf5ef}.card.is-cut .preview{opacity:.55}.card.over-before{box-shadow:0 -4px 0 var(--green)}.card.over-after{box-shadow:0 4px 0 var(--green)}.card-heading{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;font-size:12px}.card-heading input{width:18px;height:18px;flex:none;accent-color:var(--green);cursor:pointer}.card-heading label{cursor:pointer;overflow-wrap:anywhere}.preview.rendered{position:relative;display:block;height:auto;aspect-ratio:16/9;padding:0;overflow:hidden;background:#fff}.preview.rendered iframe{position:absolute;inset:0;width:1600px;height:900px;border:0;transform:scale(var(--thumbnail-scale,.15));transform-origin:top left;pointer-events:none}.actions{flex-wrap:wrap}.paste-actions{display:flex;gap:5px;margin-top:10px}.paste-actions button{font-size:12px;padding:4px 8px}.paste-actions[hidden]{display:none}#thumbnail-source{position:fixed;left:-100000px;top:0;width:1600px;height:900px;border:0;pointer-events:none}input:focus-visible{outline:3px solid #75bfa0;outline-offset:3px}
+</style>
 <header><div class="brand"><span>▤</span>Content studio</div><div class="tag">Local authoring workspace</div><a id="site" href="/" target="_blank" rel="noopener">Open site ↗</a></header>
 <div class="shell"><aside><h2>Content hierarchy</h2><nav id="tree" aria-label="Content directories"></nav></aside><main>
 <div class="crumb" id="crumb">content /</div><h1 id="heading">Content</h1><p class="sub" id="sub">Drag pages into place. Save to write their order into the filenames.</p>
 <div id="notice" class="notice" role="status" aria-live="polite">Loading content…</div>
 <div class="toolbar"><span class="count" id="count"></span><button id="reload">Reload</button><button id="undo" disabled>Undo move</button><button id="reset" disabled>Discard changes</button></div>
+<div class="selection-toolbar" role="group" aria-label="Move selected pages"><span id="selectionCount">No pages selected</span><button id="selectAll">Select all</button><button id="clearSelection" disabled>Clear selection</button><button id="cutSelected" disabled>Cut selected</button><button id="cancelCut" disabled>Cancel cut</button><button id="pasteStart" disabled>Paste at start</button><button id="pasteEnd" disabled>Paste at end</button></div>
 <div class="fixed" id="fixed"></div><div class="grid" id="cards" aria-label="Ordered pages"></div>
 </main></div><footer class="bottom"><span id="summary">No changes yet.</span><button class="primary" id="save" disabled>Save order</button></footer>
 <dialog id="detail"><header><h2 id="detailTitle">Page source</h2><button id="close">Close</button></header><pre id="source"></pre></dialog>
 <script type="module">
+// Move every selected page into one run, preserving deck order rather than click order.
+export function moveSelection(order, selection, destination, side = 'after') {
+  const selected = new Set(selection);
+  const moving = order.filter(name => selected.has(name));
+  if (!moving.length || (destination != null && selected.has(destination))) return order;
+  const remaining = order.filter(name => !selected.has(name));
+  let position;
+  if (side === 'start') position = 0;
+  else if (side === 'end') position = remaining.length;
+  else {
+    position = remaining.indexOf(destination);
+    if (position < 0 || !['before', 'after'].includes(side)) return order;
+    if (side === 'after') position++;
+  }
+  return [...remaining.slice(0, position), ...moving, ...remaining.slice(position)];
+}
+export function selectRange(order, selection, anchor, target, checked = true) {
+  const selected = new Set(selection), from = order.indexOf(anchor), to = order.indexOf(target);
+  const range = from < 0 || to < 0 ? [target] : order.slice(Math.min(from, to), Math.max(from, to) + 1);
+  for (const name of range) if (checked) selected.add(name); else selected.delete(name);
+  return selected;
+}
+export function validGroupOrder(order, files, groups) {
+  const byName = new Map(files.map(file => [file.name, file]));
+  const ranks = order.map(name => Math.max(0, groups.indexOf(byName.get(name)?.group)));
+  return !ranks.some((rank, i) => i && rank < ranks[i - 1]);
+}
+
+if (typeof document !== 'undefined') {
 const $ = id => document.getElementById(id);
-let state, order = [], history = [], dragged, busy = false, loading = 0;
+let state, config, order = [], history = [], dragged, busy = false, loading = 0;
+let selected = new Set(), cutNames = [], anchor, sourceFrame, sourceDocument, thumbnails = new Map();
 const changed = () => state && order.some((name, i) => name !== state.files.filter(f => f.ordered)[i]?.name);
 const message = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(url, options) { const response = await fetch(url, options); const data = await response.json(); if (!response.ok) throw Error(data.error); return data; }
@@ -23,42 +57,143 @@ const capital = text => text.charAt(0).toUpperCase() + text.slice(1);
 async function openFile(file) { try { await api('/__author/open', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ file: [state.directory, file.name].filter(Boolean).join('/') }) }); message(`Opened ${file.name} in your editor.`); } catch (error) { message(error.message, true); } }
 function inspect(file) { $('detailTitle').textContent = file.title; $('source').textContent = file.source; $('detail').showModal(); }
 function filename(name, i) { return `${String((i + 1) * 10).padStart(Math.max(3, String(order.length * 10).length), '0')} - ${name.replace(/^\d+ - /, '')}`; }
+function applyOrder(next) {
+  if (busy || next.every((name, i) => name === order[i])) return false;
+  if (!validGroupOrder(next, state.files, state.groups)) { message(`Keep ${state.plural} grouped as ${state.groups.join(', then ')}.`, true); return false; }
+  history.push([...order]); order = next; render(); message('Order updated locally. Save when you’re ready.'); return true;
+}
 function move(from, to) {
-  if (busy || from === to || from < 0 || to < 0 || to >= order.length) return;
-  const next = [...order]; next.splice(to, 0, next.splice(from, 1)[0]);
-  // Groups keep their declared order, e.g. main slides before appendices.
-  const ranks = next.map(n => Math.max(0, state.groups.indexOf(state.files.find(f => f.name === n).group)));
-  if (ranks.some((rank, i) => i && rank < ranks[i - 1])) { message(`Keep ${state.plural} grouped as ${state.groups.join(', then ')}.`, true); return; }
-  history.push([...order]); order = next; render(); message('Order updated locally. Save when you’re ready.');
+  if (from === to || from < 0 || to < 0 || to >= order.length) return;
+  const next = [...order]; next.splice(to, 0, next.splice(from, 1)[0]); applyOrder(next);
+}
+function cutSelection() {
+  if (busy || !selected.size) return;
+  cutNames = order.filter(name => selected.has(name)); updateSelection();
+  message(`${cutNames.length} ${state.plural} cut. Choose Paste before or Paste after a destination, or paste at the start/end. Escape cancels.`);
+}
+function pasteSelection(destination, side) {
+  if (busy || !cutNames.length) return;
+  const next = moveSelection(order, cutNames, destination, side);
+  if (applyOrder(next)) { const count = cutNames.length; cutNames = []; updateSelection(); message(`Moved ${count} ${state.plural} together in deck order. Save when you’re ready.`); }
+}
+function updateSelection() {
+  $('selectionCount').textContent = `${selected.size} ${state.plural} selected${cutNames.length ? ` · ${cutNames.length} cut` : ''}`;
+  $('selectAll').disabled = busy || !order.length;
+  $('clearSelection').disabled = busy || !selected.size;
+  $('cutSelected').disabled = busy || !selected.size;
+  $('cancelCut').disabled = busy || !cutNames.length;
+  $('pasteStart').disabled = $('pasteEnd').disabled = busy || !cutNames.length;
+  for (const card of $('cards').children) {
+    card.classList.toggle('selected', selected.has(card.dataset.name));
+    card.classList.toggle('is-cut', cutNames.includes(card.dataset.name));
+    const checkbox = card.querySelector('input'); checkbox.checked = selected.has(card.dataset.name); checkbox.disabled = busy;
+    const paste = card.querySelector('.paste-actions'); paste.hidden = !cutNames.length;
+    for (const button of paste.children) button.disabled = busy || cutNames.includes(card.dataset.name);
+  }
+}
+// Static copies share the deck's fonts, fitted layout, code coloring and annotations.
+function thumbnailDocument(slide) {
+  const doc = slide.ownerDocument, win = doc.defaultView;
+  doc.dispatchEvent(new win.CustomEvent('slide-thumbnail:source', { detail: { slide } }));
+  const html = document.createElement('html'); html.className = 'slide-thumbnail';
+  const head = document.createElement('head'), base = document.createElement('base'); base.href = new URL('.', win.location.href).href; head.append(base);
+  for (const style of doc.head.querySelectorAll('link[rel="stylesheet"],style')) if (!style.matches('[data-preview-styles]')) head.append(style.cloneNode(true));
+  const overrides = document.createElement('style');
+  overrides.textContent = 'html,body{margin:0!important;width:1600px!important;height:900px!important;overflow:hidden!important}.reveal{width:1600px!important;height:900px!important;background:var(--r-background-color,var(--paper))!important}.reveal .slides{position:absolute!important;inset:0!important;margin:0!important;width:1600px!important;height:900px!important;transform:none!important}.reveal .slides>section{display:block!important;opacity:1!important;visibility:visible!important;position:absolute!important;inset:0!important;width:1600px!important;height:900px!important;transform:none!important}.fragment{opacity:1!important;visibility:visible!important}aside.notes,.anchor-link,.presentation-tools{display:none!important}'; head.append(overrides);
+  const body = document.createElement('body'); body.className = 'reveal-standalone reveal-viewport';
+  const wrapper = document.createElement('div'); wrapper.className = 'reveal';
+  const deckStyle = doc.querySelector('body > .reveal')?.style;
+  if (deckStyle) for (const property of deckStyle) if (property.startsWith('--')) wrapper.style.setProperty(property, deckStyle.getPropertyValue(property));
+  const slides = document.createElement('div'); slides.className = 'slides'; const copy = slide.cloneNode(true);
+  doc.dispatchEvent(new win.CustomEvent('slide-thumbnail:copy', { detail: { slide, copy } }));
+  copy.classList.remove('past','future'); copy.classList.add('present'); copy.removeAttribute('hidden'); copy.removeAttribute('aria-hidden');
+  if (slide.dataset.backgroundColor) copy.style.backgroundColor = slide.dataset.backgroundColor;
+  copy.querySelectorAll('script,iframe,video,audio,aside.notes').forEach(node => node.remove());
+  slides.append(copy); wrapper.append(slides); body.append(wrapper); html.append(head, body); return '<!doctype html>' + html.outerHTML;
+}
+const thumbnailSizes = new ResizeObserver(entries => { for (const { target, contentRect } of entries) target.style.setProperty('--thumbnail-scale', contentRect.width / 1600); });
+const thumbnailVisibility = new IntersectionObserver(entries => { for (const {target, isIntersecting} of entries) if (isIntersecting) showThumbnail(target); }, { rootMargin:'250px' });
+function showThumbnail(preview) {
+  if (!sourceDocument) return;
+  const slide = sourceDocument.getElementById(preview.dataset.id);
+  if (!slide?.matches('section')) return;
+  let frame = preview.querySelector('iframe');
+  if (!frame) {
+    frame = document.createElement('iframe'); frame.title = 'Rendered slide thumbnail'; frame.setAttribute('sandbox','allow-same-origin'); frame.setAttribute('tabindex','-1'); frame.setAttribute('aria-hidden','true');
+    preview.replaceChildren(frame); preview.classList.add('rendered'); thumbnailSizes.observe(preview);
+  }
+  if (!thumbnails.has(slide.id)) thumbnails.set(slide.id, thumbnailDocument(slide));
+  if (frame.srcdoc !== thumbnails.get(slide.id)) frame.srcdoc = thumbnails.get(slide.id);
+}
+function refreshThumbnails() {
+  thumbnails.clear();
+  for (const preview of $('cards').querySelectorAll('.preview')) {
+    if (preview.querySelector('iframe')) showThumbnail(preview);
+    else { thumbnailVisibility.unobserve(preview); thumbnailVisibility.observe(preview); }
+  }
+}
+function loadThumbnailSource() {
+  sourceFrame?.remove(); sourceFrame = sourceDocument = undefined; thumbnails.clear();
+  if (state.noun !== 'slide' || !state.directory.endsWith('/slides')) return;
+  const directory = state.directory, frame = document.createElement('iframe'); sourceFrame = frame;
+  frame.id = 'thumbnail-source'; frame.title = 'Slide thumbnail rendering source'; frame.setAttribute('aria-hidden','true'); frame.tabIndex = -1;
+  frame.src = directory === config.directory ? config.siteUrl : '/' + directory.slice(0, -7) + '/';
+  frame.addEventListener('load', async () => {
+    if (sourceFrame !== frame) return;
+    const doc = frame.contentDocument, reveal = frame.contentWindow.Reveal;
+    if (!reveal) return;
+    if (!reveal.isReady()) await new Promise(resolve => reveal.on('ready', resolve));
+    await doc.fonts.ready;
+    frame.contentWindow.requestAnimationFrame(() => frame.contentWindow.requestAnimationFrame(() => {
+      if (sourceFrame !== frame || state.directory !== directory) return;
+      sourceDocument = doc; refreshThumbnails();
+    }));
+    doc.addEventListener('preview:updated', () => frame.contentWindow.requestAnimationFrame(() => {
+      if (sourceFrame === frame) { sourceDocument = frame.contentDocument; refreshThumbnails(); }
+    }));
+  });
+  document.body.append(frame);
 }
 function render() {
   const dirty = changed();
   $('save').disabled = !dirty || busy; $('reset').disabled = !dirty || busy; $('undo').disabled = !history.length || busy; $('reload').disabled = busy;
-  $('summary').textContent = dirty ? `${order.filter((n, i) => filename(n, i) !== n).length} filenames will change · contents stay intact` : 'Order saved on disk · drag a card or use its arrow buttons';
+  $('summary').textContent = dirty ? `${order.filter((n, i) => filename(n, i) !== n).length} filenames will change · contents stay intact` : 'Order saved on disk · select cards to move them together';
   $('count').textContent = `${order.length} ordered ${state.plural} · ${state.files.filter(f => !f.ordered).length} fixed pages`;
-  $('cards').replaceChildren(); $('fixed').replaceChildren();
+  const retained = new Map([...$('cards').children].map(card => [card.dataset.name, card]));
+  thumbnailVisibility.disconnect(); thumbnailSizes.disconnect(); $('cards').replaceChildren(); $('fixed').replaceChildren();
   for (const file of state.files.filter(f => !f.ordered)) { const b = document.createElement('button'); b.textContent = `▧ ${file.name}`; b.onclick = () => inspect(file); $('fixed').append(b); }
   order.forEach((name, i) => {
-    const file = state.files.find(f => f.name === name), card = document.createElement('article');
+    const file = state.files.find(f => f.name === name), card = document.createElement('article'); card.dataset.name = name;
     card.className = 'card'; card.draggable = !busy;
-    const preview = document.createElement('div'); preview.className = 'preview';
-    const small = document.createElement('small'); small.textContent = [`${String(i + 1).padStart(2, '0')} / ${capital(file.group || state.noun)}`, ...file.badges].join(' · ');
-    const title = document.createElement('h3'); title.textContent = file.title; preview.append(small, title);
+    const cardHeading = document.createElement('div'); cardHeading.className = 'card-heading';
+    const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.id = `select-${i}`; checkbox.setAttribute('aria-label', `Select ${file.title}`);
+    const label = document.createElement('label'); label.htmlFor = checkbox.id; label.textContent = [`${String(i + 1).padStart(2, '0')} / ${capital(file.group || state.noun)}`, ...file.badges, file.title].join(' · '); cardHeading.append(checkbox, label);
+    checkbox.addEventListener('click', event => {
+      if (event.shiftKey) selected = selectRange(order, selected, anchor, name, checkbox.checked);
+      else if (checkbox.checked) selected.add(name); else selected.delete(name);
+      anchor = name; updateSelection();
+    });
+    const preview = retained.get(name)?.querySelector('.preview') || document.createElement('div'); preview.classList.add('preview'); preview.dataset.id = file.id;
+    if (!preview.querySelector('iframe')) { const title = document.createElement('h3'); title.textContent = file.title; preview.replaceChildren(title); }
     const meta = document.createElement('div'); meta.className = 'meta';
-    const original = document.createElement('div'); original.className = 'filename'; original.textContent = name;
-    meta.append(original);
+    const original = document.createElement('div'); original.className = 'filename'; original.textContent = name; meta.append(original);
     if (dirty && filename(name, i) !== name) { original.classList.add('old'); const next = document.createElement('div'); next.className = 'filename changed'; next.textContent = `→ ${filename(name, i)}`; meta.append(next); }
     const actions = document.createElement('div'); actions.className = 'actions';
     for (const [label, delta] of [['↑', -1], ['↓', 1]]) { const b = document.createElement('button'); b.textContent = label; b.setAttribute('aria-label', `Move ${file.title} ${delta < 0 ? 'earlier' : 'later'}`); b.disabled = busy || i + delta < 0 || i + delta >= order.length; b.onclick = () => { move(i, i + delta); $('cards').children[i + delta]?.querySelector('button')?.focus(); }; actions.append(b); }
     const inspectButton = document.createElement('button'); inspectButton.className = 'inspect'; inspectButton.textContent = 'View source'; inspectButton.onclick = () => inspect(file); actions.append(inspectButton);
-    const editButton = document.createElement('button'); editButton.textContent = 'Edit'; editButton.title = 'Open in your editor'; editButton.onclick = () => openFile(file); actions.append(editButton); meta.append(actions); card.append(preview, meta);
-    card.ondragstart = e => { dragged = name; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', name); card.classList.add('dragging'); };
-    card.ondragend = () => { dragged = undefined; document.querySelectorAll('.over,.dragging').forEach(el => el.classList.remove('over','dragging')); };
-    card.ondragover = e => { if (dragged && !busy) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; card.classList.add('over'); } };
-    card.ondragleave = () => card.classList.remove('over');
-    card.ondrop = e => { e.preventDefault(); card.classList.remove('over'); if (dragged) move(order.indexOf(dragged), i); dragged = undefined; };
-    $('cards').append(card);
+    const editButton = document.createElement('button'); editButton.textContent = 'Edit'; editButton.title = 'Open in your editor'; editButton.onclick = () => openFile(file); actions.append(editButton);
+    const paste = document.createElement('div'); paste.className = 'paste-actions';
+    for (const side of ['before','after']) { const b = document.createElement('button'); b.textContent = `Paste ${side}`; b.setAttribute('aria-label', `Paste selected ${state.plural} ${side} ${file.title}`); b.onclick = () => pasteSelection(name, side); paste.append(b); }
+    meta.append(actions, paste); card.append(cardHeading, preview, meta);
+    card.ondragstart = e => { if (e.target.closest('button,input,label')) { e.preventDefault(); return; } dragged = selected.has(name) ? order.filter(n => selected.has(n)) : [name]; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragged.join('\n')); for (const item of $('cards').children) if (dragged.includes(item.dataset.name)) item.classList.add('dragging'); };
+    card.ondragend = () => { dragged = undefined; for (const item of $('cards').children) item.classList.remove('over-before','over-after','dragging'); };
+    const dropSide = e => e.clientY < card.getBoundingClientRect().top + card.clientHeight / 2 ? 'before' : 'after';
+    card.ondragover = e => { if (dragged && !busy && !dragged.includes(name)) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; card.classList.toggle('over-before', dropSide(e) === 'before'); card.classList.toggle('over-after', dropSide(e) === 'after'); } };
+    card.ondragleave = () => card.classList.remove('over-before','over-after');
+    card.ondrop = e => { e.preventDefault(); if (dragged) applyOrder(moveSelection(order, dragged, name, dropSide(e))); dragged = undefined; };
+    $('cards').append(card); thumbnailVisibility.observe(preview); if (preview.querySelector('iframe')) thumbnailSizes.observe(preview);
   });
+  updateSelection();
 }
 async function load(directory, discard = false) {
   if (busy) return;
@@ -66,36 +201,52 @@ async function load(directory, discard = false) {
   const request = ++loading;
   busy = true; if (state) render();
   try {
-    const result = await api(`/__author/collection?directory=${encodeURIComponent(directory)}`);
-    if (request !== loading) return;
-    state = result; order = state.files.filter(f => f.ordered).map(f => f.name); history = [];
+    const result = await api(`/__author/collection?directory=${encodeURIComponent(directory)}`); if (request !== loading) return;
+    const sameDirectory = state?.directory === directory;
+    state = result; order = state.files.filter(f => f.ordered).map(f => f.name); history = []; selected.clear(); cutNames = []; anchor = undefined;
+    if (!sameDirectory) { $('cards').replaceChildren(); loadThumbnailSource(); } else refreshThumbnails();
     $('crumb').textContent = `content / ${directory.replaceAll('/', ' / ')}`;
     $('heading').textContent = order.length ? `Arrange your ${state.plural}` : directory.split('/').at(-1) || 'Content';
-    $('sub').textContent = `Drag ${state.plural} into place. Save to write their order into the filenames.`;
+    $('sub').textContent = `Select ${state.plural} with checkboxes; Shift-click selects a range. Cut and paste to gather separate selections into one run. Save to write the order.`;
     document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.path === directory));
-    message(order.length ? 'Drop a card on another to move it to that position. Arrow buttons work with keyboard and touch.' : 'This directory has no numbered pages (010 - name.md). Choose a collection in the hierarchy.');
+    message(order.length ? 'Select several cards, then Cut selected and paste before or after a destination. You can also drag selected cards together.' : 'This directory has no numbered pages (010 - name.md). Choose a collection in the hierarchy.');
   } catch (error) { message(error.message, true); }
   finally { busy = false; if (state) render(); }
 }
 $('save').onclick = async () => {
   busy = true; render(); message('Saving filenames…');
-  try { state = await api('/__author/reorder', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({directory:state.directory, revision:state.revision, order}) }); order = state.files.filter(f => f.ordered).map(f => f.name); history = []; message('Saved. The running build watcher will refresh open pages.'); }
+  const selectedIds = new Set(state.files.filter(file => selected.has(file.name)).map(file => file.id));
+  try { state = await api('/__author/reorder', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({directory:state.directory, revision:state.revision, order}) }); order = state.files.filter(f => f.ordered).map(f => f.name); history = []; selected = new Set(state.files.filter(file => selectedIds.has(file.id)).map(file => file.name)); cutNames = []; message('Saved. The running build watcher will refresh open pages.'); }
   catch (error) { message(error.message, true); }
   finally { busy = false; render(); }
 };
-$('undo').onclick = () => { order = history.pop(); render(); };
-$('reset').onclick = () => { order = state.files.filter(f => f.ordered).map(f => f.name); history = []; render(); message('Local changes discarded.'); };
+$('undo').onclick = () => { order = history.pop(); cutNames = []; render(); message('Undid the entire move.'); };
+$('reset').onclick = () => { order = state.files.filter(f => f.ordered).map(f => f.name); history = []; cutNames = []; render(); message('Local changes discarded.'); };
 $('reload').onclick = () => load(state?.directory || '');
+$('selectAll').onclick = () => { selected = new Set(order); updateSelection(); };
+$('clearSelection').onclick = () => { selected.clear(); anchor = undefined; updateSelection(); };
+$('cutSelected').onclick = cutSelection;
+$('cancelCut').onclick = () => { cutNames = []; updateSelection(); message('Cut cancelled.'); };
+$('pasteStart').onclick = () => pasteSelection(null, 'start');
+$('pasteEnd').onclick = () => pasteSelection(null, 'end');
 $('close').onclick = () => $('detail').close();
+document.addEventListener('keydown', event => {
+  if (busy || !state || event.target.closest('textarea,input:not([type=checkbox]),[contenteditable]') || $('detail').open) return;
+  if (event.key === 'Escape' && cutNames.length) { event.preventDefault(); cutNames = []; updateSelection(); message('Cut cancelled.'); }
+  if (event.metaKey || event.ctrlKey) {
+    const key = event.key.toLowerCase();
+    if (key === 'a') { event.preventDefault(); selected = new Set(order); updateSelection(); }
+    if (key === 'x' && selected.size) { event.preventDefault(); cutSelection(); }
+    if (key === 'v' && cutNames.length) { const target = event.target.closest('.card')?.dataset.name; if (target) { event.preventDefault(); pasteSelection(target, 'after'); } }
+  }
+});
 window.addEventListener('beforeunload', e => { if (changed()) { e.preventDefault(); e.returnValue = ''; } });
 try {
-  const config = await api('/__author/config');
-  $('site').href = config.siteUrl;
+  config = await api('/__author/config'); $('site').href = config.siteUrl;
   const tree = await api('/__author/tree');
   function branch(node, depth = 0) { const button = document.createElement('button'); button.dataset.path = node.path; button.style.paddingLeft = `${12 + depth * 12}px`; button.textContent = `${node.children.length ? '▾' : '▤'} ${node.name}${node.pages ? ` (${node.pages})` : ''}`; button.onclick = () => load(node.path); $('tree').append(button); node.children.forEach(child => branch(child, depth + 1)); }
-  branch(tree);
-  await load(config.directory);
-  if (!config.directory) message('Choose a collection in the hierarchy.');
+  branch(tree); await load(config.directory); if (!config.directory) message('Choose a collection in the hierarchy.');
 } catch (error) { message(error.message, true); }
+}
 </script>
 </html>
