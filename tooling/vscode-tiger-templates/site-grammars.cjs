@@ -49,7 +49,7 @@ markdown.block.ruler.before('tiger-marker', 'tiger-frontmatter', (state, start, 
   }
   return true;
 });
-function fencedRegions(source) {
+function templateRegions(source) {
   const stack = [], regions = [];
   let depth = 0;
   for (const token of markdown.parse(source, {})) {
@@ -57,10 +57,12 @@ function fencedRegions(source) {
     if (token.type === 'tiger_open') stack.push({ name: token.meta, depth });
     else if (token.type === 'tiger_close') { if (stack.at(-1)?.depth === depth) stack.pop(); }
     else if (token.type === 'fence' && stack.length) regions.push({ block: stack.at(-1).name, fence: token.info.trim().split(/\s+/)[0], token });
+    else if (token.type === 'inline' && token.map && stack.length) regions.push({ block: stack.at(-1).name, fence: '$body', token });
     if (token.nesting === 1) depth++;
   }
   return regions;
 }
+function fencedRegions(source) { return templateRegions(source).filter(region => region.fence !== '$body'); }
 function within(root, file) {
   const relative = path.relative(root, file);
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
@@ -80,31 +82,47 @@ async function loadSite(root) {
   const manifest = await readJSON(manifestFile);
   if (manifest.version !== 1 || !Array.isArray(manifest.sources) || !manifest.sources.length || !Array.isArray(manifest.blocks)) throw new Error('Invalid Tiger editor manifest (expected version 1)');
   const sources = manifest.sources.map(p => path.resolve(root, relativePath(p)));
-  const grammars = new Map(), registries = [], files = new Set([manifestFile]);
+  const bodyFile = path.join(root, '.tiger-grammars.json');
+  const grammars = new Map(), registries = [], files = new Set([manifestFile, bodyFile]);
+  let bodyBlocks = [];
   try {
+    if (!within(realRoot, await fs.realpath(bodyFile))) throw new Error('Body grammar manifest must stay within the workspace');
+    const authored = await readJSON(bodyFile);
+    if (authored.version !== 1 || !Array.isArray(authored.blocks)) throw new Error('Invalid Tiger body grammar manifest (expected version 1)');
+    bodyBlocks = authored.blocks;
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  try {
+    const registrations = [];
     for (const block of manifest.blocks) {
       if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(block.name) || !Array.isArray(block.fences)) throw new Error('Invalid block grammar entry');
       for (const entry of block.fences) {
         if (!/^[A-Za-z][A-Za-z0-9_+.-]*$/.test(entry.fence)) throw new Error('Invalid fence name');
-        const file = path.resolve(root, relativePath(entry.grammar));
-        if (!file.endsWith('.tmLanguage.json') || !within(realRoot, await fs.realpath(file))) throw new Error('Grammar must be a workspace .tmLanguage.json file');
-        files.add(file);
-        const raw = await readJSON(file);
-        if (typeof raw.scopeName !== 'string' || !raw.scopeName.startsWith('source.')) throw new Error('Grammar requires a source.* scopeName');
-        // Each grammar has its own registry, so two sites can reuse the same scope name.
-        const registry = new textmate.Registry({ onigLib: onigLib(), loadGrammar: async scope => scope === raw.scopeName ? raw : null });
-        registries.push(registry);
-        const key = `${block.name}/${entry.fence}`;
-        if (grammars.has(key)) throw new Error(`Duplicate grammar for ${key}`);
-        grammars.set(key, await registry.loadGrammar(raw.scopeName));
+        registrations.push({ block: block.name, fence: entry.fence, grammar: entry.grammar });
       }
+    }
+    for (const block of bodyBlocks) {
+      if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(block.name) || typeof block.body !== 'string') throw new Error('Invalid body grammar entry');
+      registrations.push({ block: block.name, fence: '$body', grammar: block.body });
+    }
+    for (const entry of registrations) {
+      const file = path.resolve(root, relativePath(entry.grammar));
+      if (!file.endsWith('.tmLanguage.json') || !within(realRoot, await fs.realpath(file))) throw new Error('Grammar must be a workspace .tmLanguage.json file');
+      files.add(file);
+      const raw = await readJSON(file);
+      if (typeof raw.scopeName !== 'string' || !raw.scopeName.startsWith('source.')) throw new Error('Grammar requires a source.* scopeName');
+      // Each grammar has its own registry, so two sites can reuse the same scope name.
+      const registry = new textmate.Registry({ onigLib: onigLib(), loadGrammar: async scope => scope === raw.scopeName ? raw : null });
+      registries.push(registry);
+      const key = `${entry.block}/${entry.fence}`;
+      if (grammars.has(key)) throw new Error(`Duplicate grammar for ${key}`);
+      grammars.set(key, await registry.loadGrammar(raw.scopeName));
     }
     return { files, sources, grammars, dispose() { registries.forEach(r => r.dispose()); } };
   } catch (error) { registries.forEach(r => r.dispose()); throw error; }
 }
 function tokenize(source, site, cancelled = () => false) {
   const lines = source.split(/\r?\n/), result = [];
-  for (const { block, fence, token } of fencedRegions(source)) {
+  for (const { block, fence, token } of templateRegions(source)) {
     const grammar = site.grammars.get(`${block}/${fence}`);
     if (!grammar) continue;
     let state = textmate.INITIAL;
@@ -112,7 +130,7 @@ function tokenize(source, site, cancelled = () => false) {
     if (content.at(-1) === '') content.pop();
     for (let i = 0; i < content.length; i++) {
       if (cancelled()) return [];
-      const line = token.map[0] + 1 + i, text = content[i];
+      const line = token.map[0] + (fence === '$body' ? 0 : 1) + i, text = content[i];
       // Markdown removes container indentation. Restore exact UTF-16 source offsets.
       const original = lines[line] ?? '', offset = original.length - text.length;
       const tokens = grammar.tokenizeLine(text, state, 20);
@@ -126,4 +144,4 @@ function tokenize(source, site, cancelled = () => false) {
   }
   return result;
 }
-module.exports = { tokenTypes, semanticType, fencedRegions, loadSite, tokenize, within };
+module.exports = { tokenTypes, semanticType, fencedRegions, templateRegions, loadSite, tokenize, within };

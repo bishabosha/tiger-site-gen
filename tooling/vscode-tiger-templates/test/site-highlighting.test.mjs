@@ -8,7 +8,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 
 test('provider scopes to source roots, refreshes on grammar changes, and clears deleted registrations', async () => {
   const folder = { name:'site', uri:{scheme:'file',fsPath:'/project'} };
-  let provider, onChange, onRemove, onGrant, version=0, deleted=false, refreshed=0, disposed=0;
+  let provider, onCreate, onChange, onRemove, onGrant, version=0, deleted=false, refreshed=0, disposed=0;
   const subscriptions=[];
   const vscode={
     EventEmitter: class { event=()=>{}; fire(){refreshed++;} dispose(){} },
@@ -19,7 +19,7 @@ test('provider scopes to source roots, refreshes on grammar changes, and clears 
     window:{createOutputChannel:()=>({appendLine(){},dispose(){}})},
     languages:{registerDocumentSemanticTokensProvider(selector,value){assert.equal(selector.language,'markdown');provider=value;return {dispose(){}};}},
     workspace:{isTrusted:true,workspaceFolders:[folder],getWorkspaceFolder:()=>folder,
-      createFileSystemWatcher:()=>({onDidCreate:f=>({dispose(){}}),onDidChange:f=>(onChange=f,{dispose(){}}),onDidDelete:f=>(onRemove=f,{dispose(){}}),dispose(){}}),
+      createFileSystemWatcher:()=>({onDidCreate:f=>(onCreate=f,{dispose(){}}),onDidChange:f=>(onChange=f,{dispose(){}}),onDidDelete:f=>(onRemove=f,{dispose(){}}),dispose(){}}),
       onDidChangeWorkspaceFolders:()=>({dispose(){}}),onDidGrantWorkspaceTrust:f=>(onGrant=f,{dispose(){}})}
   };
   const core={tokenTypes:['keyword'],within:(root,file)=>file.startsWith(root+'/'),
@@ -35,13 +35,19 @@ test('provider scopes to source roots, refreshes on grammar changes, and clears 
   onChange({fsPath:'/project/grammars/test.tmLanguage.json'});await tick();
   assert.equal(provider.provideDocumentSemanticTokens(doc,cancel)[0].range.start,2);
   assert.equal(disposed,1);
+  onCreate({fsPath:'/project/.tiger-grammars.json'});await tick();
+  assert.equal(provider.provideDocumentSemanticTokens(doc,cancel)[0].range.start,3);
+  onChange({fsPath:'/project/.tiger-grammars.json'});await tick();
+  assert.equal(provider.provideDocumentSemanticTokens(doc,cancel)[0].range.start,4);
+  onRemove({fsPath:'/project/.tiger-grammars.json'});await tick();
+  assert.equal(provider.provideDocumentSemanticTokens(doc,cancel)[0].range.start,5);
   deleted=true;onRemove({fsPath:'/project/.tiger-editor.json'});await tick();
   assert.equal(provider.provideDocumentSemanticTokens(doc,cancel).length,0);
-  assert.equal(disposed,2);
+  assert.equal(disposed,5);
   deleted=false;vscode.workspace.isTrusted=false;onChange({fsPath:'/project/.tiger-editor.json'});await tick();
   assert.equal(provider.provideDocumentSemanticTokens(doc,cancel).length,0);
   vscode.workspace.isTrusted=true;onGrant();await tick();
-  assert.equal(provider.provideDocumentSemanticTokens(doc,cancel)[0].range.start,3);
+  assert.equal(provider.provideDocumentSemanticTokens(doc,cancel)[0].range.start,6);
   assert.ok(refreshed>=5);
   subscriptions.forEach(d=>d.dispose());
 });

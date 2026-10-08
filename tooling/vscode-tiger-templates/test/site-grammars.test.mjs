@@ -82,3 +82,57 @@ test('colon-labelled square markers retain label and literal token types', async
   const old = source.replace('[[port:5432]]','[[port|5432]]');
   assert.notEqual(tokenAt(old,tokenize(old,site),3,'port|'),'parameter');
 });
+
+async function bodyFixture(t) {
+  const root = await fixture(t);
+  await writeFile(path.join(root, 'grammars/body.tmLanguage.json'), JSON.stringify({
+    scopeName: 'source.example-body',
+    patterns: [{ match: '^\\[control\\]', name: 'keyword.control.example' }]
+  }));
+  await writeFile(path.join(root, '.tiger-grammars.json'), JSON.stringify({
+    version: 1, blocks: [{ name: 'example', body: 'grammars/body.tmLanguage.json' }]
+  }));
+  return root;
+}
+
+test('authored body grammars highlight only inline Markdown in their owning block', async t => {
+  const site = await loadSite(await bodyFixture(t)); t.after(() => site.dispose());
+  const source = ':::example\n[control] Caption\n\n- [control] A note\n\n  ```scala\n  [control] literal example\n  ```\n\n:::other\n[control] Nested block\n:::\n\n[control] Back in example\n:::\n\n[control] Outside';
+  const tokens = tokenize(source, site);
+  assert.deepEqual([...new Set(tokens.map(token => token.line))], [1, 3, 13]);
+  assert.equal(tokenAt(source, tokens, 3, '[control]'), 'keyword');
+  assert.equal(tokenAt(source, tokens, 3, 'A note'), undefined);
+  assert.ok(site.files.has(path.join(path.dirname([...site.files][0]), '.tiger-grammars.json')));
+  for (const wrapped of ['````markdown\n'+source+'\n````', '<!--\n'+source+'\n-->', '---scala\n'+source+'\n---']) {
+    assert.deepEqual(tokenize(wrapped, site), []);
+  }
+});
+
+test('body grammar source offsets survive nested quotes, lists and CRLF', async t => {
+  const site = await loadSite(await bodyFixture(t)); t.after(() => site.dispose());
+  for (const source of [
+    '> :::example\r\n> [control] Caption\r\n> :::',
+    '- Example\n  :::example\n  - [control] Caption\n  :::',
+    ':::example\n[control] Incomplete block'
+  ]) {
+    const row = source.split(/\r?\n/).findIndex(line => line.includes('[control]'));
+    const tokens = tokenize(source, site);
+    assert.equal(tokenAt(source, tokens, row, '[control]'), 'keyword');
+    assert.equal(tokens[0].start, source.split(/\r?\n/)[row].indexOf('[control]'));
+  }
+});
+
+test('body registrations reload independently and reject duplicates and unsafe paths', async t => {
+  const root = await bodyFixture(t);
+  for (const blocks of [
+    [{name:'example',body:'../escape.tmLanguage.json'}],
+    [{name:'example',body:'grammars/body.tmLanguage.json'},{name:'example',body:'grammars/body.tmLanguage.json'}]
+  ]) {
+    await writeFile(path.join(root,'.tiger-grammars.json'),JSON.stringify({version:1,blocks}));
+    await assert.rejects(loadSite(root), /workspace|Duplicate/);
+  }
+  await rm(path.join(root,'.tiger-grammars.json'));
+  const site = await loadSite(root);t.after(()=>site.dispose());
+  assert.equal(site.grammars.has('example/$body'), false);
+  assert.equal(site.grammars.has('decoder/trace'), true);
+});

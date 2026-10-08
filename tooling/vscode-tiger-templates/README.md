@@ -142,6 +142,34 @@ semantic highlighting for Markdown by default; an explicit user/workspace
 Inspect Editor Tokens and Scopes** to inspect these semantic types. This provides
 coloring, not completion, validation or embedded-language bracket/comment rules.
 
+## Site-provided Markdown body grammars
+
+Since 0.6.3, a block can also highlight directive syntax in its Markdown body.
+Keep authored registrations in `.tiger-grammars.json` at the workspace root:
+
+```json
+{
+  "version": 1,
+  "blocks": [
+    { "name": "walkthrough", "body": "grammars/walkthrough.tmLanguage.json" }
+  ]
+}
+```
+
+This sidecar supplements the generated `.tiger-editor.json`; it is not overwritten
+by site builds and should be committed with its grammar. The generated manifest
+still determines eligible source directories. The grammar applies to inline
+Markdown inside the named block, including nested list items. Code fences retain
+their own language highlighting, and nested blocks use their own registration.
+TextMate patterns should match only the directive syntax, leaving captions and
+prose without additional scopes. For example, a grammar can color `[note ...]`
+while leaving the explanation after `]` as ordinary Markdown.
+
+Body registrations use the same scope mapping, automatic reload and workspace
+path checks as fenced grammars. Closing or deleting the sidecar removes only its
+registrations; existing generated fenced grammars remain available. Incomplete
+rules stop at the end of each Markdown paragraph.
+
 ## Opening sources alongside a browser
 
 The live server's Open/Edit slide action preserves visible browsers in every editor

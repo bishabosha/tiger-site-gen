@@ -25,10 +25,10 @@ function installSiteHighlighting(vscode, context) {
   }
   function add(folder) {
     if (folder.uri.scheme !== 'file') return;
-    const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, '**/{.tiger-editor.json,*.tmLanguage.json}'));
+    const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, '**/{.tiger-editor.json,.tiger-grammars.json,*.tmLanguage.json}'));
     const refresh = uri => {
       const entry = sites.get(folder.uri.fsPath);
-      if (uri.fsPath === path.join(folder.uri.fsPath, '.tiger-editor.json') || !entry?.site || entry.site.files.has(uri.fsPath)) reload(folder);
+      if (['.tiger-editor.json', '.tiger-grammars.json'].some(name => uri.fsPath === path.join(folder.uri.fsPath, name)) || !entry?.site || entry.site.files.has(uri.fsPath)) reload(folder);
     };
     const listeners = [watcher.onDidCreate(refresh), watcher.onDidChange(refresh), watcher.onDidDelete(refresh)];
     const entry = { generation: 0, site: null, dispose() { watcher.dispose(); listeners.forEach(l => l.dispose()); this.site?.dispose(); } };
