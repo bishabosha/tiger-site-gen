@@ -56,7 +56,6 @@ object Slides:
         (if inNotes then notes else body).append(line).append('\n')
     require(fence.isEmpty, s"$file: unclosed code fence")
     require(stack.isEmpty, s"$file: unclosed layout: ${stack.mkString(", ")}")
-    require(inNotes && notes.toString.trim.nonEmpty, s"$file: missing Speaker notes")
     (body.toString.trim, notes.toString.trim)
 
   def stamp(seconds: Int): String = f"${seconds / 60}%d:${seconds % 60}%02d"
@@ -109,7 +108,7 @@ object Slides:
         throw IllegalArgumentException(s"${page.path}: unknown layout ${m.layout}"))
       require(m.fontSize.forall(_ > 0), s"${page.path}: fontSize must be a positive pixel size")
       val appendix = m.layout == "appendix"
-      require(if appendix then m.seconds == 0 else m.seconds > 0, s"${page.path}: invalid timing")
+      require(if appendix then m.seconds >= 0 else m.seconds > 0, s"${page.path}: invalid timing")
       require(!reachedAppendix || appendix, "Appendices must follow the main slides")
       reachedAppendix ||= appendix
       val (body, notes) = splitAndValidate(page.rawContent, page.path.toString)
@@ -135,12 +134,12 @@ object Slides:
         }
         val result = cached.filter(_.rendered.start == elapsed).map(_.rendered).getOrElse {
           val Parsed(title, audienceHtml, notesHtml) = parsed
-          val time = if appendix then "Appendix" else s"${stamp(elapsed)}-${stamp(elapsed + m.seconds)}"
+          val time = if appendix then "Appendix" else s"${stamp(elapsed)}-${stamp(elapsed + m.timingSeconds)}"
           val notesWithTiming = frag(p(cls := "time", strong(time)), raw(notesHtml))
           val sectionTag = tag("section")(
             id := m.id,
             cls := layout.classes,
-            attr("data-timing") := m.seconds,
+            attr("data-timing") := m.timingSeconds,
             if appendix then attr("data-visibility") := "uncounted" else frag(),
             layout.backgroundColor.map(color => attr("data-background-color") := color)
           )(
@@ -152,11 +151,11 @@ object Slides:
             ),
             aside(cls := "notes", notesWithTiming)
           )
-          Rendered(m.id, title, m.seconds, appendix, elapsed, sectionTag,
+          Rendered(m.id, title, m.timingSeconds, appendix, elapsed, sectionTag,
             notesWithTiming, page.path)
         }
         cache(page.path) = Cached(theme, assetHash, model.ctx.displayMode, m, page.rawContent, parsed, result)
-        elapsed += m.seconds
+        elapsed += m.timingSeconds
         result
       }
     Deck(context => renderContent(using context), pages.head.path / os.up)

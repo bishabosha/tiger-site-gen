@@ -59,7 +59,7 @@ class SlidePolicyChecks extends munit.FunSuite:
     assertEquals(state.files.map(_.name), Seq("index.md", "010 - same.md", "020 - same.md", "030 - rich.md"))
     val rich = state.files.last
     assertEquals((rich.id, rich.title, rich.badges, rich.group, rich.number),
-      (Some("rich"), "A rich title", Seq("12s"), Some("appendix"), Some(30L)))
+      (Some("rich"), "A rich title", Seq.empty, Some("appendix"), Some(30L)))
     assertEquals(state.files.head.title, "Index")
     assertEquals(state.files.head.number, None)
     os.write.append(f.slides / "030 - rich.md", " ")
@@ -75,6 +75,8 @@ class SlidePolicyChecks extends munit.FunSuite:
     assertEquals(os.read(f.slides / "020 - same.md"), second)
     val created = os.read(f.slides / result.name)
     assert(created.contains("## Speaker notes") && created.contains(s"id = \"${result.id}\""))
+    assert(!created.contains("seconds ="))
+    assert(created.endsWith("## Speaker notes\n"))
     assertEquals(ordered(result.state).map(_.number.get), Seq(10L, 11L, 20L))
     assertEquals(rejects("No free integer")(f.api.insert(InsertRequest(dir, result.state.revision, Some("first")))).status, 409)
     rejects("Files changed")(f.api.insert(InsertRequest(dir, state.revision, Some("second"))))
@@ -157,7 +159,7 @@ class SlidePolicyChecks extends munit.FunSuite:
     val state = f.api.collection(dir)
     rejects("own sections")(f.api.insert(InsertRequest(dir, state.revision, Some("first"), Some("appendix"))))
     val result = f.api.insert(InsertRequest(dir, state.revision, Some("appendix")))
-    assert(os.read(f.slides / result.name).contains("seconds = 0, layout = \"appendix\""))
+    assert(os.read(f.slides / result.name).contains("layout = \"appendix\""))
   }
 
   fixture.test("paste makes room through a consecutive run, stops at the first gap, and preserves bytes") { f =>

@@ -6,11 +6,18 @@ import model.SiteMapSchema.auto.given
 case class DeckMeta(title: String, author: String, event: String, description: String)
     derives scalanotation.Reader
 
-case class SlideMeta(id: String, seconds: Int, layout: String, fontSize: Option[Int] = None)
+case class SlideMeta(id: String, seconds: Int = SlideMeta.defaultSeconds, layout: String, fontSize: Option[Int] = None):
+  /** Appendix slides do not contribute to the running time. */
+  def timingSeconds: Int = if layout == "appendix" then 0 else seconds
 
 object SlideMeta:
-  given scalanotation.Configured[SlideMeta] = scalanotation.Configured.skippable
-  given scalanotation.Reader[SlideMeta] = scalanotation.Reader.configured.derived[SlideMeta]
+  inline val defaultSeconds = 5
+  // SCON skips optional fields, so decode omission before applying the duration default.
+  private case class Input(id: String, seconds: Option[Int], layout: String, fontSize: Option[Int])
+  private given scalanotation.Configured[Input] = scalanotation.Configured.skippable
+  given scalanotation.Reader[SlideMeta] = scalanotation.Reader.configured.derived[Input].map { input =>
+    SlideMeta(input.id, input.seconds.getOrElse(defaultSeconds), input.layout, input.fontSize)
+  }
 
 case class NotesMeta(title: String) derives scalanotation.Reader
 

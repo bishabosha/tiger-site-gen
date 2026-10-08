@@ -20,7 +20,8 @@ final class SlidePolicy(governs: String => Boolean) extends CollectionPolicy:
   override def group(source: String): Option[String] =
     Some(if appendixLayout.matcher(Authoring.metadata(source)).find() then "appendix" else "main")
   override def badges(source: String): Seq[String] =
-    seconds(source).filter(_ > 0).map(value => s"${value}s").toSeq
+    if group(source).contains("appendix") then Seq.empty
+    else Seq(s"${seconds(source).getOrElse(revealTheme.SlideMeta.defaultSeconds.toLong)}s")
   override def minimumPages = 1
   override def groupOrderError = "Keep main slides before appendices"
   override def crossGroupError = "Keep main slides and appendices in their own sections"
@@ -30,7 +31,7 @@ final class SlidePolicy(governs: String => Boolean) extends CollectionPolicy:
   override def newPage(after: Authoring.Page, id: Option[String]): String =
     val appendix = after.group.contains("appendix")
     val layout = if appendix then "appendix" else "standard"
-    s"---scala\n(id = \"${id.getOrElse("")}\", seconds = ${if appendix then 0 else 60}, layout = \"$layout\")\n---\n\n## New slide\n\nAdd your content here.\n\n## Speaker notes\n\nAdd your speaker notes here.\n"
+    s"---scala\n(id = \"${id.getOrElse("")}\", layout = \"$layout\")\n---\n\n## New slide\n\nAdd your content here.\n\n## Speaker notes\n"
 
   // Only the metadata ID changes; keep content, notes and formatting intact.
   override def duplicate(source: String, id: Option[String]): String =

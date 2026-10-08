@@ -410,7 +410,10 @@ it is not itself a theme. `templateDefs` preserves the supplied dictionary's exa
 schema, and `extraDefs` defers `Slides.render()` until each context is constructed.
 
 A deck is a directory containing an index document, a speaker-notes document,
-and a slides collection. See `examples/embedded/content/presentations/` for two
+and a slides collection. Slide metadata requires `id` and `layout`; `seconds` is
+optional and defaults to 5. Main-slide durations must be positive, while appendix
+slides do not contribute to the running time. A slide's `## Speaker notes`
+section may be empty or omitted. New slides leave timings and notes for the author. See `examples/embedded/content/presentations/` for two
 generic decks in the shared `examples/src/mysite/MySite.scala` host example.
 Inside a `model.InferredExtras` host:
 
