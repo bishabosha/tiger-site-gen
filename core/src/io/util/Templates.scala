@@ -50,6 +50,6 @@ object Templates:
     interpolateWith(template, ctx.templates(_))
 
   def interpolateDefault(template: String, theme: model.Theme): String =
-    interpolateWith(template, theme.templates.renderDefault)
+    interpolateWith(template, theme.renderTemplateDefault)
 
   def stamp = java.lang.Long.toHexString(Instant.now().toEpochMilli())

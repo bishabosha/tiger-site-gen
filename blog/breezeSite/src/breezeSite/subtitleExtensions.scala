@@ -2,7 +2,7 @@ package breezeSite
 
 import scalatags.Text.all.*
 
-import Breeze.*
+import BreezeSite.*
 
 object subtitleExtensions:
 

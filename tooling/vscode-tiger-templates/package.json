@@ -1,0 +1,63 @@
+{
+  "name": "tiger-templates",
+  "displayName": "Tiger Markdown Templates",
+  "description": "Highlight Tiger SON frontmatter, template calls, block templates, and attributes inside Markdown; preview unsaved drafts on a running Tiger live server.",
+  "version": "0.6.3",
+  "publisher": "bishabosha",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "extensionDependencies": [
+    "scala-lang.scala"
+  ],
+  "files": [
+    "syntaxes/**",
+    "README.md",
+    "extension.cjs",
+    "live-preview.cjs",
+    "site-grammars.cjs",
+    "site-highlighting.cjs",
+    "node_modules/**"
+  ],
+  "contributes": {
+    "grammars": [
+      {
+        "scopeName": "tiger-template.injection",
+        "path": "./syntaxes/tiger-template.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.scala": "scala"
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "[markdown]": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "package": "vsce package --allow-missing-repository --skip-license --out tiger-templates.vsix",
+    "install:local": "npm run package && code --install-extension tiger-templates.vsix --force"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "3.9.2"
+  },
+  "main": "./extension.cjs",
+  "activationEvents": [
+    "onUri",
+    "onLanguage:markdown"
+  ],
+  "dependencies": {
+    "vscode-textmate": "9.3.2",
+    "vscode-oniguruma": "2.0.1",
+    "markdown-it": "14.3.2"
+  }
+}

@@ -1,14 +1,15 @@
 package checks
 
 import model.{Context, SiteRoot}
+import model.Record.++
 import io.util.paths
 
 class ExistingThemes extends munit.FunSuite:
   private val project = blog.BlogPaths.content
 
-  test("Breeze keeps existing article, project and about URLs") {
+  test("BreezeSite keeps existing article, project and about URLs") {
     given SiteRoot = SiteRoot(project)
-    val context = Context.fromTheme(project / "_docs", breezeSite.Breeze)
+    val context = Context.fromTheme(project / "_docs", breezeSite.BreezeSite)
     assertEquals(context.site.about.index.url, "/about/")
     assertEquals(context.site.articles.index.url, "/articles/")
     assertEquals(context.site.projects.index.url, "/projects/")
@@ -17,7 +18,7 @@ class ExistingThemes extends munit.FunSuite:
     assert(context.site.projects.posts.size > 0)
     val output = os.temp.dir(prefix = "breeze-render-")
     try
-      paths.renderSite(output, breezeSite.Breeze, os.walk(project / "_docs").filter(os.isFile).toSet)(
+      paths.renderSite(output, breezeSite.BreezeSite, os.walk(project / "_docs").filter(os.isFile).toSet)(
         using context, summon[SiteRoot])
       assertEquals(os.read(output / "index.html"), paths.rootPage(redirect = "/about/").render)
       assert(os.isFile(output / "about" / "index.html"))
@@ -32,6 +33,8 @@ class ExistingThemes extends munit.FunSuite:
   }
 
   test("Homepage renders with its existing about URL") {
+    summon[home.Homepage.Templates =:= NamedTuple.Empty]
+    summon[home.Homepage.Extra =:= NamedTuple.Empty]
     given SiteRoot = SiteRoot(project)
     val context = Context.fromTheme(project / "_home", home.Homepage)
     val output = os.temp.dir(prefix = "homepage-render-")
@@ -53,6 +56,15 @@ class ExistingThemes extends munit.FunSuite:
   }
 
   test("Breeze is a complete base and BreezeSite extends its layouts and page dependencies") {
+    summon[breeze.Breeze.Templates =:= (url: model.TemplateFunction, icon: model.TemplateFunction)]
+    summon[breeze.Breeze.Extra =:= (
+      nav: List[model.ContentNode],
+      extraHead: Seq[scalatags.Text.Modifier],
+      extraFoot: Seq[scalatags.Text.Modifier]
+    )]
+    summon[breezeSite.BreezeSite.Extra =:= breeze.Breeze.Extra]
+    summon[breezeSite.BreezeSite.Templates =:= (breeze.Breeze.Templates ++ (`match-sim-embed`: model.TemplateFunction))]
+    summon[Context.Views.Conforms[breezeSite.BreezeSite.Context, breeze.Breeze.Context]]
     given SiteRoot = SiteRoot(project)
     val root = os.temp.dir(prefix = "breeze-base-")
     val output = root / "dist"
@@ -68,7 +80,15 @@ class ExistingThemes extends munit.FunSuite:
         |A personal homepage using only the base theme.
         |""".stripMargin)
       val base = Context.fromTheme(source, breeze.Breeze)(using SiteRoot(root))
-      val specialised = Context.fromTheme(project / "_docs", breezeSite.Breeze)
+      val specialised = Context.fromTheme(project / "_docs", breezeSite.BreezeSite)
+      val identity = {
+        given breezeSite.BreezeSite.Context = specialised
+        breezeSite.BreezeSite.whoAmI
+      }
+      assertEquals(identity, {
+        given breeze.Breeze.Context = base
+        breeze.Breeze.whoAmI
+      })
       assertEquals(base.extra.nav.map(_.url), List("/about/", "/articles/"))
       assertEquals(specialised.extra.nav.map(_.url), List("/about/", "/articles/", "/projects/", "/talks/"))
       assert(base.extra.extraHead.isEmpty && base.extra.extraFoot.isEmpty)
@@ -82,7 +102,7 @@ class ExistingThemes extends munit.FunSuite:
       assert(os.isFile(output / "articles" / "index.html"))
       assert(base.site.articles.posts.toIterable.forall(doc => os.isFile(output / doc.outputPath)))
 
-      paths.renderSite(output, breezeSite.Breeze, os.walk(project / "_docs").filter(os.isFile).toSet)(
+      paths.renderSite(output, breezeSite.BreezeSite, os.walk(project / "_docs").filter(os.isFile).toSet)(
         using specialised, summon[SiteRoot])
       assert(os.read(output / "about" / "index.html").contains("Special Links"))
       val inheritedArticle = os.read(output / specialised.site.articles.posts(0).outputPath)

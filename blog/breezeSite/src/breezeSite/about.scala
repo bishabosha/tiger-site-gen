@@ -4,11 +4,11 @@ import scalatags.Text.all.*
 
 import model.ctx
 
-import Breeze.*
+import BreezeSite.*
 
 import breeze.cards
 
-val about = model.Layout[Breeze.Context, FrontMatter.About]: doc =>
+val about = model.Layout[BreezeSite.Context, FrontMatter.About]: doc =>
   breeze.aboutPage.wrap(doc)(
     div(
       cls := "row",

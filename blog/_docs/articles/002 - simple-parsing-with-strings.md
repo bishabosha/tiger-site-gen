@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   layout = "article",
   title = "Enhanced Simple Parsing for Scala",
@@ -8,7 +8,6 @@
     ''',
   published = "01-Feb-2024"
 )
-```
 ---
 
 I developed a new String interpolator for Advent of Code to help with parsing - it turns out that I didn't need anything else for solving all this years problems.

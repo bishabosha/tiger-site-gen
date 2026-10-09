@@ -6,9 +6,9 @@ import scalatags.Text.all.*
 
 import model.ctx
 
-import Breeze.*
+import BreezeSite.*
 
-val talks = model.Layout[Breeze.Context, FrontMatter.Talks]: doc =>
+val talks = model.Layout[BreezeSite.Context, FrontMatter.Talks]: doc =>
   val siteTalks = ctx.site.talks.posts
   val orderedTalks =
     siteTalks.toIterable.toSeq.sortBy(page =>

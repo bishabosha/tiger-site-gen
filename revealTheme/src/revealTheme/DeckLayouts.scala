@@ -20,9 +20,12 @@ object DeckLayouts:
     button(tpe := "button", attr("data-pdf-action") := action,
       attr("aria-label") := label, title := label, symbol)
 
-  val index: RevealTheme.LayoutOf[DeckMeta] = Layout { page =>
-    val assets = DeckAssets(ctx.site.deck.url)
+  val index: RevealTheme.LayoutOf[DeckMeta] = standalone(DeckPage())
+
+  def standalone(config: DeckPage): RevealTheme.LayoutOf[DeckMeta] = Layout { page =>
+    val assets = ctx.extra.assets
     val data = page.frontMatter
+    val live = ctx.displayMode == model.DisplayMode.Live
     html(lang := "en")(
       head(
         meta(charset := "utf-8"),
@@ -32,15 +35,21 @@ object DeckLayouts:
         link(rel := "stylesheet", href := assets.url("vendor/reveal/dist/reset.css")),
         link(rel := "stylesheet", href := assets.url("vendor/reveal/dist/reveal.css")),
         link(rel := "stylesheet", href := assets.url("theme.css")),
+        link(rel := "stylesheet", href := assets.url("fonts.css")),
         link(rel := "stylesheet", href := assets.url("vendor/pdfjs/pdf_viewer.css")),
-        link(rel := "stylesheet", href := assets.url("pdf-explorer.css"))
+        link(rel := "stylesheet", href := assets.url("pdf-explorer.css")),
+        config.stylesheets.map(file => link(rel := "stylesheet", href := assets.url(file))),
+        if live then AuthoringAssets.head else frag()
       ),
-      body(cls := "reveal-standalone")(
+      body(cls := "reveal-standalone", style := ctx.extra.fonts.cssVariables,
+        attr("data-render-mode") := (if live then "live" else "static"),
+        attr("data-deck-assets") := assets.baseUrl,
+        attr("data-preview-code") := config.moduleScripts.mkString(" "))(
         slidesFragment(fullscreen = true),
-        tag("dialog")(id := "pdf-tour", cls := "pdf-tour", attr("aria-label") := "PDF viewer")(
+        tag("dialog")(id := "pdf-tour", cls := "pdf-tour", attr("aria-label") := "Document viewer")(
           div(cls := "pdf-controls")(
             div(id := "pdf-toolbar", cls := "pdf-toolbar")(
-              pdfButton("close", "Back to slides (Esc)", "×"),
+              pdfButton("close", "Back to slides (X)", "×")(attr("aria-keyshortcuts") := "x"),
               pdfButton("fit", "Fit page", "Fit"),
               pdfButton("out", "Zoom out (−)", "−"),
               button(tpe := "button", id := "pdf-zoom", attr("data-pdf-action") := "actual",
@@ -67,14 +76,16 @@ object DeckLayouts:
         script(src := assets.url("vendor/reveal/dist/plugin/notes.js")),
         script(src := assets.url("vendor/reveal/dist/plugin/highlight.js")),
         script(src := assets.url("deck.js")),
-        script(tpe := "module", src := assets.url("fullscreen.mjs")),
-        script(tpe := "module", src := assets.url("pdf-explorer.mjs"))
+        if !live then script(tpe := "module", src := assets.url("fullscreen.mjs")) else frag(),
+        script(tpe := "module", src := assets.url("pdf-explorer.mjs")),
+        config.moduleScripts.map(file => script(tpe := "module", src := assets.url(file))),
+        if live then script(tpe := "module", src := AuthoringAssets.scriptUrl) else frag()
       )
     )
   }
 
   val notes: RevealTheme.LayoutOf[NotesMeta] = Layout { page =>
-    val assets = DeckAssets(ctx.site.deck.url)
+    val assets = ctx.extra.assets
     val indexPage = ctx.site.deck.index
     val data = indexPage.frontMatter
     val slides = ctx.extra.slides.read()
@@ -83,9 +94,10 @@ object DeckLayouts:
         meta(charset := "utf-8"),
         meta(name := "viewport", content := "width=device-width, initial-scale=1"),
         scalatags.Text.tags2.title(s"${page.frontMatter.title}: ${data.title}"),
-        link(rel := "stylesheet", href := assets.url("notes.css"))
+        link(rel := "stylesheet", href := assets.url("notes.css")),
+        link(rel := "stylesheet", href := assets.url("fonts.css"))
       ),
-      body(
+      body(style := ctx.extra.fonts.cssVariables)(
         h1(data.title),
         p(s"${data.author}. ${data.event}. ${Slides.stamp(slides.map(_.seconds).sum)} total."),
         p(a(href := "index.html", "Open slides")),
@@ -99,17 +111,24 @@ object DeckLayouts:
   /** Shared by the standalone page and each embedded player. */
   def slidesFragment(fullscreen: Boolean = false)(using RevealTheme.Context): ConcreteHtmlTag[String] =
     val slides = ctx.extra.slides.read()
-    div(cls := "reveal")(
+    div(cls := "reveal", style := ctx.extra.fonts.cssVariables)(
       div(cls := "slides")(slides.map(_.slide)),
       if fullscreen then div(cls := "presentation-tools")(fullscreenControl()) else frag()
     )
 
-  def embedded(assets: DeckAssets, linkToStandalone: Boolean, contentBaseUrl: String)(using RevealTheme.Context): Frag =
+  /** Render a fragment in a prepared deck context; URLs follow its physical collection. */
+  def embedded(using context: RevealTheme.Context)(
+      linkToStandalone: Boolean = false,
+      contentBaseUrl: String = context.site.deck.url
+  ): Frag =
+    val assets = context.extra.assets
     require(assets.baseUrl.nonEmpty, "Embedded decks need an absolute asset location")
     require(contentBaseUrl.startsWith("/") && !contentBaseUrl.startsWith("//") && contentBaseUrl.endsWith("/"),
       "Embedded content needs a site-absolute asset directory ending in /")
     val title = ctx.site.deck.index.frontMatter.title
     frag(
+      // Font faces belong to the document's font set, outside the player's shadow root.
+      link(rel := "stylesheet", href := assets.url("fonts.css")),
       tag("reveal-deck")(
         attr("data-assets") := assets.baseUrl,
         attr("data-content-base") := contentBaseUrl,

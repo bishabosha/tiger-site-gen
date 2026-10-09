@@ -1,0 +1,52 @@
+#slide-sidebar { position:fixed; inset:0 auto 0 0; width:252px; z-index:40; box-sizing:border-box; background:#f4f3ef; color:#26343b; border-right:1px solid #cbd0d1; font:13px/1.4 system-ui,sans-serif; display:flex; flex-direction:column; }
+#slide-sidebar[hidden] { display:none; }
+#slide-sidebar header { display:flex; align-items:center; justify-content:space-between; padding:12px 14px 8px; font-size:16px; }
+#slide-sidebar button { cursor:pointer; font:inherit; color:inherit; background:transparent; border:1px solid #b8c1c5; border-radius:4px; padding:5px 9px; }
+#slide-sidebar button:hover { background:#e4e8e8; }
+#slide-sidebar button:focus-visible { outline:3px solid #2878aa; outline-offset:2px; }
+#slide-sidebar button:disabled { opacity:.45; cursor:default; }
+.slide-sidebar-actions { display:flex; position:relative; flex-wrap:nowrap; gap:5px; padding:0 12px; margin-bottom:5px; }
+.slide-sidebar-action { display:flex; flex:1 1 0; min-width:0; }
+/* A wrapper keeps hover help available even when its button is disabled. */
+.slide-sidebar-action::after { content:attr(data-tooltip); position:absolute; left:12px; right:12px; top:calc(100% + 6px); z-index:2; box-sizing:border-box; padding:7px 9px; border-radius:4px; background:#26343b; color:#fff; font:12px/1.4 system-ui,sans-serif; box-shadow:0 2px 8px #0003; pointer-events:none; visibility:hidden; opacity:0; transition:opacity .12s,visibility .12s; }
+.slide-sidebar-action:is(:hover,:focus-within)::after { visibility:visible; opacity:1; }
+.slide-sidebar-actions:has(.slide-sidebar-action:hover) .slide-sidebar-action:not(:hover)::after { visibility:hidden; opacity:0; }
+#slide-sidebar .slide-sidebar-actions button:disabled { pointer-events:none; }
+#slide-sidebar .slide-sidebar-actions button { display:grid; place-items:center; flex:1 1 0; min-width:0; height:32px; padding:5px; }
+.slide-sidebar-actions svg { display:block; width:18px; height:18px; pointer-events:none; }
+.slide-sidebar-hint,.slide-sidebar-status { margin:8px 12px; font-size:12px; }
+.slide-sidebar-status:empty { display:none; }
+.slide-sidebar-status { color:#93411f; overflow-wrap:anywhere; }
+#slide-sidebar nav { overflow:auto; flex:1; padding:8px 12px 20px; }
+#slide-sidebar .slide-thumbnail-item { margin-bottom:12px; }
+#slide-sidebar .slide-thumbnail-item>button { display:block; width:100%; padding:0; text-align:left; overflow:hidden; background:white; }
+#slide-sidebar .slide-thumbnail-item>button[aria-current="true"] { border:2px solid #2878aa; }
+.slide-thumbnail { display:block; position:relative; height:125px; overflow:hidden; pointer-events:none; background:#fff; font-size:12px; }
+.slide-thumbnail iframe { position:absolute; inset:0; width:1600px; height:900px; border:0; transform:scale(.14); transform-origin:top left; pointer-events:none; }
+.slide-thumbnail-label { display:block; padding:6px 8px; overflow-wrap:anywhere; }
+.slide-thumbnail-item.is-cut { opacity:.45; }
+body.slide-sidebar-open>.reveal { position:absolute; left:252px; width:calc(100% - 252px); }
+@media print { #slide-sidebar { display:none!important; } body.slide-sidebar-open>.reveal { left:0; width:100%; } }
+
+/* The slide canvas and its backgrounds share bounds; editor chrome stays outside. */
+body.slide-preview-layout { background:#dfe3e5!important; }
+body.slide-preview-layout>.reveal { position:absolute; margin:0; overflow:visible; background:var(--paper); }
+body.slide-preview-framed>.reveal { box-shadow:0 0 0 1px #19242a30,0 8px 28px #19242a18; }
+body.slide-preview-layout>.reveal .backgrounds { overflow:hidden; }
+body.slide-preview-layout .presentation-tools { position:fixed; left:calc(var(--preview-sidebar-width, 0px) + 16px); bottom:16px; max-width:calc(100vw - var(--preview-sidebar-width, 0px) - 166px); flex-wrap:wrap; gap:6px; color:#58626a; --paper:#f5f2eb; --accent:#c92f39; --rule:#b8c1c5; }
+body.slide-preview-layout .presentation-tools { --paper:#f5f2eb!important; --accent:#c92f39!important; --rule:#b8c1c5!important; --muted:#58626a!important; --ink:#19242a!important; }
+body.slide-preview-layout .presentation-tools button { font-size:14px; }
+body.slide-preview-layout .presentation-tools button[aria-pressed="true"] { background:#26343b; color:#fff; border-color:#26343b; }
+body.slide-preview-layout>.reveal .controls { position:fixed; right:17px; bottom:17px; color:#a32832; }
+body.slide-preview-layout>.reveal .slide-number { position:fixed; right:98px; bottom:28px; color:#58626a!important; }
+body.slide-preview-layout>.reveal .progress { position:fixed; left:var(--preview-sidebar-width, 0px); width:calc(100% - var(--preview-sidebar-width, 0px)); bottom:0; }
+@media print { body.slide-preview-layout>.reveal { position:relative; inset:auto!important; width:100%!important; height:auto!important; box-shadow:none; } }
+
+/* Presentation keeps navigation, while the editor returns exactly as it was. */
+body.slide-presenting { background:#111!important; }
+body.slide-presenting #slide-sidebar, body.slide-presenting .presentation-tools { display:none!important; }
+body.slide-presenting>.reveal { box-shadow:none; }
+.slide-present-exit { position:fixed; left:16px; bottom:16px; z-index:50; color:#ddd; background:#222; border:1px solid #555; border-radius:4px; padding:5px 9px; font:14px system-ui,sans-serif; cursor:pointer; }
+.slide-present-exit[hidden] { display:none; }
+.slide-picker-shortcut-hint { margin:0 0 12px; font:14px system-ui,sans-serif; color:#58626a; }
+body.slide-presenting>.reveal .slide-number { color:#ccc!important; }

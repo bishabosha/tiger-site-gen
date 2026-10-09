@@ -1,0 +1,19 @@
+{
+  "name": "Decoder Trace",
+  "scopeName": "source.decoder-trace",
+  "patterns": [
+    { "match": "^\\s*#.*$", "name": "comment.line.number-sign.trace" },
+    { "begin": "^\\s*(step)\\b", "beginCaptures": { "1": { "name": "keyword.control.trace" } }, "end": "$", "contentName": "string.unquoted.caption.trace" },
+    { "match": "^\\s*(source|slots|builder|fields|object|slot|field|element|cursor|focus|read|push|append|pull|construct|finish|release|wrap|return)\\b", "captures": { "1": { "name": "keyword.control.trace" } } },
+    { "match": "(\\[\\[)([A-Za-z][A-Za-z0-9_-]*)(:)", "captures": { "1": { "name": "keyword.operator.marker.trace" }, "2": { "name": "variable.parameter.marker.trace" }, "3": { "name": "keyword.operator.marker.trace" } } },
+    { "match": "\\]\\]", "name": "keyword.operator.marker.trace" },
+    { "begin": "\"", "end": "\"|$", "name": "string.quoted.double.trace", "patterns": [{ "match": "\\\\.", "name": "constant.character.escape.trace" }] },
+    { "begin": "'", "end": "'|$", "name": "string.quoted.single.trace", "patterns": [{ "match": "\\\\.", "name": "constant.character.escape.trace" }] },
+    { "match": "@[A-Za-z][A-Za-z0-9_-]*", "name": "variable.other.reference.trace" },
+    { "match": "\\b(?:Int|Long|Float|Double|Boolean|Char|String|Ref|[A-Z][A-Za-z0-9_]*)\\b", "name": "entity.name.type.trace" },
+    { "match": "\\b(?:product|array|result|true|false)\\b", "name": "constant.language.trace" },
+    { "match": "(?<![\\w.])-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?[fFL]?\\b", "name": "constant.numeric.trace" },
+    { "match": "->|=|:", "name": "keyword.operator.trace" },
+    { "match": "\\b[A-Za-z][A-Za-z0-9_-]*\\b", "name": "variable.other.field.trace" }
+  ]
+}

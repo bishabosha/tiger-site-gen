@@ -63,10 +63,11 @@ type SiteMap = (
 )
 ```
 
-A typed selector mounts one existing directory:
+The inherited `Theme.mount` helper captures the mapping for each deck:
 
 ```scala
-val conference = RevealTheme.mount[SiteMap](_.presentations.conference)
+val conference = mount(RevealTheme())(paths => (deck = paths.presentations.conference))
+val workshop = mount(RevealTheme())(paths => (deck = paths.presentations.workshop))
 ```
 
 The selected directory must have Reveal's `Deck` type. Missing fields, wrong
@@ -79,33 +80,39 @@ A mount does not require a standalone presentation page. Its collections can
 supply only metadata and slide content for host articles. Publication is a
 separate choice, made by attaching the mount's page layouts to the host schema.
 
-Asset URLs and their installation directory are derived from the selected deck
-directory. The nested `presentations.conference` deck uses
-`/presentations/conference/theme.css`, `/presentations/conference/embed.mjs`, and so on. The convention is the same for public and
-embedded-only decks: an asset directory does not require an `index.html`.
-Renaming or selecting a different collection updates both the URLs and output
-location without an explicit `DeckAssets` value.
+Reveal assets use `/static/reveal_<content-hash>/`, shared by decks with identical
+asset trees. Public files, local theme overrides, npm assets and font declarations
+all contribute to that hash. The resolver returns URLs in that directory and the
+normal static output pass copies the matching bytes. This also works for
+embedded-only decks and preserves relative CSS URLs and module imports.
 
-Embedded relative image/link URLs default to the same directory. For content
-stored elsewhere, use `embed(contentBaseUrl = "/media/conference/")`.
+Markdown image/link URLs for public assets are resolved while rendering. Templates
+use `ctx.resolveAsset(path)` when creating URL attributes. Other relative content
+links default to the selected collection; use `contentBaseUrl = "/media/conference/"`
+to give an embedded player a different base for those links. Renaming a collection
+changes page links and manifest locations without changing identical asset URLs.
 
-If a host publishes standalone pages, `embed(linkToStandalone = true)` adds a
+If a host publishes standalone pages, `DeckLayouts.embedded(linkToStandalone = true)` adds a
 fallback link derived from the selected collection's `url`. There is no explicit
 deck URL to synchronize. Content asset resolution stays independent of that link.
 
-The host also composes `RevealTheme.templates` into its own templates, as shown
-in `MySite`. Tiger parses source Markdown using the host theme before mounts are
-prepared, so Reveal authoring markers such as `{{stack}}` must be available there.
-The projected context itself uses Reveal's template collection.
+Mounts created inside a theme automatically register with that host. Initial
+Markdown parsing discovers their template functions before any mount is prepared,
+so the host does not need to compose `RevealTheme.defaultTemplates` into its dictionary.
+Local templates take precedence, followed by mounted themes in declaration order
+(including nested mounts). Rendering uses the prepared mount's own context and
+typed template dictionary. For mounts defined outside the host, override
+`mountedThemes` to expose their themes explicitly.
 
 ## Prepare once per build
 
-Store the prepared mount in the host's extras:
+The host mixes in `model.InferredExtras` and infers its extras from one deferred
+definition, retaining both mounts' distinct prepared types:
 
 ```scala
-type Extra = (conference: conference.Prepared)
-def extras(using SiteContext): Record[Extra] =
-  Record((conference = conference.prepare()))
+val extraDefs = defineExtras {
+  (conference = conference.prepare(), workshop = workshop.prepare())
+}
 ```
 
 Preparation creates a Reveal context over the projected site and evaluates its
@@ -121,7 +128,7 @@ For optional standalone pages, attach the adapted layouts to the host collection
 
 ```scala
 override val siteMapMeta = defaultSiteMeta
-  .presentations(_.conference(conference.installLayouts[Context]))
+  .presentations(_.conference(conference.installLayouts[Context].deck))
 ```
 
 Omit those deck layout registrations for an embedded-only site. The host still
@@ -132,12 +139,12 @@ Inside a host article layout, use the prepared value directly:
 ```scala
 article(
   raw(io.util.md.renderDoc(page.rawContent)),
-  ctx.extra.conference.embed()
+  ctx.extra.conference.render { DeckLayouts.embedded() }
 )
 ```
 
-The article retains its own context and template functions. The embed enters
-the prepared deck's context only while rendering the fragment. You can embed
+The article retains its own context and template functions. The generic prepared
+value's `render` method enters the deck's context only while rendering the fragment. You can embed
 several decks, or the same deck more than once. Standalone pages and embeds use
 the same `DeckLayouts.slidesFragment` renderer and the same prepared slides.
 
@@ -169,8 +176,9 @@ Nested mounts follow the same rule. Preparing the same mount more than once in
 one context replaces its registration rather than duplicating it. Registrations
 belong to each context, so later builds cannot change an earlier build's hooks.
 
-Reveal installs assets under the selected collection and writes `deck.json`
-last, using the same prepared slides as its layouts. This works for both
+Reveal registers its hashed asset bundle and writes `deck.json` under the selected
+collection, using the same prepared slides as its layouts. The static output pass
+writes registered assets after the hooks. This works for both
 standalone and embedded-only decks. A host can still override `afterRender` for
 its own output without forwarding to mounts or calling `super`.
 The build entry point only needs to call `paths.renderSite` or `paths.generateSite`.
@@ -204,12 +212,15 @@ of the example output.
 
 ## Tiger primitives
 
-- `Site.project(source, namedNodes)` constructs typed content-node aliases.
+- `SiteProjection` stores typed paths for both content selection and metadata installation.
+- `Site.project(source, namedNodes)` constructs aliases of already loaded content nodes.
 - `Context.fromSite(theme)(site)` constructs fresh extras over an existing site.
 - `Layout.contramapContext` adapts a layout using an explicit context conversion.
 - `Theme.afterRender` completes theme-owned output in the normal render flow.
 - `ThemeMount` combines projection, preparation, layout adaptation, and automatic hook registration for any
-  Tiger theme. `RevealMount` adds Reveal's fragment and asset conventions.
+  Tiger theme, including Reveal.
+- `DeckLayouts.embedded` renders a Reveal fragment in the prepared context, with asset URLs derived from its collection.
+- `RevealTheme(assetSources = resolver)` configures asset sources before mounting.
 
 
 For existing numbered singleton sources, opt into `indexed` metadata:
@@ -228,7 +239,7 @@ the field still loads `<field>.md`. Resolved singleton files are excluded from
 sibling `VarArgDocs`; their numeric prefixes never affect public URLs.
 
 
-`installLayouts[Context]` retrieves the prepared mount from the host's typed
+`installLayouts[Context].deck` retrieves the prepared mount from the host's typed
 extras automatically. It requires exactly one field whose type is that mount's
 path-dependent `Prepared` type. Field names and ordering are arbitrary; another
 mount's prepared value is a different type. Missing or duplicate matches fail
@@ -236,5 +247,17 @@ at compilation. Extras remain directly accessible as `ctx.extra.conference`,
 and the lookup always uses the current host context's value.
 
 This uses `Context.ExtraValue[C, A]`, derived through `Record.SelectByType`.
-No additional runtime registry or preparation is involved. Explicit
-`index` and `notes` adapters remain available when a custom selector is needed.
+No additional runtime registry or preparation is involved. Use the generic
+`mount.layout(DeckLayouts.index)(preparedLookup)` or
+`mount.layout(DeckLayouts.notes)(preparedLookup)` when a custom selector is needed.
+
+## Aligning column content
+
+Columns are vertically centered by default. Use `{{columns top}}` to align all
+columns in that row to the top. To top-align just one column, wrap its contents
+in `{{stack top}}` … `{{end-stack}}` inside a columns group. Other columns retain
+their normal alignment.
+
+For several aligned rows grouped centrally, put the row-by-row `{{columns top}}`
+groups inside one outer `{{stack}}`. The outer stack centers the group with
+compact spacing, while each row aligns its cells at their top edges.

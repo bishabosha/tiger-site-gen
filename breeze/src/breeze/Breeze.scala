@@ -3,12 +3,14 @@ package breeze
 import model.ctx
 import model.sctx
 import model.Record
+import model.Directory
 import model.TemplateFunction
 import model.ContentNode
+import scalatags.Text.Modifier
 
 import model.SiteMapSchema.auto.given
 
-object Breeze extends model.DictionaryTheme:
+object Breeze extends model.DictionaryTheme, model.InferredExtras, model.InferredTemplates:
 
   override val metadata = new:
     val name = "Breeze"
@@ -20,11 +22,7 @@ object Breeze extends model.DictionaryTheme:
       articles = articles
     )
 
-  type Templates = (
-      url: TemplateFunction,
-      icon: TemplateFunction
-  )
-  override val templates = model.TemplateFunctions:
+  val templateDefs = model.TemplateFunctions:
     (
       url = TemplateFunction(
         io.util.paths.resolveStaticAsset,
@@ -37,8 +35,8 @@ object Breeze extends model.DictionaryTheme:
     )
 
   type SiteMap = (
-      about: model.Directory[(index: DocOf[FrontMatter.About])],
-      articles: model.Directory[
+      about: Directory[(index: DocOf[FrontMatter.About])],
+      articles: Directory[
         (index: DocOf[FrontMatter.Articles], posts: VarArgDocsOf[FrontMatter.Article])
       ]
   )
@@ -72,17 +70,13 @@ object Breeze extends model.DictionaryTheme:
       val published: String
     }
 
-  type Extra = (
-      nav: List[ContentNode],
-      extraHead: Seq[scalatags.Text.all.Modifier],
-      extraFoot: Seq[scalatags.Text.all.Modifier]
-  )
-  def extras(using SiteContext) = Record:
+  val extraDefs = defineExtras {
     (
-      nav = List(sctx.site.about, sctx.site.articles),
-      extraHead = Seq.empty,
-      extraFoot = Seq.empty
+      nav = List[ContentNode](sctx.site.about, sctx.site.articles),
+      extraHead = Seq.empty[Modifier],
+      extraFoot = Seq.empty[Modifier]
     )
+  }
 
   /** Add host navigation and page dependencies without rebuilding the base extras record. */
   def extendExtras(

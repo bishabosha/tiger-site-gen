@@ -8,5 +8,9 @@
   },
   "engines": {
     "node": ">=22.13.0"
+  },
+  "scripts": {
+    "test:js": "node --test revealTheme/test/js/*.test.mjs live/test/js/*.test.mjs",
+    "test:vscode": "npm --prefix tooling/vscode-tiger-templates test"
   }
 }

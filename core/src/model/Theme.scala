@@ -4,6 +4,12 @@ import scala.language.experimental.modularity
 import Theme.Metadata
 
 object Theme:
+  /** A definition-time registry, separate from per-build Prepared contexts. */
+  final class Mounts:
+    private val themes = scala.collection.mutable.ArrayBuffer.empty[Theme]
+    private[model] def register(theme: Theme): Unit = themes += theme
+    def mountedThemes: Seq[Theme] = themes.toVector
+
   trait Metadata:
     val name: String
 
@@ -12,8 +18,41 @@ trait Theme:
 
   val metadata: Metadata
 
+  /** Mount constructors inherit this registry from their enclosing host theme. */
+  protected given themeMounts: Theme.Mounts = new Theme.Mounts
+
+  /** Mount another theme using this host's sitemap and the child's singleton type. */
+  final def mount(child: Theme)(
+      mapping: SiteProjection.Paths[SiteMap, SiteMap] => SiteProjection.Mapping[SiteMap, child.SiteMap]
+  )(using labels: SiteProjection.Labels[child.SiteMap]): ThemeMount[SiteMap, child.type] =
+    new ThemeMount[SiteMap, child.type](child)(mapping)(using labels, themeMounts)
+
+  /** Local templates take precedence, then mounts in declaration order.
+    * Override to expose mounts owned outside this theme definition.
+    */
+  def mountedThemes: Seq[Theme] = themeMounts.mountedThemes
+
+  private[model] final def defaultTemplate(name: String): Option[TemplateFunction | BlockTemplateFunction] =
+    def find(theme: Theme, visited: Set[Theme]): Option[TemplateFunction | BlockTemplateFunction] =
+      if visited.contains(theme) then None
+      else theme.templates.get(name).orElse {
+        theme.mountedThemes.iterator
+          .flatMap(mounted => find(mounted, visited + theme)).nextOption()
+      }
+    find(this, Set.empty)
+
+  /** Initial Markdown parsing runs before mounted contexts can be prepared. */
+  final def renderTemplateDefault(expr: String): String =
+    val (name, args) = expr.span(!_.isWhitespace)
+    TemplateFunctions.inlineFunction(expr, defaultTemplate(name)).renderDefault(args.trim)
+
+  /** Resolve block templates through the same local-first mount lookup. */
+  final def renderTemplateDefault(expr: String, body: TemplateBody): String =
+    val (name, args) = expr.span(!_.isWhitespace)
+    TemplateFunctions.blockFunction(expr, defaultTemplate(name)).renderDefault(args.trim, body)
+
   type Templates <: NamedTuple.AnyNamedTuple
-  val templates: TemplateFunctions[Templates]
+  def templates: TemplateFunctions[Templates]
 
   final type LayoutOf[Data] =
     model.Layout[Context, model.Doc[Data]]
@@ -28,6 +67,10 @@ trait Theme:
 
   type Extra <: NamedTuple.AnyNamedTuple
   def extras(using SiteContext): model.Record[Extra]
+
+  /** Resolve asset URLs before a layout or Markdown renderer writes them. */
+  def resolveAsset(url: String)(using Context): String =
+    if url.startsWith("/static/") then io.util.paths.resolveStaticAsset(url) else url
 
   /** Complete theme-owned output after pages, static files and mounted hooks.
     * Called once per successful renderSite pass, including incremental passes

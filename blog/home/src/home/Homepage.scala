@@ -4,16 +4,13 @@ import model.ctx
 import model.SiteMapSchema.auto.given
 import model.Doc
 import model.Record
-import steps.result.Result
+import model.Directory
 
-object Homepage extends model.Theme:
+object Homepage extends model.EmptyExtras, model.EmptyTemplates:
   val metadata = new:
     val name = "Homepage"
 
-  type Templates = NamedTuple.Empty
-  override val templates = model.TemplateFunctions.Empty
-
-  type SiteMap = (about: model.Directory[(index: Doc[FrontMatter.About])])
+  type SiteMap = (about: Directory[(index: Doc[FrontMatter.About])])
 
   override val siteMapMeta =
     defaultSiteMeta.about(
@@ -42,6 +39,3 @@ object Homepage extends model.Theme:
   def whoAmI(using Context): String = ctx.site.about.index.frontMatter.name
   def copyright(using Context): String =
     ctx.site.about.index.frontMatter.copyright
-
-  type Extra = NamedTuple.Empty
-  def extras(using SiteContext) = Record(NamedTuple.Empty)

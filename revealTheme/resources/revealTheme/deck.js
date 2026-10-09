@@ -32,6 +32,9 @@ const revealReady = Reveal.initialize({
 });
 
 revealReady.then(async () => {
-  const { installSlideFitting } = await import('./slide-fit.mjs');
+  const [{ installSlideFitting }, { installSlidePicker }] = await Promise.all([
+    import('./slide-fit.mjs'), import('./slide-picker.mjs')
+  ]);
+  installSlidePicker(Reveal, document.querySelector('.reveal'));
   await installSlideFitting(Reveal, document.querySelector('.reveal'));
 });

@@ -6,8 +6,12 @@ import Context.Views.{Conforms, View, SiteView}
 sealed trait SiteContext:
   type SiteMap <: NamedTuple.AnyNamedTuple
   val metadata: Theme.Metadata
+  /** The actual theme, including composed templates, before extras are evaluated. */
+  val theme: Theme
   val siteRoot: SiteRoot
   val buildSession: BuildSession
+  val displayMode: DisplayMode
+  val staticAssets: StaticAssets
   val site: model.Site[SiteMap]
   private[model] val renderHooks: Context.RenderHooks
 
@@ -21,6 +25,7 @@ sealed trait Context extends SiteContext:
   type Templates <: NamedTuple.AnyNamedTuple
   val extra: model.Record[Extra]
   val templates: TemplateFunctions[Templates]
+  def resolveAsset(url: String): String
 
 object Context:
   type HasExtra[E <: AnyNamedTuple] = Context { type Extra = E }
@@ -57,11 +62,11 @@ object Context:
     type SiteMap = SiteMap0; type Extra = Extra0; type Templates = Templates0
   }
 
-  def fromTheme[T <: Theme](src: os.Path, theme0: T, session: BuildSession = new BuildSession)(using
+  def fromTheme[T <: Theme](src: os.Path, theme0: T, session: BuildSession = new BuildSession, displayMode: DisplayMode = DisplayMode.Static)(using
       root: model.SiteRoot
   ): View[Context.Of[theme0.SiteMap, theme0.Extra, theme0.Templates]] =
     session.synchronized {
-      fromSite(theme0)(io.util.paths.buildSiteDb(src, theme0, session), session)
+      fromSite(theme0)(io.util.paths.buildSiteDb(src, theme0, session), session, displayMode)
     }
 
   /** Build a fresh context over existing collections, including projected aliases.
@@ -70,19 +75,36 @@ object Context:
   def fromSite[T <: Theme](theme0: T)(site0: model.Site[theme0.SiteMap], session: BuildSession = new BuildSession)(using
       root: model.SiteRoot
   ): View[Context.Of[theme0.SiteMap, theme0.Extra, theme0.Templates]] =
+    fromSite(theme0)(site0, session, DisplayMode.Static)
+
+  def fromSite[T <: Theme](theme0: T)(site0: model.Site[theme0.SiteMap], session: BuildSession, displayMode: DisplayMode)(using
+      root: model.SiteRoot
+  ): View[Context.Of[theme0.SiteMap, theme0.Extra, theme0.Templates]] =
+    fromSite(theme0)(site0, session, displayMode, new StaticAssets)
+
+  def fromSite[T <: Theme](theme0: T)(site0: model.Site[theme0.SiteMap], session: BuildSession,
+      displayMode: DisplayMode, assets: StaticAssets)(using root: model.SiteRoot
+  ): View[Context.Of[theme0.SiteMap, theme0.Extra, theme0.Templates]] =
+    val mode = displayMode
     View(
       new Context { self =>
         override type SiteMap = theme0.SiteMap
         override type Extra = theme0.Extra
         override type Templates = theme0.Templates
+        val displayMode = mode
+        val staticAssets = assets
         val buildSession = session
         val metadata: Theme.Metadata = theme0.metadata
+        val theme: Theme = theme0
         private[model] val renderHooks = new RenderHooks
         val siteCtx = SiteView(
           new SiteContext {
             override type SiteMap = theme0.SiteMap
+            val displayMode = mode
+            val staticAssets = assets
             val buildSession = session
             val metadata: Theme.Metadata = theme0.metadata
+            val theme: Theme = theme0
             private[model] val renderHooks = self.renderHooks
             override val siteRoot: SiteRoot = root
             override val site: model.Site[theme0.SiteMap] =
@@ -98,6 +120,7 @@ object Context:
           theme0.extras
         }
         override val templates: TemplateFunctions[Templates] = theme0.templates
+        def resolveAsset(url: String): String = theme0.resolveAsset(url)(using View(self))
       }
     )
 

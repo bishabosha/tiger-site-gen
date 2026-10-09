@@ -28,6 +28,11 @@ sealed trait SiteMapMeta[C <: Context, T <: AnyNamedTuple] extends Selectable:
   final def selectDynamic(name: String): (SiteMapMeta.Data[C] => SiteMapMeta.Data[C]) => SiteMapMeta[C, T] =
     _update(name)
 
+  /** Select a typed metadata modifier using a string type parameter. */
+  final def _select[Name <: String: ValueOf](using Name <:< Tuple.Union[NamedTuple.Names[Fields]])
+      : Record.FieldOf[Fields, Name] =
+    selectDynamic(valueOf[Name]).asInstanceOf[Record.FieldOf[Fields, Name]]
+
 object SiteMapMeta:
   type Of[C <: Context] = [T <: AnyNamedTuple] =>> SiteMapMeta[C, T]
   type MetaOf[C <: Context, T] <: Data[C] = T match
@@ -66,13 +71,40 @@ object SiteMapMeta:
     def selectDynamic(name: String): (Data[C] => Data[C]) => DirectoryData[C, T] =
       f => DirectoryData(children._update(name)(f))
 
+    def _select[Name <: String: ValueOf](using Name <:< Tuple.Union[NamedTuple.Names[Fields]])
+        : Record.FieldOf[Fields, Name] =
+      selectDynamic(valueOf[Name]).asInstanceOf[Record.FieldOf[Fields, Name]]
+
+  /** Layout-only modifiers preserve host root/indexed flags and unconfigured layouts. */
+  final class LayoutInstallers[C <: Context, T <: AnyNamedTuple] private[model] (
+      source: Map[String, Data[C]]
+  ) extends Selectable:
+    type Fields = NamedTuple.Map[T, [X] =>> MetaOf[C, X] => MetaOf[C, X]]
+    def selectDynamic(name: String): Data[C] => Data[C] =
+      target => installLayouts(source(name), target)
+
+  private def installLayouts[C <: Context](source: Data[C], target: Data[C]): Data[C] =
+    source match
+      case doc: DocData[C, a] =>
+        val host = target.asInstanceOf[DocData[C, a]]
+        host.copy(optLayout = doc.optLayout.orElse(host.optLayout))
+      case docs: DocsData[C, a] =>
+        val host = target.asInstanceOf[DocsData[C, a]]
+        host.copy(optLayout = docs.optLayout.orElse(host.optLayout))
+      case directory: DirectoryData[C, t] =>
+        val host = target.asInstanceOf[DirectoryData[C, t]]
+        DirectoryData(directory.children.entries.foldLeft(host.children) {
+          case (children, (name, child)) =>
+            children._update(name)(installLayouts(child, _))
+        })
+
   private class RawMeta[C <: Context, T <: AnyNamedTuple](val entries: Map[String, Data[C]])
       extends SiteMapMeta[C, T]:
     def _query(name: String): Data[C] = entries(name)
     def _update(name: String)(f: Data[C] => Data[C]): SiteMapMeta[C, T] =
       RawMeta(entries.updated(name, f(entries(name))))
 
-  private def adapt[C <: Context, Host <: Context](data: Data[C], project: Host => C): Data[Host] =
+  private[model] def adapt[C <: Context, Host <: Context](data: Data[C], project: Host => C): Data[Host] =
     data match
       case doc: DocData[C, a] =>
         DocData[Host, a](
@@ -162,6 +194,11 @@ final class Site[T <: AnyNamedTuple] private (
 ) extends Selectable:
   type Fields = T
   def selectDynamic(name: String): ContentNode = nodes(name)
+
+  /** Select the field's precise content-node type without requiring a literal name. */
+  def _select[Name <: String: ValueOf](using Name <:< Tuple.Union[NamedTuple.Names[Fields]])
+      : Record.FieldOf[Fields, Name] =
+    selectDynamic(valueOf[Name]).asInstanceOf[Record.FieldOf[Fields, Name]]
 
 object Site:
   /** Alias nodes without changing their physical paths or documents. */

@@ -13,3 +13,6 @@ out_home
 
 node_modules/
 dist/
+dist-display/
+.live-preview.json
+.tiger-editor.json

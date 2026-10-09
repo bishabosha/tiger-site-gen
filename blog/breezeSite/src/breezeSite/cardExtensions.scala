@@ -1,6 +1,6 @@
 package breezeSite
 
-import breezeSite.Breeze.*
+import breezeSite.BreezeSite.*
 import breeze.cards
 
 import scalatags.Text.all.*

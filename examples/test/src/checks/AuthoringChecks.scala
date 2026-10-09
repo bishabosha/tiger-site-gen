@@ -103,11 +103,11 @@ import mysite.MySite
     assert(mounted.site.deck eq context.site.presentations.conference, "Mount replaced the host's deck collection")
     val shared = mounted.extra.slides.read()(using mounted)
     val (_, indexDependencies) = Templates.withDependencyCollection {
-      MySite.conference.index[MySite.Context](_.extra.conference)
+      MySite.conference.layout(DeckLayouts.index)((host: MySite.Context) => host.extra.conference)
         .run(context.site.presentations.conference.index)(using context)
     }(using context)
     val (_, notesDependencies) = Templates.withDependencyCollection {
-      MySite.conference.notes[MySite.Context](_.extra.conference)
+      MySite.conference.layout(DeckLayouts.notes)((host: MySite.Context) => host.extra.conference)
         .run(context.site.presentations.conference.`speaker-notes`)(using context)
     }(using context)
     assert(shared eq mounted.extra.slides.read()(using mounted), "The rendered slides were recomputed")

@@ -1,6 +1,5 @@
-```scala
+---scala
 (id = "next", seconds = 30, layout = "standard")
-```
 ---
 
 ## Workshop details

@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   layout = "article",
   title = "Just declare your services: Introducing operation mirrors",
@@ -8,7 +8,6 @@
     ''',
   published = "24-Jun-2024",
 )
-```
 ---
 
 Scala 3 makes it even easier to write expressive code that feels like it belongs in a dynamic language, but stays aggressively type-safe, improving your productivity. Towards this style, I'm introducing [ops-mirror](https://github.com/bishabosha/ops-mirror), a micro-library for reflection of method signatures, for example to generate schemas for HTTP endpoints from trait definitions.

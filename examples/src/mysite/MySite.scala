@@ -2,9 +2,8 @@ package mysite
 
 /* DEMO SITE for testing embedding of presentations within articles */
 
-import revealTheme.{RevealTheme, RevealAssets}
-import model.{Layout, Record, TemplateFunction, TemplateFunctions, ctx}
-import Record.++
+import revealTheme.{DeckLayouts, RevealTheme, RevealAssets}
+import model.{Layout, TemplateFunction, TemplateFunctions, Directory, ctx}
 import model.SiteMapSchema.auto.given
 import scalatags.Text.all.*
 
@@ -14,26 +13,27 @@ type ArticleMeta = model.Dictionary {
 }
 
 /** The host owns naming, root placement, assets and the lifetime of prepared mounts. */
-class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = RevealAssets.fromNpm) extends model.DictionaryTheme:
+class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = RevealAssets.fromNpm) extends model.DictionaryTheme, model.InferredExtras:
   val metadata: model.Theme.Metadata = new:
     val name = "A website with articles and two presentations"
 
-  type Templates = (date: TemplateFunction) ++ RevealTheme.Templates
+  type Templates = (date: TemplateFunction)
   val templates: TemplateFunctions[Templates] = TemplateFunctions(
     (date = TemplateFunction(_ => java.time.LocalDate.now.toString, _ => "today"))
-  ) ++ RevealTheme.templates
-
-  type SiteMap = (
-      articles: model.Directory[(index: DocOf[ArticleMeta], posts: VarArgDocsOf[ArticleMeta])],
-      presentations: model.Directory[(conference: RevealTheme.Deck, workshop: RevealTheme.Deck)]
   )
 
-  val conference = RevealTheme.mount[SiteMap](_.presentations.conference, assets)
-  val workshop = RevealTheme.mount[SiteMap](_.presentations.workshop, assets)
+  type SiteMap = (
+      articles: Directory[(index: DocOf[ArticleMeta], posts: VarArgDocsOf[ArticleMeta])],
+      presentations: Directory[(conference: RevealTheme.Deck, workshop: RevealTheme.Deck)]
+  )
 
-  type Extra = (conference: conference.Prepared, workshop: workshop.Prepared)
-  def extras(using SiteContext): Record[Extra] =
-    Record((conference = conference.prepare(), workshop = workshop.prepare()))
+  val slideTheme = RevealTheme(assetSources = assets)
+  val conference = mount(slideTheme)(paths => (deck = paths.presentations.conference))
+  val workshop = mount(slideTheme)(paths => (deck = paths.presentations.workshop))
+
+  val extraDefs = defineExtras {
+    (conference = conference.prepare(), workshop = workshop.prepare())
+  }
 
   private val article: LayoutOf[ArticleMeta] = Layout { page =>
     html(lang := "en")(
@@ -44,9 +44,9 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
         scalatags.Text.tags2.article(
           h1(page.frontMatter.title),
           raw(io.util.md.renderDoc(page.rawContent)),
-          ctx.extra.conference.embed(linkToStandalone = serveDeckPages),
+          ctx.extra.conference.render { DeckLayouts.embedded(linkToStandalone = serveDeckPages) },
           h2("Workshop"),
-          ctx.extra.workshop.embed(linkToStandalone = serveDeckPages)
+          ctx.extra.workshop.render { DeckLayouts.embedded(linkToStandalone = serveDeckPages) }
         )
       )
     )
@@ -71,10 +71,7 @@ class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = Revea
     val host = defaultSiteMeta
       .articles(_.index(_.setAsRoot.layout(articleLayouts).indexed).posts(_.layout(articleLayouts)))
     if serveDeckPages then
-      host.presentations(_
-        .conference(conference.installLayouts[Context])
-        .workshop(workshop.installLayouts[Context])
-      )
+      workshop.extend(conference.extend(host))
     else host
 
 object MySite extends ExampleSite(serveDeckPages = true):

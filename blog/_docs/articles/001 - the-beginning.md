@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   layout = "article",
   title = "How to write a website generator in Scala, Part 1",
@@ -8,7 +8,6 @@
     ''',
   published = "01-Aug-2022"
 )
-```
 ---
 
 I decided to write my own website generator to build my personal website.

@@ -1,4 +1,4 @@
-```scala
+---scala
 (
   layout = "article",
   title = "Coding with Pizza in 2024",
@@ -7,7 +7,6 @@
     ''',
   published = "09-Nov-2024"
 )
-```
 ---
 
 The [Pizza language](https://pizzacompiler.sourceforge.net) developed by Martin Odersky, and Philip Wadler in 1997 was quite a significant milestone in the history of Java and other JVM languages like Scala. As a research project, it introduced generics, lambdas, algebraic data types and pattern matching on top of Java, all in the 90s. Given that Java has finally introduced all of these features, and in the interests of preservation, can we run it today? is it useful?

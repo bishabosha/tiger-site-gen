@@ -54,17 +54,23 @@ object sanatise:
       size: Long,
       modified: java.nio.file.attribute.FileTime,
       created: java.nio.file.attribute.FileTime,
+      changed: Option[java.nio.file.attribute.FileTime],
       fileKey: Any
   )
   def fileVersion(path: os.Path): FileVersion =
     val stat = java.nio.file.Files
       .readAttributes(path.toNIO, classOf[java.nio.file.attribute.BasicFileAttributes])
-    FileVersion(stat.size, stat.lastModifiedTime, stat.creationTime, stat.fileKey)
+    val changed = try Some(java.nio.file.Files.getAttribute(path.toNIO, "unix:ctime")
+      .asInstanceOf[java.nio.file.attribute.FileTime])
+      catch case _: UnsupportedOperationException | _: IllegalArgumentException => None
+    FileVersion(stat.size, stat.lastModifiedTime, stat.creationTime, changed, stat.fileKey)
 
   private val regex = raw"[:/()!?&*^$$#@,']".r
 
   def md5Hashed(path: os.Path): String =
-    val bytes = os.read.bytes(path)
+    md5Hashed(os.read.bytes(path))
+
+  def md5Hashed(bytes: Array[Byte]): String =
     val md = java.security.MessageDigest.getInstance("MD5")
     val digest = md.digest(bytes)
     digest.map("%02x".format(_)).mkString
@@ -87,20 +93,52 @@ object paths:
     val hashedName = s"${path.baseName}_$hashedSuffix.${path.ext}"
     (path / os.up / hashedName)
 
+  private def resourcePath(asset: model.StaticAsset): os.RelPath =
+    val path = os.RelPath(asset.path.stripPrefix("/"))
+    path / os.up / s"${path.baseName}_${asset.hash}.${path.ext}"
+
+  def resolveStaticAsset(asset: model.StaticAsset)(using model.SiteContext): String =
+    resolveStaticAsset(asset, sctx.staticAssets)
+
+  /** Resolve a tree as one content-addressed unit, preserving its internal relative URLs. */
+  def resolveStaticAsset(bundle: model.StaticBundle)(using model.SiteContext): String =
+    sctx.staticAssets.register(bundle)
+    Templates.recordMultiDependency(bundle.dependencies)
+    s"/static/${bundle.outputDirectory}/"
+
+  /** Also used by live serving to install its client through the ordinary static pipeline. */
+  def resolveStaticAsset(asset: model.StaticAsset, assets: model.StaticAssets): String =
+    assets.register(asset)
+    s"/static/${resourcePath(asset)}"
+
+  def writeStaticAssets(dest: os.Path, assets: model.StaticAssets): Unit = assets.synchronized {
+    for asset <- assets.resources do
+      val target = dest / "static" / resourcePath(asset)
+      if !os.isFile(target) then os.write(target, asset.bytes, createFolders = true)
+    for bundle <- assets.bundles; (path, asset) <- bundle.files do
+      val target = dest / "static" / bundle.outputDirectory / path
+      if !os.isFile(target) then os.write(target, asset.bytes, createFolders = true)
+  }
+
   def resolveStaticAsset(relURL: String)(using model.SiteContext): String =
     relURL match
       case s"/static/$rest" =>
-        sctx.site.optStatic match
-          case Some(static) =>
-            val path = os.Path(rest, static)
-            // Record dependency on this static asset for the current page render, if enabled
-            Templates.recordDependency(path)
-            if os.exists(path) then
-              val hashedPath = hashPath(path).relativeTo(static).toString
-              s"/static/$hashedPath"
-            else throw Exception(s"Static asset not found: $path")
-          case None => throw Exception("No static directory found")
+        sctx.staticAssets.get(s"/$rest") match
+          case Some(asset) => s"/static/${resourcePath(asset)}"
+          case None => resolveStaticFile(rest)
       case _ => throw Exception(s"Invalid static asset path: $relURL")
+
+  private def resolveStaticFile(rest: String)(using model.SiteContext): String =
+    sctx.site.optStatic match
+      case Some(static) =>
+        val path = os.Path(rest, static)
+        // Record dependency on this static asset for the current page render, if enabled
+        Templates.recordDependency(path)
+        if os.exists(path) then
+          val hashedPath = hashPath(path).relativeTo(static).toString
+          s"/static/$hashedPath"
+        else throw Exception(s"Static asset not found: $path")
+      case None => throw Exception("No static directory found")
 
   def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(using
       model.SiteRoot
@@ -134,12 +172,19 @@ object paths:
       if !ignoreCache then Cache.readFrom(cachePath)
       else Cache.empty
 
-    val allFiles = os.walk(os.Path(src, curr)).filter(os.isFile)
+    // Previous page dependencies include theme/public trees outside the Markdown source root.
+    def dependencyFiles(dependencies: Iterable[String]): Seq[os.Path] = dependencies.toSet.toSeq.flatMap { dependency =>
+      val path = os.Path(dependency, curr)
+      if os.isDir(path) then os.walk(path).filter(os.isFile)
+      else if os.isFile(path) then Seq(path)
+      else Nil
+    }
+    val allFiles = (os.walk(os.Path(src, curr)).filter(os.isFile) ++ dependencyFiles(cache.deps.valuesIterator.flatten.toSeq)).distinct
     val hashes = session.cache(fileHashes)
     def sourceHash(path: os.Path): String =
       val version = sanatise.fileVersion(path)
       hashes.get(path) match
-        case Some((cachedVersion, hash)) if cachedVersion == version => hash
+        case Some((cachedVersion, hash)) if version.changed.nonEmpty && cachedVersion == version => hash
         case _                                                       =>
           val hash = sanatise.md5Hashed(path)
           hashes(path) = (version, hash)
@@ -166,7 +211,9 @@ object paths:
 
     val dependentDocs: Set[os.Path] =
       cache.deps.collect {
-        case (docPath, deps) if deps.exists(changedAbsPaths.contains) =>
+        case (docPath, deps) if deps.exists(dependency =>
+            changedAbsPaths.contains(dependency) || (os.isDir(os.Path(dependency)) &&
+              changed.exists(_.startsWith(os.Path(dependency))))) =>
           os.Path(docPath, curr)
       }.toSet
 
@@ -192,17 +239,24 @@ object paths:
     val mergedDeps: Map[String, Set[String]] = prevDepsKept ++ depsFromRender
 
     val newCache = Cache(
-      files = (changed ++ unchanged)
+      files = (changed ++ unchanged ++ dependencyFiles(mergedDeps.valuesIterator.flatten.toSeq)).distinct
         .map(p => p.relativeTo(curr).toString -> sourceHash(p))
         .toMap,
       deps = mergedDeps
     )
     os.write.over(cachePath, upickle.default.write(newCache))
 
+  /** Load the site's documents.
+    *
+    * @param overrides in-memory source text by path, used instead of the file for
+    *   those documents (e.g. unsaved editor buffers). Overridden documents bypass
+    *   the session's source cache and are never written anywhere.
+    */
   def buildSiteDb(
       src: os.Path,
       theme: model.Theme,
-      session: model.BuildSession = new model.BuildSession
+      session: model.BuildSession = new model.BuildSession,
+      overrides: Map[os.Path, String] = Map.empty
   )(using model.SiteRoot): model.Site[theme.SiteMap] =
     val seenSources = mutable.Set.empty[os.Path]
     def readDocument[A: scalanotation.Reader](
@@ -212,7 +266,9 @@ object paths:
         output: os.RelPath
     ): model.Doc[A] =
       seenSources += path
-      md.cached[A](index, name, path, output, theme, session)
+      overrides.get(path) match
+        case Some(text) => md.renderText[A](index, name, path, output, theme, text)
+        case None       => md.cached[A](index, name, path, output, theme, session)
 
     def numberedDocument(path: os.Path): Option[(Int, String, os.Path)] =
       path.last match
@@ -307,15 +363,48 @@ object paths:
       loaded.nodes
     )
 
-  def renderSite(
-      dest: os.Path,
-      theme: model.Theme,
-      changed: Set[os.Path]
-  )(using theme.Context, model.SiteRoot): Map[String, Set[String]] = {
-    val deps = mutable.Map[String, Set[String]]()
-    val outputs = mutable.Map[String, String]()
+  /** Every document the site loaded, in sitemap order (directories depth-first). */
+  def siteDocuments(site: model.Site[?]): Vector[model.Doc[?]] =
+    def visit(nodes: Iterable[model.ContentNode]): Vector[model.Doc[?]] =
+      nodes.toVector.flatMap {
+        case doc: model.Doc[?] => Vector(doc)
+        case many: model.DocumentCollection[?] => many.toIterable.toVector
+        case group: model.Directory[?] => visit(group.children.nodes.values)
+      }
+    visit(site.nodes.values)
+
+  /** One page of a [[SitePlan]]: a document, its output route and its selected layout. */
+  final class PlannedPage private[util] (
+      val source: os.Path,
+      val output: os.RelPath,
+      val url: String,
+      val isRoot: Boolean,
+      /** Dependencies recorded while selecting the layout. */
+      val selectorDependencies: Set[String],
+      run: () => (String, Set[String])
+  ):
+    /** The output path relative to the output root, e.g. `articles/post.html`. */
+    def route: String = output.toString
+    /** Render the page to HTML (with doctype) without writing it, collecting its dependencies. */
+    def render(): RenderedPage =
+      val (html, used) = run()
+      RenderedPage(source, route, url, html, selectorDependencies ++ used)
+
+  /** A rendered page. `dependencies` are absolute source paths (see [[Templates.recordDependency]]). */
+  final case class RenderedPage(source: os.Path, route: String, url: String, html: String,
+      dependencies: Set[String])
+
+  /** The pages a prepared context produces, and the optional root redirect. */
+  final case class SitePlan(pages: Vector[PlannedPage], rootRedirect: Option[String]):
+    def routes: Set[String] = pages.map(_.route).toSet
+    def forSource(source: os.Path): Option[PlannedPage] = pages.find(_.source == source)
+
+  /** Select layouts and output routes for every document, validating routes and roots.
+    * Nothing is rendered or written; see [[PlannedPage.render]].
+    */
+  def planSite(theme: model.Theme)(using theme.Context): SitePlan =
+    val pages = mutable.ArrayBuffer.empty[PlannedPage]
     val roots = mutable.ArrayBuffer.empty[String]
-    val jobs = mutable.ArrayBuffer.empty[() => Unit]
     val routes = mutable.Set.empty[String]
 
     def document[A](
@@ -334,18 +423,10 @@ object paths:
       selected.foreach { layout =>
         val route = output.toString
         require(routes.add(route), s"Duplicate output route: $route")
-        val source = page.path.relativeTo(curr).toString
-        outputs(source) = route
         if isRoot then roots += url
-        jobs += (() =>
-          if changed.contains(page.path) || !os.isFile(dest / output) then
-            val (rendered, usedDeps) = Templates.withDependencyCollection { layout.run(page) }
-            os.write.over(
-              dest / output,
-              scalatags.Text.all.doctype("html")(rendered),
-              createFolders = true
-            )
-            deps(source) = selectorDeps ++ usedDeps
+        pages += PlannedPage(page.path, output, url, isRoot, selectorDeps, () =>
+          val (rendered, usedDeps) = Templates.withDependencyCollection { layout.run(page) }
+          (scalatags.Text.all.doctype("html")(rendered).render, usedDeps)
         )
       }
 
@@ -381,6 +462,24 @@ object paths:
       roots.headOption.forall(_ == "/") || !routes.contains("index.html"),
       "Root redirect would overwrite index.html"
     )
+    SitePlan(pages.toVector, roots.headOption.filter(_ != "/"))
+
+  /** Render the selected pages in memory; nothing is written. */
+  def renderPages(theme: model.Theme)(select: PlannedPage => Boolean)(using theme.Context): Vector[RenderedPage] =
+    planSite(theme).pages.filter(select).map(_.render())
+
+  /** Render the page of one source document in memory, if it has a layout. */
+  def renderSource(theme: model.Theme, source: os.Path)(using theme.Context): Option[RenderedPage] =
+    planSite(theme).forSource(source).map(_.render())
+
+  def renderSite(
+      dest: os.Path,
+      theme: model.Theme,
+      changed: Set[os.Path]
+  )(using theme.Context, model.SiteRoot): Map[String, Set[String]] = {
+    val deps = mutable.Map[String, Set[String]]()
+    val plan = planSite(theme)
+    val outputs = plan.pages.map(page => page.source.relativeTo(curr).toString -> page.route).toMap
     os.makeDir.all(dest)
     // Persist exact routes so deleted nested sources and removed layouts clean up correctly.
     val outputManifest = dest / ".outputs.json"
@@ -388,13 +487,18 @@ object paths:
       if os.isFile(outputManifest) then
         upickle.default.read[Map[String, String]](os.read(outputManifest))
       else Map.empty[String, String]
-    val currentRoutes = outputs.values.toSet ++ roots.headOption.map(_ => "index.html")
+    val currentRoutes = outputs.values.toSet ++ plan.rootRedirect.map(_ => "index.html")
     (previous.values.toSet -- currentRoutes).foreach { route =>
       val path = dest / os.RelPath(route)
       if os.isFile(path) then os.remove(path)
     }
-    jobs.foreach(_())
-    roots.headOption.filter(_ != "/").foreach { url =>
+    plan.pages.foreach { page =>
+      if changed.contains(page.source) || !os.isFile(dest / page.output) then
+        val rendered = page.render()
+        os.write.over(dest / page.output, rendered.html, createFolders = true)
+        deps(page.source.relativeTo(curr).toString) = rendered.dependencies
+    }
+    plan.rootRedirect.foreach { url =>
       os.write.over(dest / "index.html", rootPage(redirect = url))
     }
     for static <- ctx.site.optStatic do
@@ -419,8 +523,8 @@ object paths:
       )
 
     model.Context.afterRender(theme, dest)
-    val tracked =
-      outputs.toMap ++ roots.headOption.filter(_ != "/").map(_ => "@root" -> "index.html")
+    writeStaticAssets(dest, ctx.staticAssets)
+    val tracked = outputs ++ plan.rootRedirect.map(_ => "@root" -> "index.html")
     os.write.over(outputManifest, upickle.default.write(tracked))
     deps.toMap
   }
@@ -446,6 +550,7 @@ object md:
   private val (parser, renderer) =
     val options = MutableDataSet()
     val exts = List(
+      BlockTemplates,
       AttributesExtension.create(),
       GitLabExtension.create(),
       AnchorLinkExtension.create(),
@@ -516,6 +621,8 @@ object md:
       // example of visitor for a node or nodes, just add VisitHandlers<> to the list
       // any node type not handled by the visitor will default to visiting its children
       val visitor = NodeVisitor(
+        // Template source can contain control headings that are not in its rendered output.
+        VisitHandler(classOf[BlockTemplates.TemplateBlock], _ => ()),
         VisitHandler(classOf[Text], visit(_)),
         VisitHandler(classOf[Paragraph], visit(_)),
         VisitHandler(classOf[Heading], visit(_))
@@ -554,12 +661,29 @@ object md:
   end ContentSampler
 
   def renderDoc(document: String)(using Context): String =
-    renderer.render(parser.parse(renderRaw(document)))
+    val ast = parseDoc(document)
+    HtmlRenderer.builder(ast).build().render(ast)
+
+  def parseDoc(document: String)(using Context): Document =
+    parseDoc(document, _ => ())
+
+  /** Configure the parsed document before block templates render any of its children. */
+  def parseDoc(document: String, prepare: Document => Unit)(using Context): Document =
+    val ast = parser.parse(renderRaw(document))
+    MarkdownLinks.install(ast, ctx.resolveAsset)
+    prepare(ast)
+    BlockTemplates.expand(ast, (expression, body) => ctx.templates(expression, body))
   def renderRaw(document: String)(using Context): String =
     Templates.interpolate(document)
 
   def parseDryRun(document: String, theme: model.Theme): Document =
-    parser.parse(Templates.interpolateDefault(document, theme))
+    parseDryRun(document, theme, _ => ())
+
+  def parseDryRun(document: String, theme: model.Theme, prepare: Document => Unit): Document =
+    val ast = parser.parse(Templates.interpolateDefault(document, theme))
+    prepare(ast)
+    BlockTemplates.expand(ast,
+      (expression, body) => theme.renderTemplateDefault(expression, body))
 
   private case class SourceKey(theme: model.Theme, reader: scalanotation.Reader[?], path: os.Path)
   private case class CachedSource(version: sanatise.FileVersion, document: model.Doc[?])
@@ -606,16 +730,22 @@ object md:
       outputPath: os.RelPath,
       theme: model.Theme
   ): model.Doc[T] =
-    import org.virtuslab.yaml.*
+    renderText[T](index, name, path, outputPath, theme, os.read(path))
+
+  /** Like [[render]], but reads `rawText` in place of the file at `path` (which need not exist). */
+  def renderText[T: scalanotation.Reader](
+      index: Int,
+      name: String,
+      path: os.Path,
+      outputPath: os.RelPath,
+      theme: model.Theme,
+      rawText: String
+  ): model.Doc[T] =
     def frontMatterError(msg: String): Nothing =
       throw new Exception(s"failed to read front matter of $path:$msg")
-    val rawText = os.read(path)
-    val (rawSON, rawDoc) =
-      val imports = "import language.experimental.dedentedStringLiterals\n"
-      rawText.match
-        case s"---\n```scala\n$son\n```\n---\n$rest" => (imports + son, rest)
-        case s"```scala\n$son\n```\n---\n$rest"      => (imports + son, rest)
-        case _                                       => frontMatterError(" no front matter found")
+    val (son, rawDoc) = try FrontMatter.split(rawText)
+      catch case error: IllegalArgumentException => frontMatterError(" " + error.getMessage)
+    val rawSON = "import language.experimental.dedentedStringLiterals\n" + son
 
     val documentNoSplices = parseDryRun(rawDoc, theme)
     val data: T = Readers.experimental.readAs[T](rawSON) match
