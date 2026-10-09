@@ -12,19 +12,17 @@ version (currently `0.1.0-SNAPSHOT`). All published artifacts use organization
 | Mill module | Artifact | Module dependencies |
 | --- | --- | --- |
 | `core` | `tiger-site-gen-core` | — |
-| `revealTheme` | `tiger-site-gen-reveal` | core |
 | `live` | `tiger-site-gen-live` | core |
-| `revealLive` | `tiger-site-gen-reveal-live` | live, Reveal |
+| `revealTheme` | `tiger-site-gen-reveal` | live |
 | `breeze` | `tiger-site-gen-breeze` | core |
 | `blog.breezeSite` | Not published | breeze |
 | `blog.home` | Not published | core |
-| `examples` | Not published | Reveal, Reveal live |
+| `examples` | Not published | Reveal |
 | `blog` | Not published | blog.breezeSite, blog.home, live |
 
 Sources live in each module's `src/`; integration tests live in
-`examples/test/src/`, blog build tests in `blog/test/src/`, Reveal asset
-tests in `revealTheme/test/src/`, live-server tests in `live/test/src/` and
-slide authoring tests in `revealLive/test/src/`.
+`examples/test/src/`, blog build tests in `blog/test/src/`, Reveal asset and slide authoring
+tests in `revealTheme/test/src/`, and live-server tests in `live/test/src/`.
 The VS Code extension for Tiger Markdown is in `tooling/vscode-tiger-templates/`.
 Open the repository in Metals, import Mill, and compile/run tests there.
 
@@ -32,9 +30,8 @@ After verification, publish the jars to the local Ivy repository:
 
 ```sh
 ./mill core.publishLocal --doc false
-./mill revealTheme.publishLocal --doc false
 ./mill live.publishLocal --doc false
-./mill revealLive.publishLocal --doc false
+./mill revealTheme.publishLocal --doc false
 ```
 
 `publishLocal` includes sources and dependency metadata. Omit `--doc false` to
@@ -49,8 +46,7 @@ A Scala CLI consumer uses:
 //> using repository ivy2local
 //> using dep "io.github.bishabosha::tiger-site-gen-core:0.1.0-SNAPSHOT"
 //> using dep "io.github.bishabosha::tiger-site-gen-reveal:0.1.0-SNAPSHOT"
-//> using dep "io.github.bishabosha::tiger-site-gen-live:0.1.0-SNAPSHOT"          # optional: live editing for any site
-//> using dep "io.github.bishabosha::tiger-site-gen-reveal-live:0.1.0-SNAPSHOT"   # optional: live Reveal decks
+//> using dep "io.github.bishabosha::tiger-site-gen-live:0.1.0-SNAPSHOT"          # live editing for any site (included by reveal)
 ```
 
 ## Document sources
@@ -626,15 +622,14 @@ pages.
 
 ### Reveal decks
 
-`tiger-site-gen-reveal-live` (`revealLive/`, depends on live and Reveal) adds what is
-specific to slides:
+`tiger-site-gen-reveal` (`revealTheme/`, depends on live) also adds what live editing
+needs that is specific to slides:
 
 ```scala
 import scala.language.experimental.modularity
 import model.SiteMapSchema.auto.autoDerived
 import live.LiveSite
-import revealLive.{RevealLive, SlideDeck}
-import revealTheme.{DeckPage, RevealTheme}
+import revealTheme.{DeckPage, RevealTheme, SlideDeck}
 
 val talkTheme = RevealTheme.withTemplates(
   RevealTheme.defaultTemplates ++ MyTemplates.templates,     // must start with Reveal's templates
@@ -643,7 +638,7 @@ val talkTheme = RevealTheme.withTemplates(
 
 object TalkSite extends SlideDeck["my-talk"](talkTheme)      // content/my-talk/ → /my-talk/
 
-val talk = LiveSite(TalkSite, RevealLive.settings(TalkSite.collection))(using SiteRoot.here)
+val talk = LiveSite(TalkSite, RevealTheme.liveSettings(TalkSite.collection))(using SiteRoot.here)
 @main def deck(args: String*): Unit = talk.main(args)
 ```
 
@@ -656,7 +651,7 @@ val talk = LiveSite(TalkSite, RevealLive.settings(TalkSite.collection))(using Si
 
 `TIGER_RENDER_MODE=live|display` selects the CLI's default mode; `--live` and
 `--display` take precedence. Programmatic callers use an explicit mode or the
-`displayMode` in their settings. `RevealLive.settings(collection)` supplies ordinary
+`displayMode` in their settings. `RevealTheme.liveSettings(collection)` supplies ordinary
 `LiveSiteSettings`: mode-specific output directories, the deck's site URL, editor
 sources, and a `SlidePolicy` in the studio settings. There is no Reveal-specific
 host subclass. The same components can be configured directly or customised with
@@ -808,7 +803,7 @@ The filesystem-watch regression is in `revealTheme.WatchTiming`.
 (`live.Journal`): static files, reload-client injection and opt-outs, build markers,
 the error status, Content studio filesystem operations and security checks on plain
 numbered collections, draft relaying, `SiteDrafts` and the `LiveSite` dev loop.
-`./mill revealLive.test` covers the slide policy (IDs, appendices, templates);
+`revealTheme.SlidePolicyChecks` covers the slide policy (IDs, appendices, templates);
 `checks.LiveDeckChecks` builds the example live deck in both modes, renders slide
 drafts and runs the watch/serve loop; `checks.LiveBlogChecks` previews a Breeze
 article draft. Browser-side checks run with `npm run test:js`, the VS Code

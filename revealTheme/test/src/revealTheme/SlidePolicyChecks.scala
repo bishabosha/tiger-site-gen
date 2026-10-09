@@ -1,4 +1,4 @@
-package revealLive
+package revealTheme
 
 import live.{Authoring, AuthoringError, Http, LiveServer, LiveServerConfig, StudioSettings}
 import live.Authoring.*

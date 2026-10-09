@@ -1,7 +1,6 @@
-package revealLive
+package revealTheme
 
 import scala.language.experimental.modularity
-import revealTheme.RevealTheme
 
 /** A presentation website that owns its sources and routes, and mounts a Reveal theme
  *  on its single collection `content/<DeckName>/` (served at `/<DeckName>/`).

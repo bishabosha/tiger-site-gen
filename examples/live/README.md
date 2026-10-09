@@ -1,6 +1,6 @@
 # Live deck example
 
-A single-deck project using `tiger-site-gen-reveal-live` (see `examples/src/mysite/LiveDemo.scala`):
+A single-deck project using `tiger-site-gen-reveal` (see `examples/src/mysite/LiveDemo.scala`):
 one JVM builds, watches, renders unsaved VS Code drafts and serves the deck with
 automatic refresh. Install npm packages at the repository root first (`npm ci`).
 

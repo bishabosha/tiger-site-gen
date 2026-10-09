@@ -1,4 +1,4 @@
-package revealLive
+package revealTheme
 
 import java.util.regex.Pattern
 import live.{Authoring, CollectionPolicy}

@@ -4,10 +4,9 @@ package mysite
 
 import scala.language.experimental.modularity
 import model.SiteMapSchema.auto.autoDerived
-import revealLive.{RevealLive, SlideDeck}
 import live.LiveSite
 import model.{SiteRoot, TemplateFunction, TemplateFunctions}
-import revealTheme.{DeckPage, RevealAssets, RevealTheme}
+import revealTheme.{DeckPage, RevealAssets, RevealTheme, SlideDeck}
 import scalatags.Text.all.*
 
 /** Host templates extend Reveal's; host styles and modules join both render modes. */
@@ -26,7 +25,7 @@ object DemoSite extends SlideDeck["demo-deck"](demoTheme)
 
 /** The example project is `examples/live/`, its own site root (content/, public/, dist/). */
 def demoDeck(root: os.Path = example.ExamplePaths.root / "examples" / "live"): LiveSite =
-  LiveSite(DemoSite, RevealLive.settings(DemoSite.collection))(using SiteRoot(root))
+  LiveSite(DemoSite, RevealTheme.liveSettings(DemoSite.collection))(using SiteRoot(root))
 
 /** `dev` (default), `build [--display]`, `watch`, `serve [--display] [--port N]`. */
 @main def liveDemo(args: String*): Unit = demoDeck().main(args)

@@ -77,6 +77,17 @@ object RevealTheme:
   )(using model.Record.IsSubPrefix[T, Templates]): RevealTheme[T] =
     new RevealTheme(templates, assetSources, fonts, slideLayouts, page)
 
+  /** Reveal's defaults as ordinary settings for the generic live host. */
+  def liveSettings(collection: String, contentDirectory: String = "content"): live.LiveSiteSettings =
+    val slides = s"$collection/slides"
+    live.LiveSiteSettings(
+      contentDirectory = contentDirectory,
+      output = live.OutputDirectories(live = "dist", static = "dist-display"),
+      editorSources = Some(Seq(s"$contentDirectory/$collection")),
+      siteUrl = s"/$collection/",
+      studio = live.StudioSettings(slides, Seq(SlidePolicy(slides)))
+    )
+
 /** One Reveal theme; callers may supply a dictionary extending the companion's defaults. */
 final class RevealTheme[T <: scala.NamedTuple.AnyNamedTuple](
     templates: TemplateFunctions[T],
