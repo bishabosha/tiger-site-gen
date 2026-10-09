@@ -32,7 +32,6 @@ import mysite.MySite
       |""".stripMargin
 
   try
-    os.symlink(root / "node_modules", source / "node_modules")
     os.makeDir.all(root / "public")
     os.copy(source / "examples" / "embedded" / "content", root / "content")
     val content = root / "content" / "presentations" / "conference" / "slides"

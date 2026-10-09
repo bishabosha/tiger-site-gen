@@ -7,13 +7,11 @@ import model.SiteMapSchema.auto.given
 class ExtendedThemeChecks extends munit.FunSuite:
   private def extendedReveal(label: String, fonts: DeckFonts = DeckFonts(),
       layouts: Map[String, SlideLayout] = Map.empty) =
-    val npm = SiteRoot.here.root / os.up / os.up / os.up / os.up / "node_modules"
     RevealTheme.withTemplates(
       RevealTheme.defaultTemplates ++ TemplateFunctions((
         marker = TemplateFunction(_ => label, _ => label)
       )),
-      assetSources = root => RevealAssets.fromNpm(root).copy(
-        revealJs = npm / "reveal.js", pdfJs = npm / "pdfjs-dist"),
+      assetSources = RevealAssets.fromSiteRoot,
       fonts = fonts,
       slideLayouts = layouts
     )

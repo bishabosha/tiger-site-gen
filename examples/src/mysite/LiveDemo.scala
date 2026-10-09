@@ -6,7 +6,7 @@ import scala.language.experimental.modularity
 import model.SiteMapSchema.auto.autoDerived
 import live.LiveSite
 import model.{SiteRoot, TemplateFunction, TemplateFunctions}
-import revealTheme.{DeckPage, RevealAssets, RevealTheme, SlideDeck}
+import revealTheme.{DeckPage, RevealTheme, SlideDeck}
 import scalatags.Text.all.*
 
 /** Host templates extend Reveal's; host styles and modules join both render modes. */
@@ -14,10 +14,6 @@ val demoTheme = RevealTheme.withTemplates(
   RevealTheme.defaultTemplates ++ TemplateFunctions((
     badge = { val render = (label: String) => span(cls := "badge", label).render; TemplateFunction(render, render) }
   )),
-  // npm packages are installed once, at the repository root.
-  assetSources = root =>
-    val npm = if os.isDir(root.root / "node_modules") then root.root else example.ExamplePaths.root
-    RevealAssets.fromNpm(root).copy(revealJs = npm / "node_modules" / "reveal.js", pdfJs = npm / "node_modules" / "pdfjs-dist"),
   page = DeckPage(stylesheets = Seq("assets/demo.css"))
 )
 

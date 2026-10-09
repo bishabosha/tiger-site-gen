@@ -14,8 +14,6 @@ class MountChecks extends munit.FunSuite:
     val root = os.temp.dir(prefix = "reveal-mount-")
     try
       os.copy(project / "examples" / "embedded" / "content", root / "content")
-      for directory <- Seq("node_modules") do
-        os.symlink(root / directory, project / directory)
       body(root)
     finally os.remove.all(root)
 
@@ -468,17 +466,15 @@ class MountChecks extends munit.FunSuite:
         assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "reveal" / "dist" / "reveal.js"))
   }
 
-  test("mounted hooks resolve third-party packages outside the host site") {
+  test("mounted hooks resolve vendor assets outside the host site") {
     fixture { root =>
       given SiteRoot = SiteRoot(root)
-      os.remove(root / "node_modules")
+      val vendor = os.temp.dir(prefix = "vendor-package-")
+      os.write(vendor / "dist" / "widget.mjs", "export {}", createFolders = true)
       val seen = scala.collection.mutable.ArrayBuffer.empty[os.Path]
       val resolve: RevealAssets.Resolver = siteRoot =>
         seen += siteRoot.root
-        RevealAssets(
-          project / "node_modules" / "reveal.js",
-          project / "node_modules" / "pdfjs-dist"
-        )
+        RevealAssets(vendor = Seq(RevealAssets.Vendor(vendor / "dist", os.RelPath("vendor/widget"))))
       val theme = new mysite.ExampleSite(serveDeckPages = false, assets = resolve)
       val context = Context.fromTheme(root / "content", theme)
       paths.renderSite(root / "dist", theme, os.walk(root / "content").filter(os.isFile).toSet)(using context, summon[SiteRoot])
@@ -486,7 +482,7 @@ class MountChecks extends munit.FunSuite:
       for collection <- Seq("conference", "workshop") do
         val output = root / "dist" / "presentations" / collection
         assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "reveal" / "dist" / "reveal.js"))
-        assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "pdfjs" / "pdf.mjs"))
+        assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "widget" / "widget.mjs"))
         assert(os.isFile(bundle(output / os.up / os.up) / "theme.css"))
         assert(os.isFile(output / "deck.json"))
         assert(!os.exists(output / "index.html"))

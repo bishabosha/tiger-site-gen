@@ -13,7 +13,7 @@ type ArticleMeta = model.Dictionary {
 }
 
 /** The host owns naming, root placement, assets and the lifetime of prepared mounts. */
-class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = RevealAssets.fromNpm) extends model.DictionaryTheme, model.InferredExtras:
+class ExampleSite(serveDeckPages: Boolean, assets: RevealAssets.Resolver = RevealAssets.fromSiteRoot) extends model.DictionaryTheme, model.InferredExtras:
   val metadata: model.Theme.Metadata = new:
     val name = "A website with articles and two presentations"
 
