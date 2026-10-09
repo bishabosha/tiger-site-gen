@@ -11,7 +11,7 @@ class LiveDeckChecks extends munit.FunSuite:
   private def assets(root: os.Path): os.Path =
     root / "dist" / os.RelPath(assetBase(os.read(root / "dist" / "demo-deck" / "index.html")).stripPrefix("/"))
 
-  /** A copy of the example project; npm packages still come from the repository root. */
+  /** A copy of the example project. */
   private def project(): os.Path =
     // Deliberately unresolved: on macOS the temporary directory is behind a symlink.
     val root = os.temp.dir(prefix = "live-deck-")
@@ -28,7 +28,8 @@ class LiveDeckChecks extends munit.FunSuite:
       val built = os.read(root / "dist" / "demo-deck" / "index.html")
       assert(built.contains("data-render-mode=\"live\"") && built.contains("/static/revealTheme/authoring/live_"))
       assert(built.contains(assetBase(built) + "assets/demo.css"))
-      assert(!built.contains("fullscreen.mjs") && built.contains("pdf-explorer.mjs"))
+      assert(!built.contains("fullscreen.mjs") && built.contains("vendor/reveal/dist/reveal.js"))
+      assert(!built.contains("pdf"), "PDF viewing belongs to hosts that add it")
       val editorAssets = "/static/revealTheme/authoring/[a-z]+_[a-f0-9]{32}\\.(?:js|css)".r
         .findAllIn(built).toSet
       assertEquals(editorAssets.size, 6)
@@ -44,7 +45,6 @@ class LiveDeckChecks extends munit.FunSuite:
         assert(served.contains("data-render-mode=\"live\""))
         assert(served.contains("/static/revealTheme/authoring/live_"))
         assert(!served.contains("fullscreen.mjs"), "The editor frame provides Present")
-        assert(served.contains("pdf-explorer.mjs"))
         for url <- editorAssets do
           assertEquals(live.Http.get(s"${preview.origin}$url").status, 200)
         assertEquals(live.Http.get(s"${preview.origin}/demo-deck/authoring/live.js").status, 404)
@@ -54,7 +54,7 @@ class LiveDeckChecks extends munit.FunSuite:
       deck.build(DisplayMode.Static)
       val display = os.read(root / "dist-display" / "demo-deck" / "index.html")
       assert(display.contains("data-render-mode=\"static\""))
-      assert(display.contains("fullscreen.mjs") && display.contains("pdf-explorer.mjs"))
+      assert(display.contains("fullscreen.mjs") && display.contains("vendor/reveal/dist/reveal.js"))
       assert(display.contains("assets/demo.css"))
       assert(!display.contains("/static/revealTheme/authoring/live_"))
       assert(!os.exists(root / "dist-display" / "static" / "revealTheme" / "authoring"))
@@ -119,7 +119,7 @@ class LiveDeckChecks extends munit.FunSuite:
       val deck = mysite.demoDeck(root)
       deck.build()
       val output = root / "dist" / "demo-deck"
-      val vendor = assets(root) / "vendor" / "pdfjs" / "pdf.worker.mjs"
+      val vendor = assets(root) / "vendor" / "reveal" / "dist" / "reveal.js"
       val installedAt = os.stat(vendor).mtime
       val manifest = ujson.read(os.read(output / "deck.json"))
       os.write.append(root / "content" / "demo-deck" / "slides" / "010 - opening.md", "\nMore notes.\n")
@@ -132,7 +132,7 @@ class LiveDeckChecks extends munit.FunSuite:
       assert(os.read(assets(root) / "assets" / "demo.css").contains("Asset invalidation check"))
       os.remove.all(root / "dist")
       deck.build()
-      assert(os.isFile(assets(root) / "vendor" / "pdfjs" / "pdf.worker.mjs"), "Cleared output must reinstall the full bundle")
+      assert(os.isFile(assets(root) / "vendor" / "reveal" / "dist" / "reveal.js"), "Cleared output must reinstall the full bundle")
       assertEquals(ujson.read(os.read(output / "deck.json")), manifest)
     finally os.remove.all(root)
   }

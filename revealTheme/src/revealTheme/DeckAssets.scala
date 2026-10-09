@@ -83,22 +83,13 @@ object DeckAssets:
             else if os.isDir(path) && !os.isLink(path) then visit(path)
         visit(source)
 
-    for source <- Seq(sources.revealJs, sources.pdfJs) do
-      observe(source / "package.json")
-      require(os.isFile(source / "package.json"),
-        s"Missing presentation package at $source. Run npm ci or configure RevealTheme(assetSources = ...).")
+    // Bundled files include reveal.js (vendor/reveal/); theme and public directories override them.
     for name <- bundledFiles do files(os.RelPath(name)) = StaticAsset.resource(s"/revealTheme/$name")
     for directory <- sources.themeDirectory.toSeq ++ sources.publicDirectory.toSeq do
       observe(directory) // Also track optional directories that do not exist yet.
       directories += directory // Track creation of a previously absent public/theme directory too.
       if os.exists(directory) then tree(directory, os.RelPath(""))
-    tree(sources.revealJs / "LICENSE", os.RelPath("vendor/reveal/LICENSE"))
-    tree(sources.revealJs / "dist", os.RelPath("vendor/reveal/dist"))
-    val pdfAssets = Seq(
-      "build/pdf.min.mjs" -> "pdf.mjs", "build/pdf.worker.min.mjs" -> "pdf.worker.mjs",
-      "web/pdf_viewer.mjs" -> "pdf_viewer.mjs", "web/pdf_viewer.css" -> "pdf_viewer.css", "web/images" -> "images"
-    ) ++ Seq("cmaps", "standard_fonts", "wasm", "iccs", "LICENSE").map(name => name -> name)
-    for (source, target) <- pdfAssets do tree(sources.pdfJs / os.RelPath(source), os.RelPath(s"vendor/pdfjs/$target"))
+    for RevealAssets.Vendor(source, target) <- sources.vendor do tree(source, target)
     for face <- fonts.faces do
       require(files.contains(os.RelPath(s"assets/fonts/${face.file}")), s"Missing font file: public/assets/fonts/${face.file}")
     files(os.RelPath("fonts.css")) = StaticAsset.text("/reveal/fonts.css", fonts.stylesheet)

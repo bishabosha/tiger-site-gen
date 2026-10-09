@@ -14,8 +14,6 @@ class WatchTiming extends munit.FunSuite:
     var watcher: Option[AutoCloseable] = None
     try
       os.copy(project / "examples" / "embedded" / "content", root / "content")
-      for directory <- Seq("node_modules") do
-        os.symlink(root / directory, project / directory)
       val source = root / "content" / "presentations" / "conference" / "slides" / "010 - opening.md"
       def build(): Unit =
         val context = Context.fromTheme(root / "content", mysite.MySite, session)

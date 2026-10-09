@@ -165,7 +165,7 @@ pages. A different mount's standalone pages are not invalidated by those edits.
 
 ## Assets and example output
 
-Run `npm ci` to install the pinned Reveal and PDF.js distributions. Calling
+Reveal.js comes bundled in the theme's jar; nothing needs installing. Calling
 `mount.prepare()` while constructing host extras automatically registers the
 mounted theme's output hook on that host context. No forwarding `afterRender`
 override is needed.

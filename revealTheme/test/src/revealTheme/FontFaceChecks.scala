@@ -54,8 +54,7 @@ class FontFaceChecks extends munit.FunSuite:
     val root = os.temp.dir(prefix = "deck-fonts-")
     try
       val fonts = DeckFonts(faces = Seq(FontFace("Test", "Regular.woff2"), FontFace("Test", "Bold.woff2", weight = "700")))
-      val npm = model.SiteRoot.here.root / os.up / os.up / os.up / os.up / "node_modules"
-      val sources = RevealAssets(npm / "reveal.js", npm / "pdfjs-dist", Some(root))
+      val sources = RevealAssets(publicDirectory = Some(root))
       def bundle(fonts: DeckFonts) = DeckAssets.prepare(sources, fonts, new model.BuildSession).bundle
       val error = intercept[IllegalArgumentException](bundle(fonts))
       assert(error.getMessage.contains("public/assets/fonts/"))

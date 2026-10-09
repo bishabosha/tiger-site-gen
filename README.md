@@ -358,7 +358,7 @@ Shared article links follow their documents' and collections' URLs.
 
 `revealTheme/src/revealTheme/` contains `revealTheme.RevealTheme`, Scala layouts, slide validation, timing
 manifest, and browser styles. `revealTheme/resources/revealTheme/` contains generic player assets, fonts,
-slide fitting, fullscreen controls, and an optional PDF viewer.
+slide fitting, fullscreen controls, and reveal.js itself (`vendor/reveal/`).
 There is no presentation-specific content; the preview server lives in `live`.
 
 Slide routes retain their front-matter IDs (`#/toolkit`). Rendered heading anchors
@@ -370,27 +370,34 @@ rewriting generated HTML. The build rejects duplicate slide IDs and duplicate
 heading IDs within each slide or its notes. Raw HTML passes through unchanged;
 its author is responsible for any manually assigned IDs.
 
-Install browser dependencies with `npm ci` (Node 22.13 or newer).
-`package.json` is only an asset dependency manifest; it contains no server.
-Reveal installs its pinned assets through the `afterRender` hook.
+The jar bundles Tiger's player code, CSS, licensed fonts and reveal.js 6.0.1 (MIT; the
+files of its npm package's `dist/` that the theme loads, in
+`revealTheme/resources/revealTheme/vendor/reveal/`). A deck needs no npm packages.
+Reveal installs its assets through the `afterRender` hook.
+`RevealAssets.fromSiteRoot` overlays the current `SiteRoot`'s optional `theme/` and `public/`
+directories on the bundled assets, file by file (a `theme/vendor/reveal/dist/reveal.js`
+replaces the bundled one). This works from a published jar without a checkout of the theme
+sources.
 
-The jar bundles Tiger's player code, CSS and licensed fonts. It does **not**
-include Reveal.js or PDF.js. The consumer owns those packages and their versions.
-`RevealAssets.fromNpm` looks in the current `SiteRoot`'s `node_modules`; optional
-`theme/` and `public/` directories overlay bundled assets file by file.
-This works from a published jar without a checkout of the theme sources.
-
-Supply a resolver to locate packages elsewhere (including per-mount locations):
+A host can add further third-party files to the deck's bundle with `vendor`, e.g. parts of an
+npm package that its own deck modules load. A resolver can also locate `public/` elsewhere
+(including per mount):
 
 ```scala
-val slideTheme = RevealTheme(assetSources = root =>
-  RevealAssets(
-    revealJs = root.root / "browser-packages" / "reveal.js",
-    pdfJs = root.root / "browser-packages" / "pdfjs-dist",
-    publicDirectory = Some(root.root / "public")
-  ))
+val slideTheme = RevealTheme(
+  assetSources = root =>
+    val pdfjs = root.root / "node_modules" / "pdfjs-dist"
+    RevealAssets.fromSiteRoot(root).copy(vendor = Seq(
+      RevealAssets.Vendor(pdfjs / "build" / "pdf.min.mjs", os.RelPath("vendor/pdfjs/pdf.mjs")),
+      RevealAssets.Vendor(pdfjs / "LICENSE", os.RelPath("vendor/pdfjs/LICENSE"))
+    )),
+  page = DeckPage(moduleScripts = Seq("assets/pdf-viewer.mjs"))
+)
 val presentation = mount(slideTheme)(paths => (deck = paths.presentation))
 ```
+
+A missing vendor source fails the build with its path. The theme has no PDF viewer of its
+own; a host adds one as a deck module, as above.
 
 The resolver runs in the normal `afterRender` flow with the host's `SiteRoot`,
 including embedded-only mounts. Direct use can configure
@@ -698,12 +705,12 @@ hashed `/static` resolver. `StaticAsset.resource` supplies classpath resources;
 `paths.resolveStaticAsset` registers them in the context and returns a content-hashed
 URL. The host's normal static output pass writes them, including assets registered
 by mounted themes. An import map links the editor modules to their hashed URLs.
-Static rendering does not request these assets; custom page assets, fonts and the PDF
-viewer work in both modes. There is no HTML-rewriting adapter or virtual editor
+Static rendering does not request these assets; custom page assets, fonts and vendor
+files work in both modes. There is no HTML-rewriting adapter or virtual editor
 asset route. The generic preview server supplies its reload client through the
 same hashed static pipeline and retains its draft/event transport.
 
-Reveal's bundled files, npm dependencies, public files, local overrides and generated
+Reveal's bundled files, vendor files, public files, local overrides and generated
 font CSS form a `StaticBundle`. Its hash covers every relative filename and file's
 contents. URLs have the form `/static/reveal_<hash>/assets/image.png`; changing a
 public file changes the hash. The resolver registers this immutable bundle, and

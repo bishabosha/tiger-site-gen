@@ -2,7 +2,7 @@
 
 A single-deck project using `tiger-site-gen-reveal` (see `examples/src/mysite/LiveDemo.scala`):
 one JVM builds, watches, renders unsaved VS Code drafts and serves the deck with
-automatic refresh. Install npm packages at the repository root first (`npm ci`).
+automatic refresh. reveal.js is bundled in the theme; no npm install is needed.
 
 ```sh
 ./mill examples.runMain mysite.liveDemo dev               # http://127.0.0.1:8123/demo-deck/

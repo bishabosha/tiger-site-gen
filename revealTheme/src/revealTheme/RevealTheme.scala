@@ -60,7 +60,7 @@ object RevealTheme:
 
   /** A fresh theme with the built-in template dictionary. */
   def apply(
-      assetSources: RevealAssets.Resolver = RevealAssets.fromNpm,
+      assetSources: RevealAssets.Resolver = RevealAssets.fromSiteRoot,
       fonts: DeckFonts = DeckFonts(),
       slideLayouts: Map[String, SlideLayout] = Map.empty,
       page: DeckPage = DeckPage()
@@ -70,7 +70,7 @@ object RevealTheme:
   /** A fresh theme with a composed dictionary that retains the built-in template fields. */
   def withTemplates[T <: scala.NamedTuple.AnyNamedTuple](
       templates: TemplateFunctions[T],
-      assetSources: RevealAssets.Resolver = RevealAssets.fromNpm,
+      assetSources: RevealAssets.Resolver = RevealAssets.fromSiteRoot,
       fonts: DeckFonts = DeckFonts(),
       slideLayouts: Map[String, SlideLayout] = Map.empty,
       page: DeckPage = DeckPage()
@@ -91,7 +91,7 @@ object RevealTheme:
 /** One Reveal theme; callers may supply a dictionary extending the companion's defaults. */
 final class RevealTheme[T <: scala.NamedTuple.AnyNamedTuple](
     templates: TemplateFunctions[T],
-    val assetSources: RevealAssets.Resolver = RevealAssets.fromNpm,
+    val assetSources: RevealAssets.Resolver = RevealAssets.fromSiteRoot,
     val fonts: DeckFonts = DeckFonts(),
     val slideLayouts: Map[String, SlideLayout] = Map.empty,
     val page: DeckPage = DeckPage()
