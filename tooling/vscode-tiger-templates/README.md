@@ -45,7 +45,7 @@ template function names or match container endings.
 ## Live preview of unsaved drafts
 
 While a site's live server runs (`LiveSite#dev` or `serve` from `tiger-site-gen-live`,
-including Reveal decks configured with `RevealLive.settings`) in a trusted workspace, edits to the site's
+including Reveal decks configured with `RevealTheme.liveSettings`) in a trusted workspace, edits to the site's
 Markdown documents appear in the browser before you save. Eligible documents are
 Markdown files under the `sources` listed in the workspace folder's
 `.tiger-editor.json`, which every build writes (see below); the server then checks
