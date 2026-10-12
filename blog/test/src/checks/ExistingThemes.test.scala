@@ -37,6 +37,13 @@ class ExistingThemes extends munit.FunSuite:
       assert(staticLinks.exists(_._2.endsWith(".gif")))
       for (page, link) <- staticLinks do
         assert(os.isFile(output / os.RelPath(link.stripPrefix("/"))), s"$page links missing $link")
+      // Page sources are included into pages, not published: the deck is inlined at /apothecary/.
+      assert(!os.exists(output / "static" / paths.pageSources))
+      val deck = os.read(output / "apothecary" / "index.html")
+      assert(deck.contains("<title>The Apothecary"), deck.take(200))
+      assertEquals("(?i)<!doctype html>".r.findAllIn(deck).size, 1)
+      val linked = intercept[Exception](paths.resolveStaticAsset("/static/pageSources/apothecary.index.html")(using context))
+      assert(linked.getMessage.contains("Not published"), linked.getMessage)
       // Static files keep their own names, and CSS and JS are also published hashed.
       assert(os.isFile(output / "static" / "css" / "style.css"))
       assert(os.list(output / "static" / "css").exists(_.last.matches("style_[0-9a-f]{32}\\.css")))
@@ -67,7 +74,9 @@ class ExistingThemes extends munit.FunSuite:
   }
 
   test("Breeze is a complete base and BreezeSite extends its layouts and page dependencies") {
-    summon[breeze.Breeze.Templates =:= (url: model.TemplateFunction, icon: model.TemplateFunction)]
+    summon[breeze.Breeze.Templates =:= (
+      url: model.TemplateFunction, icon: model.TemplateFunction, include: model.TemplateFunction
+    )]
     summon[breeze.Breeze.Extra =:= (
       nav: List[model.ContentNode],
       extraHead: Seq[scalatags.Text.Modifier],

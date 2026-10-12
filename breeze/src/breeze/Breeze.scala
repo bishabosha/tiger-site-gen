@@ -31,6 +31,12 @@ object Breeze extends model.DictionaryTheme, model.InferredExtras, model.Inferre
       icon = TemplateFunction(
         cls => s"""<i class="fa-regular $cls"></i>""",
         cls => s"""<i class="fa-regular $cls"></i>"""
+      ),
+      // `{{include /static/pageSources/page.html}}` inlines that file, e.g. a built page into a
+      // raw document; its text is not expanded again.
+      include = TemplateFunction(
+        io.util.paths.includeStatic,
+        _ => ""
       )
     )
 
