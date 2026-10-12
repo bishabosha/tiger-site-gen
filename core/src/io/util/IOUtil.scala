@@ -88,6 +88,9 @@ object sanatise:
 object paths:
   private val fileHashes = new model.BuildSession.Cache[os.Path, (sanatise.FileVersion, String)]
 
+  /** Static files that are also published under a content-hashed name, for cache busting. */
+  def hasHashedCopy(path: os.Path): Boolean = path.ext == "css" || path.ext == "js"
+
   def hashPath(path: os.Path): os.Path =
     val hashedSuffix = sanatise.md5Hashed(path)
     val hashedName = s"${path.baseName}_$hashedSuffix.${path.ext}"
@@ -134,10 +137,10 @@ object paths:
         val path = os.Path(rest, static)
         // Record dependency on this static asset for the current page render, if enabled
         Templates.recordDependency(path)
-        if os.exists(path) then
-          val hashedPath = hashPath(path).relativeTo(static).toString
-          s"/static/$hashedPath"
-        else throw Exception(s"Static asset not found: $path")
+        if !os.exists(path) then throw Exception(s"Static asset not found: $path")
+        // Only names that the static copy also writes hashed; any other file keeps its own name.
+        else if hasHashedCopy(path) then s"/static/${hashPath(path).relativeTo(static)}"
+        else s"/static/$rest"
       case None => throw Exception("No static directory found")
 
   def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(using
@@ -509,10 +512,10 @@ object paths:
         val destPath = destStatic / rel
         if os.isDir(p) then os.makeDir.all(destPath)
         else {
-          if p.ext == "css" || p.ext == "js" then
-            val hashedDest = destStatic / hashPath(p).relativeTo(static)
-            os.copy.over(p, hashedDest)
-          else os.copy.over(p, destPath)
+          // Every file keeps its own name, so copied trees (e.g. a built deck) find their files;
+          // CSS and JS are also written hashed, for links resolved through `resolveStaticAsset`.
+          os.copy.over(p, destPath)
+          if hasHashedCopy(p) then os.copy.over(p, destStatic / hashPath(p).relativeTo(static))
         }
 
       }

@@ -29,6 +29,17 @@ class ExistingThemes extends munit.FunSuite:
       for doc <- context.site.articles.posts do assert(os.isFile(output / doc.outputPath))
       for doc <- context.site.projects.posts do assert(os.isFile(output / doc.outputPath))
       assert(!os.exists(output / "articles" / "posts"))
+      // Every static link a page writes is a file in the output (a resolved image once wasn't).
+      val staticLinks = for
+        page <- os.walk(output).filter(_.ext == "html")
+        link <- """(?:src|href)="(/static/[^"#?]+)"""".r.findAllMatchIn(os.read(page)).map(_.group(1))
+      yield page -> link
+      assert(staticLinks.exists(_._2.endsWith(".gif")))
+      for (page, link) <- staticLinks do
+        assert(os.isFile(output / os.RelPath(link.stripPrefix("/"))), s"$page links missing $link")
+      // Static files keep their own names, and CSS and JS are also published hashed.
+      assert(os.isFile(output / "static" / "css" / "style.css"))
+      assert(os.list(output / "static" / "css").exists(_.last.matches("style_[0-9a-f]{32}\\.css")))
     finally os.remove.all(output)
   }
 
