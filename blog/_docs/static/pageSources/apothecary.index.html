@@ -1,14 +1,17 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A 2-hour hands-on lab: reactive UI in Scala.js with Laminar" /><title>The Apothecary: a Laminar lab</title><link rel="stylesheet" href="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/vendor/reveal/dist/reset.css" /><link rel="stylesheet" href="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/vendor/reveal/dist/reveal.css" /><link rel="stylesheet" href="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/theme.css" /><link rel="stylesheet" href="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/fonts.css" /><link rel="stylesheet" href="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/assets/apothecary.css" /></head><body class="reveal-standalone" style="--r-main-font:Source Sans, Arial, sans-serif;--r-heading-font:var(--r-main-font);--r-code-font:Menlo, Consolas, monospace;--r-focus-font:var(--r-main-font)" data-render-mode="static" data-deck-assets="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/" data-preview-code="assets/demos.mjs"><div class="reveal" style="--r-main-font:Source Sans, Arial, sans-serif;--r-heading-font:var(--r-main-font);--r-code-font:Menlo, Consolas, monospace;--r-focus-font:var(--r-main-font)"><div class="slides"><section id="title" class="title-slide" data-timing="60" data-background-color="#2b1d3a"><div class="slide-body"><h1><a href="#heading:title:the-apothecary" id="heading:title:the-apothecary" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The <em>Apothecary</em></h1>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content="A 2-hour hands-on lab: reactive UI in Scala.js with Laminar" /><title>The Apothecary: a Laminar lab</title><link rel="stylesheet" href="/static/reveal_bbf5fd83f1c87ee2b674524770105928/vendor/reveal/dist/reset.css" /><link rel="stylesheet" href="/static/reveal_bbf5fd83f1c87ee2b674524770105928/vendor/reveal/dist/reveal.css" /><link rel="stylesheet" href="/static/reveal_bbf5fd83f1c87ee2b674524770105928/theme.css" /><link rel="stylesheet" href="/static/reveal_bbf5fd83f1c87ee2b674524770105928/fonts.css" /><link rel="stylesheet" href="/static/reveal_bbf5fd83f1c87ee2b674524770105928/assets/apothecary.css" /></head><body class="reveal-standalone" style="--r-main-font:Source Sans, Arial, sans-serif;--r-heading-font:var(--r-main-font);--r-code-font:Menlo, Consolas, monospace;--r-focus-font:var(--r-main-font)" data-render-mode="static" data-deck-assets="/static/reveal_bbf5fd83f1c87ee2b674524770105928/" data-preview-code="assets/demos.mjs"><div class="reveal" style="--r-main-font:Source Sans, Arial, sans-serif;--r-heading-font:var(--r-main-font);--r-code-font:Menlo, Consolas, monospace;--r-focus-font:var(--r-main-font)"><div class="slides"><section id="title" class="title-slide" data-timing="60" data-background-color="#2b1d3a"><div class="slide-body"><h1><a href="#heading:title:the-apothecary" id="heading:title:the-apothecary" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The <em>Apothecary</em></h1>
 <p>A hands-on Laminar lab</p>
 <p>Jamie Thompson · ScalaDays 2026</p>
 </div><aside class="notes"><p class="time"><strong>0:00-1:00</strong></p><p>Welcome everyone. Two hours, mostly hands-on. Laptops open, Wi-Fi on.</p>
 </aside></section><section id="welcome" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:welcome:about-this-lab" id="heading:welcome:about-this-lab" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>About this lab</h2>
+<p>Focus: <a href="https://laminar.dev">Laminar</a>, a reactive UI library fo Scala.js</p>
 <div class="columns top">
 <div class="stack ">
+<p><strong>Concepts covered</strong></p>
 <ul>
-<li>Two years building business apps in Laminar</li>
-<li>Focus: forms, validation and async</li>
-<li>The exercises use a potion-shop domain</li>
+<li>reactive state</li>
+<li>wiring forms to backend</li>
+<li>controlled inputs with validation,</li>
+<li>async event handling.</li>
 </ul>
 </div>
 <div class="stack ">
@@ -17,7 +20,7 @@
 <li>a cauldron mixer</li>
 <li>a potion registration form</li>
 <li>an ingredient search &amp; inventory</li>
-<li>a widget for <strong>notebook.sc</strong></li>
+<li>Custom widgets for a reactive Scala notebook</li>
 </ul>
 </div>
 </div>
@@ -57,18 +60,18 @@ No SSH key (&quot;Permission denied (publickey)&quot;): clone the https URL with
 <tr><th> </th><th> </th></tr>
 </thead>
 <tbody>
-<tr><td>Work on one</td><td><code>./sake ex 01-cauldron</code>:<br> edit <code>exercises/01-cauldron/start/</code>, the page reloads</td></tr>
+<tr><td>Pick one to work on</td><td><code>./sake ex 01-cauldron</code>.<br>Next, edit <code>exercises/01-cauldron/start/</code>,<br> the page reloads on edit</td></tr>
 <tr><td>Run the solution</td><td><code>./sake ex-solution 01-cauldron</code></td></tr>
-<tr><td>Start over</td><td><code>./sake reset-ex 01-cauldron</code></td></tr>
-<tr><td>Every command</td><td><code>./sake</code></td></tr>
+<tr><td>Reset if needed</td><td><code>./sake reset-ex 01-cauldron</code></td></tr>
+<tr><td>List every command</td><td><code>./sake</code></td></tr>
 </tbody>
 </table>
 </div><aside class="notes"><p class="time"><strong>7:30-8:30</strong></p><p>Resets: <code>reset-ex &lt;ex&gt;</code>, <code>reset-widget &lt;name&gt;</code>; <code>reset-all</code> (rehearsal clean-up) discards everything.
 Answers come from the <code>solutions</code> branch, fetched on demand.</p>
-</aside></section><section id="the-shop" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:the-shop:the-domain" id="heading:the-shop:the-domain" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The domain</h2>
+</aside></section><section id="the-shop" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:the-shop:fake-potion-store" id="heading:the-shop:fake-potion-store" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Fake potion store</h2>
 <div class="columns ">
 <div class="stack ">
-<p>The exercises build an app for a potion shop:</p>
+<p>As the <strong>new</strong> apprentice your task is to build lots of the machinery for automating the potion store (apothecary).</p>
 <ul>
 <li>a <strong>cauldron</strong> colour mixer</li>
 <li>a recipe <strong>registration</strong> form with validation rules</li>
@@ -169,7 +172,7 @@ input(
 </ul>
 </div><aside class="notes"><p class="time"><strong>28:00-30:30</strong></p><p>Without <code>controlled</code>, typing and the signal can fight. Show filter dropping letters live.</p>
 </aside></section><section id="lenses" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:lenses:lenses-over-a-case-class-var" id="heading:lenses:lenses-over-a-case-class-var" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Lenses over a case-class <code>Var</code></h2>
-<p>A <code>Selectable</code> lens, from ScalaDays 2025</p>
+<p>Simplified updaters for large form-like data (product types).</p>
 <pre><code class="language-scala">val form = VarLenses(Potion(&quot;&quot;, 1, drinkable = true, explosive = false))
 
 input(controlled(
@@ -178,8 +181,8 @@ input(controlled(
 ))
 </code></pre>
 <ul>
-<li><code>form.name</code> is typed <code>(updater: Observer[String], view: Signal[String])</code></li>
-<li>Named tuples + <code>Mirror.ProductOf</code>, ~50 lines: <code>lenses.scala</code> in the exercise</li>
+<li><code>form.name</code> is a named tuple with two fields: <code>updater: Observer[String]</code> and <code>view: Signal[String]</code>.</li>
+<li>Compatible with any case class that supports <code>scala.deriving.Mirror</code>.</li>
 </ul>
 </div><aside class="notes"><p class="time"><strong>30:30-33:00</strong></p><p>Don't go deep into the macro-free implementation; it's in the repo for the curious.</p>
 </aside></section><section id="validation" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:validation:validation-is-just-a-signal" id="heading:validation:validation-is-just-a-signal" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Validation is just a <code>Signal</code></h2>
@@ -492,4 +495,4 @@ Remind them: <code>./sake notebook</code> rebuilds every widget first; refresh t
 <tr><td>drop stale async results</td><td><code>flatMapSwitch</code></td></tr>
 </tbody>
 </table>
-</div><aside class="notes"><p class="time"><strong>Appendix</strong></p></aside></section></div><div class="presentation-tools"><div class="fullscreen-control"><button type="button" data-fullscreen="" aria-keyshortcuts="f" aria-label="Fullscreen" title="Fullscreen (F)"><span data-fullscreen-label="">Fullscreen</span></button><span class="fullscreen-status" role="status" hidden="true"></span></div></div></div><script src="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/vendor/reveal/dist/reveal.js"></script><script src="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/vendor/reveal/dist/plugin/notes.js"></script><script src="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/vendor/reveal/dist/plugin/highlight.js"></script><script src="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/deck.js"></script><script type="module" src="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/fullscreen.mjs"></script><script type="module" src="/static/reveal_2f65dbab819cf4a87232b0ede86c0903/assets/demos.mjs"></script></body></html>
+</div><aside class="notes"><p class="time"><strong>Appendix</strong></p></aside></section></div><div class="presentation-tools"><div class="fullscreen-control"><button type="button" data-fullscreen="" aria-keyshortcuts="f" aria-label="Fullscreen" title="Fullscreen (F)"><span data-fullscreen-label="">Fullscreen</span></button><span class="fullscreen-status" role="status" hidden="true"></span></div></div></div><script src="/static/reveal_bbf5fd83f1c87ee2b674524770105928/vendor/reveal/dist/reveal.js"></script><script src="/static/reveal_bbf5fd83f1c87ee2b674524770105928/vendor/reveal/dist/plugin/notes.js"></script><script src="/static/reveal_bbf5fd83f1c87ee2b674524770105928/vendor/reveal/dist/plugin/highlight.js"></script><script src="/static/reveal_bbf5fd83f1c87ee2b674524770105928/deck.js"></script><script type="module" src="/static/reveal_bbf5fd83f1c87ee2b674524770105928/fullscreen.mjs"></script><script type="module" src="/static/reveal_bbf5fd83f1c87ee2b674524770105928/assets/demos.mjs"></script></body></html>
