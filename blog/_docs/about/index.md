@@ -2,8 +2,8 @@
 (
   layout = "about",
   title = "About",
-  name = "Jamie Thompson",
-  copyright = "Jamie Thompson ‧ @bishabosha",
+  name = "@bishabosha",
+  copyright = "Jamie Thompson",
   description = "Homepage of Jamie Thompson (@bishabosha)",
   avatar = "/static/img/jamie_thompson_profile.png",
   linkss = Vector(
