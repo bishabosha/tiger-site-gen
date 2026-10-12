@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const source = await readFile(new URL('../live-preview.cjs', import.meta.url), 'utf8');
 
 /** A fake VS Code with one workspace folder at /project and the given .tiger-editor.json. */
-function install({ manifest = { version: 1, sources: ['content'], blocks: [] }, status = 200, transport } = {}) {
+function install({ manifest = { version: 1, sources: ['content'], blocks: [] }, status = 200, transport, files } = {}) {
   const handlers = {}, requests = [], subscriptions = [];
   const vscode = {
     window: { createOutputChannel: () => ({ appendLine() {}, dispose() {} }) },
@@ -20,6 +20,10 @@ function install({ manifest = { version: 1, sources: ['content'], blocks: [] }, 
   };
   const context = { exports: {}, require: name => name === 'node:fs/promises' ? {
     readFile: async file => {
+      if (files) {
+        if (file in files) return JSON.stringify(files[file]);
+        throw Object.assign(new Error('missing'), { code: 'ENOENT' });
+      }
       if (file.endsWith('.tiger-editor.json')) {
         if (!manifest) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
         return JSON.stringify(manifest);
@@ -64,6 +68,19 @@ test('Markdown under the site manifest\'s sources is eligible; other files are n
   for (const fsPath of files) handlers.changed({ document: { uri: { scheme: 'file', fsPath }, isDirty: true, getText: () => 'x' }, contentChanges: [{}] });
   await pause(90);
   assert.deepEqual(requests.map(request => request.file).sort(), files.slice(0, 4).sort());
+  dispose();
+});
+
+test('a site in a subfolder of the workspace is found from the edited document', async () => {
+  const { handlers, requests, dispose } = install({ files: {
+    '/project/slides/.tiger-editor.json': { version: 1, sources: ['content'], blocks: [] },
+    '/project/slides/.live-preview.json': { port: 8129, token: 'deck-token' }
+  } });
+  for (const fsPath of ['/project/slides/content/deck/slides/010 - intro.md', '/project/README.md', '/project/content/index.md'])
+    handlers.changed({ document: { uri: { scheme: 'file', fsPath }, isDirty: true, getText: () => 'x' }, contentChanges: [{}] });
+  await pause(90);
+  assert.deepEqual(requests.map(request => [request.url, request.file]),
+    [['http://127.0.0.1:8129/__preview/draft', '/project/slides/content/deck/slides/010 - intro.md']]);
   dispose();
 });
 
