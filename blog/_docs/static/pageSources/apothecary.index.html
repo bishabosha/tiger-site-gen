@@ -2,17 +2,17 @@
 <p>A hands-on Laminar lab</p>
 <p>Jamie Thompson · ScalaDays 2026</p>
 </div><aside class="notes"><p class="time"><strong>0:00-1:00</strong></p><p>Welcome everyone. Two hours, mostly hands-on. Laptops open, Wi-Fi on.</p>
-</aside></section><section id="welcome" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:welcome:welcome-apprentice" id="heading:welcome:welcome-apprentice" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Welcome, apprentice</h2>
+</aside></section><section id="welcome" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:welcome:about-this-lab" id="heading:welcome:about-this-lab" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>About this lab</h2>
 <div class="columns top">
 <div class="stack ">
 <ul>
 <li>Two years building business apps in Laminar</li>
-<li>Forms, validation and async: the boring parts that matter</li>
-<li>Today: the same skills, with <em>potions</em></li>
+<li>Focus: forms, validation and async</li>
+<li>The exercises use a potion-shop domain</li>
 </ul>
 </div>
 <div class="stack ">
-<p><strong>You will build</strong></p>
+<p><strong>Exercises</strong></p>
 <ul>
 <li>a cauldron mixer</li>
 <li>a potion registration form</li>
@@ -22,7 +22,7 @@
 </div>
 </div>
 </div><aside class="notes"><p class="time"><strong>1:00-2:30</strong></p><p>Introduce myself briefly. Emphasise: this is a lab, I'll talk ~35% of the time.</p>
-</aside></section><section id="agenda" class="standard" data-timing="60"><div class="slide-body"><h2><a href="#heading:agenda:the-recipe" id="heading:agenda:the-recipe" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The recipe</h2>
+</aside></section><section id="agenda" class="standard" data-timing="60"><div class="slide-body"><h2><a href="#heading:agenda:agenda" id="heading:agenda:agenda" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Agenda</h2>
 <table class="article-table">
 <thead>
 <tr><th>Time</th><th>Module</th></tr>
@@ -42,11 +42,11 @@
 <ol>
 <li>Install <a href="https://scala-cli.virtuslab.org/install">Scala CLI</a> and <a href="https://nodejs.org/en/download">Node.js</a></li>
 <li><code>git clone --recurse-submodules git@github.com:bishabosha/scaladays-2026-laminar-lab.git</code> then <code>cd scaladays-2026-laminar-lab</code></li>
-<li><code>./sake check</code>, until it says <strong>Ready, apprentice</strong></li>
+<li><code>./sake check</code> (must succeed)</li>
 <li>In a <strong>second terminal</strong>: <code>./sake prepare</code>, and leave it running</li>
-<li><code>./sake ex 00-setup</code>, open <a href="http://127.0.0.1:8000/?ex=00-setup">http://127.0.0.1:8000/?ex=00-setup</a>, say hello</li>
+<li><code>./sake ex 00-setup</code>, open <a href="http://127.0.0.1:8000/?ex=00-setup">http://127.0.0.1:8000/?ex=00-setup</a></li>
 </ol>
-<p>Every step, for every OS: <strong>github.com/bishabosha/scaladays-2026-laminar-lab</strong> · Windows: <code>sake</code> instead of <code>./sake</code></p>
+<p>Full instructions: <strong>github.com/bishabosha/scaladays-2026-laminar-lab</strong> · Windows: <code>sake</code> instead of <code>./sake</code></p>
 </div><aside class="notes"><p class="time"><strong>3:30-7:30</strong></p><p>Put this slide up while people arrive. The first <code>./sake check</code> downloads Scala, Scala.js, Laminar, Mill and a JVM:
 several minutes on conference Wi-Fi. Everyone must see the hello page before exercise 1.
 <code>./sake prepare</code> builds the remaining exercises, widgets and notebook.sc in the background; it only needs to finish before the capstone.
@@ -57,32 +57,31 @@ No SSH key (&quot;Permission denied (publickey)&quot;): clone the https URL with
 <tr><th> </th><th> </th></tr>
 </thead>
 <tbody>
-<tr><td>Work on one</td><td><code>./sake ex 01-cauldron</code>: edit <code>exercises/01-cauldron/start/</code>, the page reloads</td></tr>
-<tr><td>Peek at the answer</td><td><code>./sake ex-solution 01-cauldron</code></td></tr>
+<tr><td>Work on one</td><td><code>./sake ex 01-cauldron</code>:<br> edit <code>exercises/01-cauldron/start/</code>, the page reloads</td></tr>
+<tr><td>Run the solution</td><td><code>./sake ex-solution 01-cauldron</code></td></tr>
 <tr><td>Start over</td><td><code>./sake reset-ex 01-cauldron</code></td></tr>
 <tr><td>Every command</td><td><code>./sake</code></td></tr>
 </tbody>
 </table>
-<p>Stuck? Raise your hand: helpers are walking around.</p>
 </div><aside class="notes"><p class="time"><strong>7:30-8:30</strong></p><p>Resets: <code>reset-ex &lt;ex&gt;</code>, <code>reset-widget &lt;name&gt;</code>; <code>reset-all</code> (rehearsal clean-up) discards everything.
 Answers come from the <code>solutions</code> branch, fetched on demand.</p>
-</aside></section><section id="the-shop" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:the-shop:the-shop" id="heading:the-shop:the-shop" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The shop</h2>
+</aside></section><section id="the-shop" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:the-shop:the-domain" id="heading:the-shop:the-domain" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The domain</h2>
 <div class="columns ">
 <div class="stack ">
-<p>Grimsby &amp; Daughters, purveyors of fine potions since 1642, are going digital.</p>
+<p>The exercises build an app for a potion shop:</p>
 <ul>
-<li>brew potions in a <strong>cauldron</strong></li>
-<li><strong>register</strong> new recipes (with the Guild's many rules)</li>
-<li><strong>search</strong> the ingredient cellar, manage stock</li>
-<li>a grumpy <strong>oracle</strong> for a backend</li>
+<li>a <strong>cauldron</strong> colour mixer</li>
+<li>a recipe <strong>registration</strong> form with validation rules</li>
+<li>ingredient <strong>search</strong> and stock management</li>
+<li>a simulated <strong>backend</strong> with latency and failures</li>
 </ul>
 </div>
 <div class="laminar-demo-frame"><div class="laminar-demo" data-kind="potions/mixer" data-value="{&quot;r&quot;:120,&quot;g&quot;:60,&quot;b&quot;:190}"><p class="demo-pending">demo: potions/mixer</p></div><output class="demo-value"></output></div>
 </div>
 </div><aside class="notes"><p class="time"><strong>8:30-10:00</strong></p><p>Play with the mixer live. Point out: this is Laminar running inside the slide.</p>
 </aside></section><section id="basics" class="dark-slide chapter-slide" data-timing="15" data-background-color="#2b1d3a"><div class="slide-body"><h2><a href="#heading:basics:1--reactive-basics" id="heading:basics:1--reactive-basics" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>1 · Reactive <em>basics</em></h2>
-<p>Vars, signals, streams, and who owns them</p>
-</div><aside class="notes"><p class="time"><strong>10:00-10:15</strong></p></aside></section><section id="var-signal-stream" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:var-signal-stream:three-ingredients" id="heading:var-signal-stream:three-ingredients" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Three ingredients</h2>
+<p><code>Var</code>, <code>Signal</code>, <code>EventStream</code> and ownership</p>
+</div><aside class="notes"><p class="time"><strong>10:00-10:15</strong></p></aside></section><section id="var-signal-stream" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:var-signal-stream:var-signal-eventstream" id="heading:var-signal-stream:var-signal-eventstream" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a><code>Var</code>, <code>Signal</code>, <code>EventStream</code></h2>
 <div class="columns top">
 <div class="stack ">
 <pre><code class="language-scala">val heat: Var[Int] = Var(40)
@@ -97,7 +96,7 @@ val bubbles: EventStream[Unit] =
 </div>
 <div class="stack ">
 <ul>
-<li><strong><code>Var</code></strong>: state you own, <code>set</code> / <code>update</code></li>
+<li><strong><code>Var</code></strong>: mutable state, <code>set</code> / <code>update</code></li>
 <li><strong><code>Signal</code></strong>: always has a <em>current</em> value</li>
 <li><strong><code>EventStream</code></strong>: things that <em>happen</em></li>
 <li><code>map</code>, <code>combineWith</code>, <code>changes</code>, <code>startWith</code></li>
@@ -105,7 +104,7 @@ val bubbles: EventStream[Unit] =
 </div>
 </div>
 </div><aside class="notes"><p class="time"><strong>10:15-13:15</strong></p><p>Signal = value over time, EventStream = discrete events. Signals dedupe with ==.</p>
-</aside></section><section id="arrows" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:arrows:pointing-the-arrows" id="heading:arrows:pointing-the-arrows" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Pointing the arrows</h2>
+</aside></section><section id="arrows" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:arrows:binding-with----and---" id="heading:arrows:binding-with----and---" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Binding with <code>&lt;--</code> and <code>--&gt;</code></h2>
 <pre><code class="language-scala">def cauldron(heat: Var[Int]): HtmlElement =
   div(
     cls := &quot;cauldron&quot;,
@@ -123,7 +122,7 @@ val bubbles: EventStream[Unit] =
 </code></pre>
 <p><code>&lt;--</code> reads <em>into</em> the element · <code>--&gt;</code> writes <em>out</em> of it</p>
 </div><aside class="notes"><p class="time"><strong>13:15-15:45</strong></p><p>Most Laminar code is these two arrows. Note <code>--&gt; heat</code>: a Var is an Observer.</p>
-</aside></section><section id="ownership" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:ownership:who-owns-the-bubbles" id="heading:ownership:who-owns-the-bubbles" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Who owns the bubbles?</h2>
+</aside></section><section id="ownership" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:ownership:subscription-ownership" id="heading:ownership:subscription-ownership" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Subscription ownership</h2>
 <div class="stack ">
 <ul>
 <li>Every <code>&lt;--</code> / <code>--&gt;</code> is a <strong>subscription owned by its element</strong></li>
@@ -131,8 +130,8 @@ val bubbles: EventStream[Unit] =
 <li>Laziness: an unobserved signal does no work</li>
 </ul>
 <pre><code class="language-scala">div(
-  EventStream.periodic(1000) --&gt; (_ =&gt; println(&quot;bubble&quot;)), // stops on unmount
-  onMountCallback(ctx =&gt; println(&quot;lit the fire&quot;))
+  EventStream.periodic(1000) --&gt; (_ =&gt; println(&quot;tick&quot;)), // stops on unmount
+  onMountCallback(ctx =&gt; println(&quot;mounted&quot;))
 )
 </code></pre>
 </div>
@@ -151,7 +150,7 @@ val bubbles: EventStream[Unit] =
 <div class="laminar-demo-frame"><div class="laminar-demo" data-kind="01-cauldron/app" style="--demo-zoom:1.2"><p class="demo-pending">demo: 01-cauldron/app</p></div><output class="demo-value"></output></div>
 </div><aside class="notes"><p class="time"><strong>17:45-27:45</strong></p><p>10 minutes. Hint for 2: <code>Signal.combine(a, b, c)</code> or <code>a.combineWith(b, c)</code>.</p>
 </aside></section><section id="forms" class="dark-slide chapter-slide" data-timing="15" data-background-color="#2b1d3a"><div class="slide-body"><h2><a href="#heading:forms:2--forms--validation" id="heading:forms:2--forms--validation" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>2 · <em>Forms</em> &amp; validation</h2>
-<p>The Guild of Apothecaries has <em>rules</em></p>
+<p>Controlled inputs, validation and error display</p>
 </div><aside class="notes"><p class="time"><strong>27:45-28:00</strong></p></aside></section><section id="controlled" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:controlled:controlled-inputs" id="heading:controlled:controlled-inputs" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Controlled inputs</h2>
 <pre><code class="language-scala">case class Potion(name: String, doses: Int, drinkable: Boolean, explosive: Boolean)
 
@@ -169,8 +168,8 @@ input(
 <li>Filter input <em>before</em> it lands: <code>onInput.mapToValue.filter(_.forall(_.isDigit))</code></li>
 </ul>
 </div><aside class="notes"><p class="time"><strong>28:00-30:30</strong></p><p>Without <code>controlled</code>, typing and the signal can fight. Show filter dropping letters live.</p>
-</aside></section><section id="lenses" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:lenses:less-copy-more-potion" id="heading:lenses:less-copy-more-potion" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Less <code>copy</code>, more potion</h2>
-<p>From last year's ScalaDays: a <code>Selectable</code> lens over a case-class <code>Var</code></p>
+</aside></section><section id="lenses" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:lenses:lenses-over-a-case-class-var" id="heading:lenses:lenses-over-a-case-class-var" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Lenses over a case-class <code>Var</code></h2>
+<p>A <code>Selectable</code> lens, from ScalaDays 2025</p>
 <pre><code class="language-scala">val form = VarLenses(Potion(&quot;&quot;, 1, drinkable = true, explosive = false))
 
 input(controlled(
@@ -198,7 +197,7 @@ val problems: Signal[List[Problem]] = potion.signal.map(validate)
 </code></pre>
 <p>A pure function: <strong>test it without a browser</strong></p>
 </div><aside class="notes"><p class="time"><strong>33:00-36:00</strong></p><p>Key message: keep validation out of the view. Cross-field rules are trivial this way.</p>
-</aside></section><section id="touched" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:touched:dont-shout-before-theyve-typed" id="heading:touched:dont-shout-before-theyve-typed" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Don't shout before they've typed</h2>
+</aside></section><section id="touched" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:touched:errors-after-blur-or-submit" id="heading:touched:errors-after-blur-or-submit" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Errors after blur or submit</h2>
 <pre><code class="language-scala">val touched = Var(Set.empty[String])
 val submitted = Var(false)
 
@@ -232,8 +231,8 @@ form(onSubmit.preventDefault --&gt; { _ =&gt;
 Tests for <code>validate</code> are provided: <code>./sake test 02-potion-form</code>. Run with <code>./sake ex 02-potion-form</code>.
 The ★ also disables the button while the oracle is thinking (disabling while invalid would hide submit errors).</p>
 </aside></section><section id="async" class="dark-slide chapter-slide" data-timing="15" data-background-color="#2b1d3a"><div class="slide-body"><h2><a href="#heading:async:3--async--the-backend" id="heading:async:3--async--the-backend" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>3 · <em>Async</em> &amp; the backend</h2>
-<p>Consulting the oracle (who is slow, and sometimes rude)</p>
-</div><aside class="notes"><p class="time"><strong>53:30-53:45</strong></p></aside></section><section id="the-oracle" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:the-oracle:the-oracle" id="heading:the-oracle:the-oracle" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The oracle</h2>
+<p>A slow, unreliable backend</p>
+</div><aside class="notes"><p class="time"><strong>53:30-53:45</strong></p></aside></section><section id="the-oracle" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:the-oracle:the-backend-oracle" id="heading:the-oracle:the-backend-oracle" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>The backend: <code>Oracle</code></h2>
 <pre><code class="language-scala">trait Oracle:
   def searchIngredients(query: String): Future[List[Ingredient]]
   def inventory(): Future[List[Stock]]
@@ -242,13 +241,13 @@ The ★ also disables the button while the oracle is thinking (disabling while i
   def register(potion: Potion): Future[String]
 </code></pre>
 <ul>
-<li>Runs in your browser: <strong>random latency</strong> (100–1500 ms)</li>
-<li><strong>10 % of calls fail</strong> with a rude message. On purpose.</li>
-<li>Change its mood live with the 🔮 panel on every exercise page</li>
+<li>Runs in the browser, with <strong>random latency</strong> (100–1500 ms)</li>
+<li><strong>10 % of calls fail</strong></li>
+<li>Latency and failure rate are adjustable in each exercise page's oracle panel</li>
 </ul>
 </div><aside class="notes"><p class="time"><strong>53:45-55:45</strong></p><p>The fake backend means no server setup and no conference Wi-Fi dependency.
 The latency is what makes ordering bugs visible.</p>
-</aside></section><section id="switch" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:switch:typing-faster-than-the-oracle" id="heading:switch:typing-faster-than-the-oracle" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Typing faster than the oracle</h2>
+</aside></section><section id="switch" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:switch:stale-responses" id="heading:switch:stale-responses" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Stale responses</h2>
 <pre><code class="language-scala">val query = Var(&quot;&quot;)
 
 val results: EventStream[List[Ingredient]] =
@@ -258,11 +257,11 @@ val results: EventStream[List[Ingredient]] =
       EventStream.fromFuture(oracle.searchIngredients(q)))
 </code></pre>
 <ul>
-<li><code>flatMapMerge</code> would show <em>whichever answer arrives last</em> 😱</li>
-<li><code>flatMapSwitch</code> only listens to the <strong>latest</strong> request</li>
+<li><code>flatMapMerge</code> shows whichever response arrives last</li>
+<li><code>flatMapSwitch</code> only emits the response to the <strong>latest</strong> request</li>
 </ul>
 </div><aside class="notes"><p class="time"><strong>55:45-58:45</strong></p><p>Demo the bug with flatMapMerge first: type &quot;newt&quot;, then &quot;nettle&quot;; the newt answer arrives late.</p>
-</aside></section><section id="remote-state" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:remote-state:loading-ready-or-rude" id="heading:remote-state:loading-ready-or-rude" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Loading, ready, or rude</h2>
+</aside></section><section id="remote-state" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:remote-state:modelling-remote-state" id="heading:remote-state:modelling-remote-state" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Modelling remote state</h2>
 <pre><code class="language-scala">enum Remote[+A]:
   case Loading
   case Ready(value: A)
@@ -274,13 +273,13 @@ def consult[A](f: =&gt; Future[A]): Signal[Remote[A]] =
     .startWith(Remote.Loading)
 
 child &lt;-- consult(oracle.inventory()).map {
-  case Remote.Loading       =&gt; p(cls := &quot;bubbling&quot;, &quot;The oracle is thinking…&quot;)
+  case Remote.Loading       =&gt; p(cls := &quot;loading&quot;, &quot;Loading…&quot;)
   case Remote.Ready(items)  =&gt; ul(items.map(i =&gt; li(i.name)))
-  case Remote.Failed(why)   =&gt; p(cls := &quot;rude&quot;, why, button(&quot;Ask again&quot;, onClick --&gt; retry))
+  case Remote.Failed(why)   =&gt; p(cls := &quot;error&quot;, why, button(&quot;Retry&quot;, onClick --&gt; retry))
 }
 </code></pre>
 </div><aside class="notes"><p class="time"><strong>58:45-61:15</strong></p><p>Errors are values, rendered like anything else. Retry is just another event into the same stream.</p>
-</aside></section><section id="split" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:split:touch-only-what-changed" id="heading:split:touch-only-what-changed" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Touch only what changed</h2>
+</aside></section><section id="split" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:split:keyed-lists-with-split" id="heading:split:keyed-lists-with-split" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Keyed lists with <code>split</code></h2>
 <pre><code class="language-scala">val stock: Var[List[Stock]] = Var(Nil)
 
 ul(
@@ -313,7 +312,7 @@ ul(
 </div><aside class="notes"><p class="time"><strong>64:15-76:15</strong></p><p>12 minutes. <code>./sake ex 03-cellar</code>. Tell them to turn the oracle's &quot;slowest&quot; slider up first to see the race.
 Step 4 is the hard one: keep the previous shelf to restore on failure.</p>
 </aside></section><section id="organisation" class="dark-slide chapter-slide" data-timing="15" data-background-color="#2b1d3a"><div class="slide-body"><h2><a href="#heading:organisation:4--organisation--interop" id="heading:organisation:4--organisation--interop" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>4 · <em>Organisation</em> &amp; interop</h2>
-<p>Keeping the spaghetti out of the cauldron</p>
+<p>Components, errors and JavaScript interop</p>
 </div><aside class="notes"><p class="time"><strong>76:15-76:30</strong></p></aside></section><section id="components" class="standard" data-timing="150"><div class="slide-body"><h2><a href="#heading:components:a-component-is-a-function" id="heading:components:a-component-is-a-function" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>A component is a function</h2>
 <pre><code class="language-scala">object DoseInput:
   def apply(value: Signal[Int], onChange: Observer[Int], max: Int = 12): HtmlElement =
@@ -326,23 +325,23 @@ Step 4 is the hard one: keep the previous shelf to restore on failure.</p>
 </code></pre>
 <ul>
 <li><strong>In:</strong> <code>Signal</code>s. <strong>Out:</strong> <code>Observer</code>s. <strong>Return:</strong> an element</li>
-<li>State lives with whoever <em>needs</em> it, usually the page, not the widget</li>
-<li>Needs to expose more? Return a small class: <code>.element</code> plus extra signals</li>
+<li>State lives where it is needed, usually in the page, not the component</li>
+<li>To expose more, return a small class: <code>.element</code> plus extra signals</li>
 </ul>
 </div><aside class="notes"><p class="time"><strong>76:30-79:00</strong></p><p><code>onClick(_.sample(value))</code>: the event-processor syntax, no <code>.now()</code> needed.
 Business apps: one object per page, components below it, no global state.</p>
-</aside></section><section id="errors" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:errors:errors-you-can-see" id="heading:errors:errors-you-can-see" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Errors you can see</h2>
+</aside></section><section id="errors" class="standard" data-timing="90"><div class="slide-body"><h2><a href="#heading:errors:error-handling" id="heading:errors:error-handling" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Error handling</h2>
 <div class="stack ">
 <ul>
-<li>Model failures as <strong>values</strong>: <code>Remote.Failed</code>, <code>Problem</code>; render them</li>
-<li>One <code>EventBus[Notice]</code> per page for toasts, fed from anywhere</li>
-<li>Never let an exception escape an observer: the stream logs it and carries on, <em>silently</em></li>
+<li>Model failures as <strong>values</strong> (<code>Remote.Failed</code>, <code>Problem</code>) and render them</li>
+<li>One <code>EventBus[Notice]</code> per page for notifications</li>
+<li>An exception thrown in an observer is logged and otherwise ignored; register a handler</li>
 </ul>
 <pre><code class="language-scala">AirstreamError.registerUnhandledErrorCallback(e =&gt; notices.emit(Notice.Bug(e)))
 </code></pre>
 </div>
 </div><aside class="notes"><p class="time"><strong>79:00-80:30</strong></p><p>The unhandled error callback is the safety net, not the plan.</p>
-</aside></section><section id="interop" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:interop:borrowing-from-javascript" id="heading:interop:borrowing-from-javascript" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Borrowing from JavaScript</h2>
+</aside></section><section id="interop" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:interop:javascript-interop" id="heading:interop:javascript-interop" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>JavaScript interop</h2>
 <pre><code class="language-scala">object Confetti:
   @js.native @JSImport(&quot;https://esm.sh/canvas-confetti@1.9.3&quot;, JSImport.Default)
   def fire(options: js.Object): js.Promise[Unit] = js.native
@@ -352,14 +351,14 @@ button(
   onClick --&gt; (_ =&gt; Confetti.fire(js.Dynamic.literal(particleCount = 150, spread = 70)))
 )
 </code></pre>
-<p>Widgets that own DOM: hand them a node on mount, clean up on unmount</p>
+<p>Libraries that own DOM nodes: create on mount, destroy on unmount</p>
 <pre><code class="language-scala">div(onMountUnmountCallback(
   mount = ctx =&gt; chart = Chart(ctx.thisNode.ref, config),
   unmount = _ =&gt; chart.destroy()
 ))
 </code></pre>
 </div><aside class="notes"><p class="time"><strong>80:30-82:30</strong></p><p>Same pattern applies to jQuery widgets: <code>$(ctx.thisNode.ref).datepicker()</code> in mount, <code>destroy</code> in unmount.</p>
-</aside></section><section id="exercise-brew" class="exercise-slide" data-timing="300"><div class="slide-body"><h2><a href="#heading:exercise-brew:exercise-4--celebrate-a-brew" id="heading:exercise-brew:exercise-4--celebrate-a-brew" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Exercise 4 · Celebrate a brew</h2>
+</aside></section><section id="exercise-brew" class="exercise-slide" data-timing="300"><div class="slide-body"><h2><a href="#heading:exercise-brew:exercise-4--components-and-interop" id="heading:exercise-brew:exercise-4--components-and-interop" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Exercise 4 · Components and interop</h2>
 <p><span class="exercise-tag">exercises/04-brew</span></p>
 <ol>
 <li>Extract <code>DoseInput</code> and use it in your potion form</li>
@@ -369,24 +368,24 @@ button(
 </div><aside class="notes"><p class="time"><strong>82:30-87:30</strong></p><p>5 minutes; fine to skip if behind schedule. <code>./sake ex 04-brew</code>: starts from the exercise 2 solution.
 Confetti loads from esm.sh, so this one needs the network.</p>
 </aside></section><section id="capstone" class="dark-slide chapter-slide" data-timing="15" data-background-color="#2b1d3a"><div class="slide-body"><h2><a href="#heading:capstone:capstone--notebooksc-widgets" id="heading:capstone:capstone--notebooksc-widgets" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Capstone · <em>notebook.sc</em> widgets</h2>
-<p>Your Laminar code, inside someone else's app</p>
-</div><aside class="notes"><p class="time"><strong>87:30-87:45</strong></p></aside></section><section id="notebook-tour" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:notebook-tour:notebooksc-in-3-minutes" id="heading:notebook-tour:notebooksc-in-3-minutes" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>notebook.sc in 3 minutes</h2>
+<p>Laminar widgets hosted in another application</p>
+</div><aside class="notes"><p class="time"><strong>87:30-87:45</strong></p></aside></section><section id="notebook-tour" class="standard" data-timing="180"><div class="slide-body"><h2><a href="#heading:notebook-tour:notebooksc" id="heading:notebook-tour:notebooksc" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>notebook.sc</h2>
 <div class="columns top">
 <div class="stack ">
 <ul>
 <li>Scala cells form a <strong>dependency graph</strong>: run one, its dependents re-run</li>
-<li>The UI is Laminar (of course)</li>
+<li>The UI is written in Laminar</li>
 <li>Built-in widgets: <code>slider</code>, <code>select</code>, <code>text</code>, <code>form</code></li>
 <li>A widget's value becomes a cell: <code>val heat: Int = 42</code></li>
 </ul>
 </div>
 <div class="stack ">
-<pre><code class="language-scala">// cell: the fire
+<pre><code class="language-scala">// cell: a slider widget
 val heatH =
   Widgets.slider(&quot;heat&quot;, 0, 100, 40)
 
-// cell: re-runs when heat moves
-if heat &gt; 80 then &quot;💥&quot; else &quot;🫧&quot;
+// cell: re-runs when heat changes
+if heat &gt; 80 then &quot;high&quot; else &quot;normal&quot;
 </code></pre>
 </div>
 </div>
@@ -412,23 +411,23 @@ val mixH = Widgets.custom[Rgb](
 <div class="stack ">
 <ul>
 <li>Separate bundles: <strong>only JSON crosses</strong>, a case class each side</li>
-<li>Unknown plugin? The notebook shows a fallback</li>
+<li>An unknown plugin renders as a fallback</li>
 <li>The same bundle drives this deck's demos</li>
 </ul>
 </div>
 </div>
 </div><aside class="notes"><p class="time"><strong>90:45-93:45</strong></p><p>Kinds are <code>&lt;pluginId&gt;/&lt;name&gt;</code>: one bundle at <code>/plugins/&lt;pluginId&gt;/main.js</code> serves several names via <code>ctx.name</code>.
 Full example: <code>modules/notebook.sc/demo/plugins-src/potions/Main.scala</code>.</p>
-</aside></section><section id="capstone-options" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:capstone-options:choose-your-potion" id="heading:capstone-options:choose-your-potion" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Choose your potion</h2>
+</aside></section><section id="capstone-options" class="standard" data-timing="120"><div class="slide-body"><h2><a href="#heading:capstone-options:capstone-options" id="heading:capstone-options:capstone-options" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Capstone options</h2>
 <table class="article-table">
 <thead>
-<tr><th> </th><th>Widget</th><th>Start in</th><th>Module</th></tr>
+<tr><th>Widget</th><th>Start in</th><th>Module</th></tr>
 </thead>
 <tbody>
-<tr><td>🧪</td><td><strong>Mixer</strong>: sliders → an <code>Rgb</code></td><td><code>new-widget</code></td><td>1</td></tr>
-<tr><td>📜</td><td><strong>Recipe</strong>: a form → a <code>Potion</code></td><td><code>widgets/recipe</code></td><td>2</td></tr>
-<tr><td>🔮</td><td><strong>Oracle</strong>: search → <code>List[String]</code></td><td><code>widgets/oracle</code></td><td>3</td></tr>
-<tr><td>📈</td><td><strong>Chart</strong>: plots a cell over time</td><td><code>widgets/chart</code></td><td>4</td></tr>
+<tr><td><strong>Mixer</strong>: sliders → an <code>Rgb</code></td><td><code>new-widget</code></td><td>1</td></tr>
+<tr><td><strong>Recipe</strong>: a form → a <code>Potion</code></td><td><code>widgets/recipe</code></td><td>2</td></tr>
+<tr><td><strong>Oracle</strong>: search → <code>List[String]</code></td><td><code>widgets/oracle</code></td><td>3</td></tr>
+<tr><td><strong>Chart</strong>: plots a cell over time</td><td><code>widgets/chart</code></td><td>4</td></tr>
 </tbody>
 </table>
 <p><code>./sake widget recipe WATCH=1</code> · <code>./sake notebook</code></p>
@@ -436,19 +435,19 @@ Full example: <code>modules/notebook.sc/demo/plugins-src/potions/Main.scala</cod
 The lab notebook (notebooks/apothecary.notebook.sc) already has a section wired up for each option.
 Mixer: <code>./sake new-widget mixer</code>, the answer is widgets/potions. Others: <code>./sake widget-solution &lt;name&gt;</code> builds the answer.
 Remind them: <code>./sake notebook</code> rebuilds every widget first; refresh the browser after a rebuild.</p>
-</aside></section><section id="capstone-build" class="exercise-slide" data-timing="1260"><div class="slide-body"><h2><a href="#heading:capstone-build:brewing-time" id="heading:capstone-build:brewing-time" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Brewing time</h2>
+</aside></section><section id="capstone-build" class="exercise-slide" data-timing="1260"><div class="slide-body"><h2><a href="#heading:capstone-build:capstone" id="heading:capstone-build:capstone" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Capstone</h2>
 <div class="columns ">
 <div class="stack ">
 <ul>
-<li>20 minutes: pair up if you like</li>
-<li>Share your notebook: we'll demo 2 or 3 at the end</li>
-<li>Finished early? Make two of your widgets <strong>talk</strong> via cells</li>
+<li>20 minutes, alone or in pairs</li>
+<li>A few notebooks are demonstrated at the end</li>
+<li>Extension: connect two widgets through cells</li>
 </ul>
 </div>
 <div class="laminar-demo-frame"><div class="laminar-demo" data-kind="potions/mixer" data-value="{&quot;r&quot;:120,&quot;g&quot;:60,&quot;b&quot;:190}"><p class="demo-pending">demo: potions/mixer</p></div><output class="demo-value"></output></div>
 </div>
 </div><aside class="notes"><p class="time"><strong>95:45-116:45</strong></p><p>Walk the room. At 1:50 call time and pick volunteers to show their widgets.</p>
-</aside></section><section id="recap" class="standard" data-timing="135"><div class="slide-body"><h2><a href="#heading:recap:what-we-brewed" id="heading:recap:what-we-brewed" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>What we brewed</h2>
+</aside></section><section id="recap" class="standard" data-timing="135"><div class="slide-body"><h2><a href="#heading:recap:summary" id="heading:recap:summary" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Summary</h2>
 <div class="columns top">
 <div class="stack ">
 <ul>
@@ -462,23 +461,22 @@ Remind them: <code>./sake notebook</code> rebuilds every widget first; refresh t
 <div class="stack ">
 <ul>
 <li>Components: signals in, observers out</li>
-<li>Errors are values you render</li>
+<li>Errors as values, rendered</li>
 <li>JS interop with facades and mount hooks</li>
 <li>Plugins: Laminar inside <em>another</em> app</li>
 </ul>
 </div>
 </div>
-</div><aside class="notes"><p class="time"><strong>116:45-119:00</strong></p></aside></section><section id="thanks" class="title-slide" data-timing="60" data-background-color="#2b1d3a"><div class="slide-body"><h1><a href="#heading:thanks:thank-you" id="heading:thanks:thank-you" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Thank <em>you</em></h1>
+</div><aside class="notes"><p class="time"><strong>116:45-119:00</strong></p></aside></section><section id="thanks" class="title-slide" data-timing="60" data-background-color="#2b1d3a"><div class="slide-body"><h1><a href="#heading:thanks:thank-you" id="heading:thanks:thank-you" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Thank you</h1>
 <p>laminar.dev · github.com/bishabosha/scaladays-2026-laminar-lab</p>
-<p>Now go and brew something</p>
-</div><aside class="notes"><p class="time"><strong>119:00-120:00</strong></p></aside></section><section id="appendix-real-server" class="appendix" data-timing="0" data-visibility="uncounted"><div class="slide-body"><h2><a href="#heading:appendix-real-server:appendix--a-real-oracle" id="heading:appendix-real-server:appendix--a-real-oracle" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Appendix · A real oracle</h2>
+</div><aside class="notes"><p class="time"><strong>119:00-120:00</strong></p></aside></section><section id="appendix-real-server" class="appendix" data-timing="0" data-visibility="uncounted"><div class="slide-body"><h2><a href="#heading:appendix-real-server:appendix--an-http-backend" id="heading:appendix-real-server:appendix--an-http-backend" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Appendix · An HTTP backend</h2>
 <pre><code class="language-scala">class HttpOracle(base: String) extends Oracle:
   def searchIngredients(query: String) =
     dom.fetch(s&quot;$base/ingredients?q=${js.URIUtils.encodeURIComponent(query)}&quot;).toFuture
       .flatMap(_.text().toFuture)
       .map(read[List[Ingredient]](_))
 </code></pre>
-<p>The exercises only depend on <code>Oracle</code>, so this slots in without touching the views</p>
+<p>The exercises depend only on <code>Oracle</code>, so this replaces the simulated backend without changes to the views</p>
 </div><aside class="notes"><p class="time"><strong>Appendix</strong></p></aside></section><section id="appendix-cheatsheet" class="appendix" data-timing="0" data-visibility="uncounted"><div class="slide-body"><h2><a href="#heading:appendix-cheatsheet:appendix--cheat-sheet" id="heading:appendix-cheatsheet:appendix--cheat-sheet" class="anchor-link anchor-link__source"><i class="fa-solid fa-link"></i></a>Appendix · Cheat sheet</h2>
 <table class="article-table">
 <thead>
