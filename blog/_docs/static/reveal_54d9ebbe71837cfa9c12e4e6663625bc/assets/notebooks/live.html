@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Scala Days dataframe notebook</title>
+  <style>
+    * { box-sizing:border-box; }
+    html,body { height:100%; margin:0; background:#f7f8fa; color:#19242a; font:20px/1.4 system-ui,sans-serif; }
+    #saved { height:100%; display:flex; flex-direction:column; }
+    #saved p { margin:0; padding:12px 20px; text-align:center; }
+    #saved img { width:100%; flex:1; min-height:0; object-fit:contain; }
+    iframe { width:100%; height:100%; display:none; border:0; }
+    .connected #saved { display:none; }
+    .connected iframe { display:block; }
+    @media print { iframe { display:none!important; } #saved { display:flex!important; } }
+  </style>
+</head>
+<body>
+  <div id="saved"><p>Saved notebook preview · live kernel is offline</p><img src="preview.png" alt="Dataframe notebook with typed results"></div>
+  <iframe title="Live notebook.sc workspace"></iframe>
+  <script type="module">
+    const frame = document.querySelector('iframe');
+    const runtime = 'http://localhost:8134';
+    async function connect() {
+      try {
+        const response = await fetch(`${runtime}/demo-health`, {signal:AbortSignal.timeout(1500)});
+        if (!response.ok || !(await response.json()).ready) {
+          document.body.classList.remove('connected');
+          return;
+        }
+        if (!frame.src) frame.src = `${runtime}/?presentation=1`;
+        document.body.classList.add('connected');
+      } catch { document.body.classList.remove('connected'); }
+    }
+    connect();
+    setInterval(connect, 5000);
+  </script>
+</body>
+</html>
