@@ -88,6 +88,29 @@ object sanatise:
 object paths:
   private val fileHashes = new model.BuildSession.Cache[os.Path, (sanatise.FileVersion, String)]
 
+  /** `static/pageSources/` holds files that pages include (`includeStatic`), not published ones. */
+  val pageSources = "pageSources"
+
+  private def isPageSource(rel: os.RelPath): Boolean =
+    rel.segments.headOption.contains(pageSources)
+
+  /** The text of a static file, for a page to inline (Breeze's `{{include /static/...}}`).
+   *  The page is rebuilt when the file changes. Typically a file in `static/pageSources/`.
+   */
+  def includeStatic(relURL: String)(using model.SiteContext): String =
+    relURL.trim match
+      case s"/static/$rest" =>
+        val static = sctx.site.optStatic.getOrElse(throw Exception("No static directory found"))
+        val path = os.Path(rest, static)
+        require(path.startsWith(static), s"Included file is outside the static directory: $relURL")
+        Templates.recordDependency(path)
+        if !os.isFile(path) then throw Exception(s"Included file not found: $path")
+        os.read(path)
+      case other => throw Exception(s"Invalid include path (expected /static/...): $other")
+
+  /** Static files that are also published under a content-hashed name, for cache busting. */
+  def hasHashedCopy(path: os.Path): Boolean = path.ext == "css" || path.ext == "js"
+
   def hashPath(path: os.Path): os.Path =
     val hashedSuffix = sanatise.md5Hashed(path)
     val hashedName = s"${path.baseName}_$hashedSuffix.${path.ext}"
@@ -134,10 +157,12 @@ object paths:
         val path = os.Path(rest, static)
         // Record dependency on this static asset for the current page render, if enabled
         Templates.recordDependency(path)
-        if os.exists(path) then
-          val hashedPath = hashPath(path).relativeTo(static).toString
-          s"/static/$hashedPath"
-        else throw Exception(s"Static asset not found: $path")
+        if !os.exists(path) then throw Exception(s"Static asset not found: $path")
+        else if isPageSource(path.relativeTo(static)) then
+          throw Exception(s"Not published, so it cannot be linked (include it instead): $path")
+        // Only names that the static copy also writes hashed; any other file keeps its own name.
+        else if hasHashedCopy(path) then s"/static/${hashPath(path).relativeTo(static)}"
+        else s"/static/$rest"
       case None => throw Exception("No static directory found")
 
   def generateSiteWatch[T <: model.Theme](src: String, out: String, theme: T)(using
@@ -503,16 +528,17 @@ object paths:
     }
     for static <- ctx.site.optStatic do
       os.makeDir.all(dest / "static")
-      os.walk.stream(static).foreach { p =>
+      // Page sources are only included into pages, never published themselves.
+      os.walk.stream(static, skip = p => isPageSource(p.relativeTo(static))).foreach { p =>
         val rel = p.relativeTo(static)
         val destStatic = dest / "static"
         val destPath = destStatic / rel
         if os.isDir(p) then os.makeDir.all(destPath)
         else {
-          if p.ext == "css" || p.ext == "js" then
-            val hashedDest = destStatic / hashPath(p).relativeTo(static)
-            os.copy.over(p, hashedDest)
-          else os.copy.over(p, destPath)
+          // Every file keeps its own name, so copied trees (e.g. a built deck) find their files;
+          // CSS and JS are also written hashed, for links resolved through `resolveStaticAsset`.
+          os.copy.over(p, destPath)
+          if hasHashedCopy(p) then os.copy.over(p, destStatic / hashPath(p).relativeTo(static))
         }
 
       }

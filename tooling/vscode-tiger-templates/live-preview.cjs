@@ -3,11 +3,13 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 
 // Unsaved Markdown drafts for a running Tiger live server (LiveSite#dev or serve). Eligible
-// documents are Markdown files under the `sources` listed in the workspace folder's
-// .tiger-editor.json (written by every site build); the server checks the rest.
+// documents are Markdown files under the `sources` listed in their site's .tiger-editor.json
+// (written by every site build); the server checks the rest. A site is the nearest folder, from
+// the document's up to the workspace folder, with such a manifest: so a site in a subfolder
+// (e.g. slides/ in a repository opened at its root) works too.
 exports.installLivePreview = (vscode, context) => {
   const session = randomUUID();
-  const pending = new Map(), connections = new Map();
+  const pending = new Map(), connections = new Map(), sites = new Set();
   let sequence = 0, disposed = false, sending = false;
   const output = vscode.window.createOutputChannel('Tiger live preview');
   const markdown = document => document.uri.scheme === 'file' && document.uri.fsPath.endsWith('.md');
@@ -17,21 +19,30 @@ exports.installLivePreview = (vscode, context) => {
       return Array.isArray(manifest.sources) ? manifest.sources.filter(source => typeof source === 'string') : [];
     } catch { return []; }
   }
-  async function eligible(document, folder) {
-    if (!markdown(document)) return false;
-    return (await sources(folder)).some(source => {
-      const relative = path.relative(path.resolve(folder, source), document.uri.fsPath);
-      return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
-    });
+  const inside = (directory, file) => {
+    const relative = path.relative(directory, file);
+    return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+  };
+  /** The folder of the site that shows `document`, or undefined. */
+  async function siteOf(document, folder) {
+    if (!markdown(document)) return undefined;
+    const top = path.resolve(folder), file = document.uri.fsPath;
+    for (let directory = path.dirname(file); directory === top || inside(top, directory); directory = path.dirname(directory)) {
+      if ((await sources(directory)).some(source => inside(path.resolve(directory, source), file))) return directory;
+      if (directory === top) break;
+    }
+    return undefined;
   }
   async function send(document, clear = false) {
     if (disposed || !vscode.workspace.isTrusted || !markdown(document)) return;
     const folder = vscode.workspace.getWorkspaceFolder(document.uri);
-    if (!folder || !await eligible(document, folder.uri.fsPath)) return;
+    const site = folder && await siteOf(document, folder.uri.fsPath);
+    if (!site) return;
+    sites.add(site);
     const input = { file: document.uri.fsPath, session, sequence: ++sequence,
       ...(clear ? { clear: true } : { text: document.getText() }) };
     try {
-      const connection = JSON.parse(await fs.readFile(path.join(folder.uri.fsPath, '.live-preview.json'), 'utf8'));
+      const connection = JSON.parse(await fs.readFile(path.join(site, '.live-preview.json'), 'utf8'));
       if (!Number.isInteger(connection.port) || connection.port < 1 || connection.port > 65535) return;
       const response = await fetch(`http://127.0.0.1:${connection.port}/__preview/draft`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${connection.token}` },
@@ -66,11 +77,12 @@ exports.installLivePreview = (vscode, context) => {
   }
   const poll = setInterval(async () => {
     if (disposed || !vscode.workspace.isTrusted) return;
-    for (const folder of vscode.workspace.workspaceFolders || []) {
+    // Workspace folders, and the sites in subfolders that edited documents belong to.
+    for (const site of new Set([...(vscode.workspace.workspaceFolders || []).map(folder => folder.uri.fsPath), ...sites])) {
       try {
-        const value = await fs.readFile(path.join(folder.uri.fsPath, '.live-preview.json'), 'utf8');
-        if (connections.get(folder.uri.fsPath) !== value) {
-          connections.set(folder.uri.fsPath, value);
+        const value = await fs.readFile(path.join(site, '.live-preview.json'), 'utf8');
+        if (connections.get(site) !== value) {
+          connections.set(site, value);
           for (const document of vscode.workspace.textDocuments) if (document.isDirty) schedule(document);
         }
       } catch {}

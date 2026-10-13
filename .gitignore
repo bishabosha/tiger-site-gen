@@ -13,6 +13,9 @@ out_home
 
 node_modules/
 dist/
+# Vendored reveal.js builds are sources, not build output
+!revealTheme/resources/revealTheme/vendor/reveal/dist/
+!blog/_docs/static/reveal_*/vendor/reveal/dist/
 dist-display/
 .live-preview.json
 .tiger-editor.json
