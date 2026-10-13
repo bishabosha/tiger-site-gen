@@ -63,10 +63,15 @@ object DeckAssets:
       versions.getOrElseUpdate(path, version(path))
       ()
     val files = scala.collection.mutable.Map.empty[os.RelPath, StaticAsset]
+    val fontFiles = fonts.faces.map(face => os.RelPath(s"assets/fonts/${face.file}")).toSet
+    def unusedFont(target: os.RelPath): Boolean =
+      target.toString.startsWith("assets/fonts/") &&
+        Set("woff", "woff2", "ttf", "otf")(target.ext.toLowerCase(java.util.Locale.ROOT)) &&
+        !fontFiles(target)
     val directories = scala.collection.mutable.LinkedHashSet.empty[os.Path]
     def file(source: os.Path, target: os.RelPath): Unit =
       observe(source)
-      files(target) = StaticAsset.file(s"/reveal/$target", source, session)
+      if !unusedFont(target) then files(target) = StaticAsset.file(s"/reveal/$target", source, session)
     def tree(source: os.Path, target: os.RelPath): Unit =
       observe(source)
       require(os.exists(source), s"Missing presentation asset: $source")

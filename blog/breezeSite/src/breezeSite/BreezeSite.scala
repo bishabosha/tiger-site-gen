@@ -47,7 +47,8 @@ object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.Inf
       ],
       `match-type-simulator`: Directory[(index: DocOf[FrontMatter.Raw])],
       // The Laminar lab's deck: a built static page (the lab's `sake publish-deck`)
-      apothecary: Directory[(index: DocOf[FrontMatter.Raw])]
+      apothecary: Directory[(index: DocOf[FrontMatter.Raw])],
+      `scaladays-2026-talk`: Directory[(index: DocOf[FrontMatter.Raw])]
   )
 
   override val siteMapMeta = Breeze.siteMapMeta
@@ -60,6 +61,7 @@ object BreezeSite extends model.DictionaryTheme, model.InferredExtras, model.Inf
     )
     .`match-type-simulator`(_.index(_.layout(dict((raw = breezeSite.rawTemplate)))))
     .apothecary(_.index(_.layout(dict((raw = breezeSite.rawTemplate)))))
+    .`scaladays-2026-talk`(_.index(_.layout(dict((raw = breezeSite.rawTemplate)))))
 
   val extraDefs = defineExtraRecord {
     Breeze.extendExtras(

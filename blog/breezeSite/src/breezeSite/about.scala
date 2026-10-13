@@ -20,6 +20,13 @@ val about = model.Layout[BreezeSite.Context, FrontMatter.About]: doc =>
             li(
               a(
                 // A sitemap page (the lab's `sake publish-deck`): a missing deck fails the build.
+                href := ctx.site.`scaladays-2026-talk`.index.url,
+                "Slides: Where are we going with the Standard Library (Scala Days 2026 Talk)"
+              )
+            ),
+            li(
+              a(
+                // A sitemap page (the lab's `sake publish-deck`): a missing deck fails the build.
                 href := ctx.site.apothecary.index.url,
                 "Potions Lab with Laminar (Scala Days 2026)"
               )

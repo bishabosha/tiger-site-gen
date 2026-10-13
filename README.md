@@ -649,6 +649,13 @@ val talk = LiveSite(TalkSite, RevealTheme.liveSettings(TalkSite.collection))(usi
 @main def deck(args: String*): Unit = talk.main(args)
 ```
 
+Use `fonts = MyFonts.liveOnly` to select custom fonts in live mode and default
+fonts in display/PDF mode. For a custom display configuration, use
+`MyFonts.copy(display = Some(DisplayFonts))`. Selection follows the rendering
+context, including mounted themes and drafts. Only declared font faces from
+`public/assets/fonts/` or theme overrides are copied into the asset bundle;
+unused local font files are omitted, while bundled defaults and licenses remain.
+
 | Command | Effect |
 | --- | --- |
 | `deck dev [--port N]` | build, watch, render drafts and serve `dist/` at 8123 (default command) |

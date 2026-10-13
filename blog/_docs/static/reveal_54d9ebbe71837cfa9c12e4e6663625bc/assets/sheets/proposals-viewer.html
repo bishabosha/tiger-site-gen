@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Standard library proposals — comprehensive evaluation</title>
+  <link rel="stylesheet" href="proposals-viewer.css">
+  <script src="proposals-viewer.mjs" type="module"></script>
+</head>
+<body>
+  <h1 class="sr-only">Standard library proposals</h1>
+  <form role="search" onsubmit="return false">
+    <label class="search-field"><span class="sr-only">Search all columns</span><input type="search" id="search" placeholder="Search proposals…"></label>
+    <label><span class="sr-only">Source</span><select id="source"><option value="">All sources</option></select></label>
+    <label><span class="sr-only">Status</span><select id="status"><option value="">All statuses</option></select></label>
+    <button type="reset">Clear</button>
+    <button type="button" id="view-mode" aria-pressed="false">Presentation view</button>
+    <output id="count" aria-live="polite">Loading proposals…</output>
+    <a href="snapshot_scala_stdlib_proposals_inventory.xlsx" download>Download XLSX</a>
+  </form>
+  <main tabindex="0" aria-label="Proposals table, scroll to see all columns">
+    <table><caption class="sr-only">Standard library proposals inventory</caption><thead></thead><tbody></tbody></table>
+    <p id="message" role="status" hidden></p>
+  </main>
+</body>
+</html>
