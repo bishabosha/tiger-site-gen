@@ -1,4 +1,5 @@
 import { installSlideFitting } from './slide-fit.mjs';
+import { lazyHighlight } from './lazy-highlight.mjs';
 
 /** One custom element per occurrence, including repeated embeds of the same deck.
  * Shadow DOM isolates IDs and CSS; embedded Reveal never owns the host URL.
@@ -13,7 +14,7 @@ class RevealDeck extends HTMLElement {
       const root = this.shadowRoot || this.attachShadow({ mode: 'open' });
       root.replaceChildren(template.content.cloneNode(true));
       delete this.dataset.error;
-      const base = new URL(this.dataset.assets, document.baseURI);
+      const base = new URL(this.dataset.runtimeAssets || this.dataset.assets, document.baseURI);
       const contentBase = new URL(this.dataset.contentBase, document.baseURI);
       const container = root.querySelector('.reveal');
       container.tabIndex = 0;
@@ -31,9 +32,8 @@ class RevealDeck extends HTMLElement {
           link.addEventListener('load', resolve, { once: true });
           link.addEventListener('error', () => reject(new Error(`Cannot load ${link.href}`)), { once: true });
         }));
-      const [{ default: Reveal }, { default: Highlight }] = await Promise.all([
+      const [{ default: Reveal }] = await Promise.all([
         import(new URL('vendor/reveal/dist/reveal.mjs', base).href),
-        import(new URL('vendor/reveal/dist/plugin/highlight.mjs', base).href),
         ...styles
       ]);
       if (!current()) return;
@@ -44,13 +44,14 @@ class RevealDeck extends HTMLElement {
         embedded: true,
         width: 1600, height: 900, margin: 0, minScale: 0.05, maxScale: 2,
         center: false, hash: false, history: false, respondToHashChanges: false,
+        viewDistance: 1, mobileViewDistance: 1,
         keyboardCondition: () => this.matches(':focus-within'),
         scrollActivationWidth: null,
         controls: true, controlsTutorial: false, progress: true,
         transition: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'none' : 'fade',
         backgroundTransition: 'none',
         slideNumber: false,
-        plugins: [Highlight]
+        plugins: [lazyHighlight()]
       });
       this.reveal = reveal;
       // Clicking any slide also gives this player keyboard focus.

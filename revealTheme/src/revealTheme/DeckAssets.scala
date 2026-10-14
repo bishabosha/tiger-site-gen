@@ -3,14 +3,22 @@ package revealTheme
 import model.{SiteContext, StaticAsset, StaticBundle, BuildSession}
 import io.util.paths
 
-/** One prepared Reveal asset tree. Its content hash includes public assets and local overrides. */
-final class DeckAssets private (load: () => StaticBundle):
-  lazy val bundle: StaticBundle = load()
-  def baseUrl(using SiteContext): String = paths.resolveStaticAsset(bundle)
+/** A shared Reveal runtime plus an independent tree of deck-owned assets. */
+final class DeckAssets private (load: () => DeckAssets.Prepared):
+  private lazy val prepared = load()
+  /** The effective asset manifest, retained for dependency and fragment-cache checks. */
+  def bundle: StaticBundle = prepared.combined
+  def deckBundle: StaticBundle = prepared.deck
+  def runtimeBundle: StaticBundle = DeckAssets.runtime
+  def runtimeBaseUrl(using SiteContext): String = paths.resolveStaticAsset(runtimeBundle)
+  def baseUrl(using SiteContext): String =
+    runtimeBaseUrl
+    paths.resolveStaticAsset(deckBundle)
 
   def url(path: String)(using SiteContext): String =
     require(bundle.files.contains(os.RelPath(path)), s"Unknown Reveal asset: $path")
-    baseUrl + new java.net.URI(null, null, path, null, null).toASCIIString
+    val prefix = if deckBundle.files.contains(os.RelPath(path)) then baseUrl else runtimeBaseUrl
+    prefix + new java.net.URI(null, null, path, null, null).toASCIIString
 
   /** Resolve a URL at its point of creation, before Markdown or a layout emits HTML. */
   def resolve(value: String, collectionUrl: String)(using SiteContext): String =
@@ -31,8 +39,12 @@ object DeckAssets:
     val asset = StaticAsset.resource("/revealTheme/assets.txt")
     new String(asset.bytes, java.nio.charset.StandardCharsets.UTF_8).linesIterator.toVector
 
-  private case class Key(sources: RevealAssets, fonts: DeckFonts)
-  private case class Snapshot(bundle: StaticBundle, versions: Map[os.Path, Option[io.util.sanatise.FileVersion]]):
+  private[revealTheme] lazy val runtime = StaticBundle("reveal",
+    bundledFiles.map(name => os.RelPath(name) -> StaticAsset.resource(s"/revealTheme/$name")).toMap +
+      (os.RelPath("fonts.css") -> StaticAsset.text("/reveal/fonts.css", "")))
+  private[revealTheme] case class Prepared(combined: StaticBundle, deck: StaticBundle)
+  private case class Key(sources: RevealAssets, fonts: DeckFonts, name: String)
+  private case class Snapshot(prepared: Prepared, versions: Map[os.Path, Option[io.util.sanatise.FileVersion]]):
     def unchanged: Boolean = versions.forall { (path, previous) =>
       try
         // Without ctime, equal-size edits with restored mtime cannot be detected safely.
@@ -44,19 +56,19 @@ object DeckAssets:
   private def version(path: os.Path): Option[io.util.sanatise.FileVersion] =
     if os.exists(path) then Some(io.util.sanatise.fileVersion(path)) else None
 
-  def prepare(sources: RevealAssets, fonts: DeckFonts, session: BuildSession): DeckAssets =
+  def prepare(sources: RevealAssets, fonts: DeckFonts, session: BuildSession, name: String = "deck"): DeckAssets =
     new DeckAssets(() => {
       val cache = session.cache(snapshots)
-      val key = Key(sources, fonts)
+      val key = Key(sources, fonts, name)
       cache.get(key).filter(_.unchanged) match
-        case Some(cached) => cached.bundle
+        case Some(cached) => cached.prepared
         case None =>
-          val fresh = snapshot(sources, fonts, session)
+          val fresh = snapshot(sources, fonts, session, name)
           cache(key) = fresh
-          fresh.bundle
+          fresh.prepared
     })
 
-  private def snapshot(sources: RevealAssets, fonts: DeckFonts, session: BuildSession): Snapshot =
+  private def snapshot(sources: RevealAssets, fonts: DeckFonts, session: BuildSession, name: String): Snapshot =
     val versions = scala.collection.mutable.Map.empty[os.Path, Option[io.util.sanatise.FileVersion]]
     // Capture before reading: a concurrent edit invalidates the next snapshot check.
     def observe(path: os.Path): Unit =
@@ -88,8 +100,7 @@ object DeckAssets:
             else if os.isDir(path) && !os.isLink(path) then visit(path)
         visit(source)
 
-    // Bundled files include reveal.js (vendor/reveal/); theme and public directories override them.
-    for name <- bundledFiles do files(os.RelPath(name)) = StaticAsset.resource(s"/revealTheme/$name")
+    // Only host-owned files enter the deck bundle. Identical bundled overrides are shared too.
     for directory <- sources.themeDirectory.toSeq ++ sources.publicDirectory.toSeq do
       observe(directory) // Also track optional directories that do not exist yet.
       directories += directory // Track creation of a previously absent public/theme directory too.
@@ -97,5 +108,33 @@ object DeckAssets:
     for RevealAssets.Vendor(source, target) <- sources.vendor do tree(source, target)
     for face <- fonts.faces do
       require(files.contains(os.RelPath(s"assets/fonts/${face.file}")), s"Missing font file: public/assets/fonts/${face.file}")
-    files(os.RelPath("fonts.css")) = StaticAsset.text("/reveal/fonts.css", fonts.stylesheet)
-    Snapshot(StaticBundle("reveal", files.toMap, directories.toVector), versions.toMap)
+    if fonts.faces.nonEmpty then files(os.RelPath("fonts.css")) = StaticAsset.text("/reveal/fonts.css", fonts.stylesheet)
+    val local = files.toMap.filterNot((path, asset) => runtime.files.get(path).exists(_.hash == asset.hash))
+    // A local override can still import or reference a shared file (for example,
+    // theme.css's default fonts). Rewrite only those cross-tree literal references.
+    val linked = local.map { (path, asset) =>
+      if Set("css", "js", "mjs", "html", "svg")(path.ext.toLowerCase(java.util.Locale.ROOT)) then
+        val text = new String(asset.bytes, java.nio.charset.StandardCharsets.UTF_8)
+        def resolve(value: String): String =
+          try
+            val base = java.net.URI(s"https://assets.invalid/$path")
+            val uri = base.resolve(value)
+            if uri.getAuthority != base.getAuthority || uri.getPath == null || value.startsWith("/") || value.startsWith("#") then value
+            else
+              val target = os.RelPath(uri.getPath.stripPrefix("/"))
+              if runtime.files.contains(target) && !local.contains(target) then
+                s"/static/${runtime.outputDirectory}/$target" + Option(uri.getRawQuery).map("?" + _).getOrElse("") +
+                  Option(uri.getRawFragment).map("#" + _).getOrElse("")
+              else value
+          catch case _: IllegalArgumentException => value
+        val quoted = "([\"'])([^\"'\\r\\n]*)\\1".r.replaceAllIn(text, matched =>
+          java.util.regex.Matcher.quoteReplacement(matched.group(1) + resolve(matched.group(2)) + matched.group(1)))
+        val rewritten = "url\\(([^\"'()\\s]+)\\)".r.replaceAllIn(quoted, matched =>
+          java.util.regex.Matcher.quoteReplacement(s"url(${resolve(matched.group(1))})"))
+        path -> (if rewritten == text then asset else StaticAsset.text(asset.path, rewritten))
+      else path -> asset
+    }
+    val dependencies = versions.keys.toVector
+    val deck = StaticBundle(name, linked, dependencies)
+    val combined = StaticBundle("reveal", runtime.files ++ linked, dependencies)
+    Snapshot(Prepared(combined, deck), versions.toMap)

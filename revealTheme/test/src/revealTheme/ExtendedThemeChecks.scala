@@ -286,7 +286,7 @@ class ExtendedThemeChecks extends munit.FunSuite:
       def output(url: String): os.Path = root / "dist" / os.RelPath(url.stripPrefix("/"))
       val first = build()
       val firstBase = base(first)
-      assert(firstBase.matches("/static/reveal_[a-f0-9]{32}/"))
+      assert(firstBase.matches("/static/deck_deck_[a-f0-9]{32}/"))
       assert(first.contains(s"src=\"${firstBase}assets/picture.svg\""))
       assert(first.contains(s"href=\"${firstBase}assets/viewer/index.html?mode=full#page-2\""))
       assert(first.contains("https://example.com/assets/picture.svg"))

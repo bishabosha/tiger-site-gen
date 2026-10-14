@@ -12,6 +12,13 @@ import scalatags.Text.tags2.aside
 
 /** Validate slide sources and render fragments for the deck and notes layouts. */
 object Slides:
+  /** Let Reveal fetch slide images as they approach the current slide. */
+  private[revealTheme] def lazyImages(html: String): String =
+    "<img\\b[^>]*>".r.replaceAllIn(html, tag =>
+      java.util.regex.Matcher.quoteReplacement(
+        "(?<![\\w-])src=\"([^\"]*)\"".r.replaceAllIn(tag.matched, source =>
+          java.util.regex.Matcher.quoteReplacement(s"data-src=\"${source.group(1)}\""))))
+
   private val notesHeading = "## Speaker notes"
   private val directive = raw"\{\{([^}]+)\}\}".r
 
@@ -127,7 +134,7 @@ object Slides:
           require(headings.size == 1, s"${page.path}: expected exactly one H1/H2 slide title")
           val title = TextCollectingVisitor().collectAndGetText(headings.head).replaceAll("\\s+", " ").trim
           val renderer = HtmlRenderer.builder(ast).build()
-          val audienceHtml = renderer.render(ast)
+          val audienceHtml = lazyImages(renderer.render(ast))
           val notesAst = md.parseDoc(notes, SlideAnchors.install(_, m.id, notes = true))
           val notesHtml = HtmlRenderer.builder(notesAst).build().render(notesAst)
           Parsed(title, audienceHtml, notesHtml)

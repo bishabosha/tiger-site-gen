@@ -11,6 +11,8 @@ const revealReady = Reveal.initialize({
   minScale: 0.15,
   maxScale: 2,
   center: false,
+  viewDistance: 1,
+  mobileViewDistance: 1,
   hash: true,
   history: true,
   controls: true,
@@ -28,7 +30,14 @@ const revealReady = Reveal.initialize({
     const index = mainSlides.indexOf(current);
     return index >= 0 ? [index + 1, '/', mainSlides.length] : [`A${appendices.indexOf(current) + 1}`];
   },
-  plugins: [RevealNotes, RevealHighlight]
+  plugins: [RevealNotes, typeof RevealHighlight === 'undefined' ? {
+    id: 'highlight',
+    async init(reveal) {
+      const { lazyHighlight } = await import('./lazy-highlight.mjs');
+      const plugin = lazyHighlight(this);
+      return plugin.init(reveal);
+    }
+  } : RevealHighlight]
 });
 
 revealReady.then(async () => {

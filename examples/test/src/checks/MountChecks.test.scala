@@ -348,7 +348,7 @@ class MountChecks extends munit.FunSuite:
       assertEquals(slides(prepare()).map(_.id), Vector("opening", "next"))
 
       os.write.over(source, original.replace("## Speaker notes", "## Missing notes"))
-      intercept[IllegalArgumentException] { prepare() }
+      intercept[IllegalArgumentException] { slides(prepare()) }
       os.write.over(source, original)
       assertEquals(slides(prepare()).head.title, "Conference opening")
       val fresh = Context.fromTheme(root / "content", MySite, new model.BuildSession)
@@ -482,7 +482,7 @@ class MountChecks extends munit.FunSuite:
       for collection <- Seq("conference", "workshop") do
         val output = root / "dist" / "presentations" / collection
         assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "reveal" / "dist" / "reveal.js"))
-        assert(os.isFile(bundle(output / os.up / os.up) / "vendor" / "widget" / "widget.mjs"))
+        assert(os.walk(output / os.up / os.up / "static").exists(path => path.toString.endsWith("/vendor/widget/widget.mjs")))
         assert(os.isFile(bundle(output / os.up / os.up) / "theme.css"))
         assert(os.isFile(output / "deck.json"))
         assert(!os.exists(output / "index.html"))

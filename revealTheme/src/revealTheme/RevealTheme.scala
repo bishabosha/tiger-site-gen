@@ -117,7 +117,8 @@ final class RevealTheme[T <: scala.NamedTuple.AnyNamedTuple](
   val extraDefs: ExtraDefinition { type Out = RevealTheme.Extra } = defineExtras {
     val selectedFonts = RevealTheme.this.fonts.forMode(model.sctx.displayMode)
     (slides = Slides.render(SlideLayout.defaults ++ slideLayouts), fonts = selectedFonts,
-      assets = DeckAssets.prepare(assetSources(model.sctx.siteRoot), selectedFonts, model.sctx.buildSession))
+      assets = DeckAssets.prepare(assetSources(model.sctx.siteRoot), selectedFonts, model.sctx.buildSession,
+        name = "deck_" + model.sctx.site.deck.sourcePath.last))
   }
 
   override def resolveAsset(url: String)(using Context): String =

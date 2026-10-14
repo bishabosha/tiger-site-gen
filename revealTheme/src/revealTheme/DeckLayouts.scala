@@ -38,11 +38,12 @@ object DeckLayouts:
       body(cls := "reveal-standalone", style := ctx.extra.fonts.cssVariables,
         attr("data-render-mode") := (if live then "live" else "static"),
         attr("data-deck-assets") := assets.baseUrl,
+        attr("data-reveal-assets") := assets.runtimeBaseUrl,
         attr("data-preview-code") := config.moduleScripts.mkString(" "))(
         slidesFragment(fullscreen = true),
         script(src := assets.url("vendor/reveal/dist/reveal.js")),
         script(src := assets.url("vendor/reveal/dist/plugin/notes.js")),
-        script(src := assets.url("vendor/reveal/dist/plugin/highlight.js")),
+        if live then script(src := assets.url("vendor/reveal/dist/plugin/highlight.js")) else frag(),
         script(src := assets.url("deck.js")),
         if !live then script(tpe := "module", src := assets.url("fullscreen.mjs")) else frag(),
         config.moduleScripts.map(file => script(tpe := "module", src := assets.url(file))),
@@ -98,6 +99,7 @@ object DeckLayouts:
       link(rel := "stylesheet", href := assets.url("fonts.css")),
       tag("reveal-deck")(
         attr("data-assets") := assets.baseUrl,
+        attr("data-runtime-assets") := assets.runtimeBaseUrl,
         attr("data-content-base") := contentBaseUrl,
         attr("aria-label") := title
       )(

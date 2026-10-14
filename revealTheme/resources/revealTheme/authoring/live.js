@@ -4,7 +4,7 @@ import { revealPlugin } from 'tiger/reveal/patch';
 import { installNavigation } from 'tiger/reveal/navigation';
 
 const deck = new URL('.', location.href);
-const assets = new URL(document.body.dataset.deckAssets, location.href);
+const assets = new URL(document.body.dataset.revealAssets || document.body.dataset.deckAssets, location.href);
 (window.tigerLivePlugins ||= []).push(revealPlugin(assets));
 
 // Shared Reveal toolbar: source lookup by slide ID stays current after slide reordering.
