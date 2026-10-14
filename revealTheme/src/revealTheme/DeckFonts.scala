@@ -9,8 +9,16 @@ final case class DeckFonts(
     code: String = "Menlo, Consolas, monospace",
     faces: Seq[FontFace] = Seq.empty,
     focus: String = "var(--r-main-font)",
-    headingWeights: Map[Int, Int] = Map.empty
+    headingWeights: Map[Int, Int] = Map.empty,
+    display: Option[DeckFonts] = None
 ):
+  /** Use these fonts for live rendering and the defaults for static display/PDF output. */
+  def liveOnly: DeckFonts = copy(display = Some(DeckFonts()))
+
+  private[revealTheme] def forMode(mode: model.DisplayMode): DeckFonts = mode match
+    case model.DisplayMode.Live => this
+    case model.DisplayMode.Static => display.getOrElse(this)
+
   for (name, value) <- Seq("body" -> body, "headings" -> headings, "code" -> code, "focus" -> focus) do
     require(value.trim.nonEmpty && !value.exists(";{}<>\r\n".contains(_)),
       s"Invalid $name font-family stack: $value")

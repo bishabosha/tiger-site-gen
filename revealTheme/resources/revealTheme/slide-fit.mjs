@@ -48,6 +48,12 @@ export function fitSlides(slides, scope = document.body) {
       const section = document.createElement('section');
       section.className = slide.className;
       const body = source.cloneNode(true);
+      // Measuring a slide must not start a second copy of an embedded app.
+      body.querySelectorAll('iframe').forEach(frame => {
+        frame.removeAttribute('src');
+        frame.removeAttribute('data-src');
+        frame.removeAttribute('srcdoc');
+      });
       body.removeAttribute('data-overflow');
       body.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
       section.appendChild(body);
@@ -86,27 +92,45 @@ export function fitSlides(slides, scope = document.body) {
 /** Scope measuring elements to the same document/shadow root as the slides. */
 export async function installSlideFitting(reveal, container, scope = document.body) {
   const slides = [...container.querySelectorAll('.slides > section')];
-  const fit = () => fitSlides(slides, scope);
+  const print = new URLSearchParams(location.search).has('print-pdf');
+  const fitAll = () => fitSlides(slides, scope);
+  const fit = () => {
+    if (print) return fitAll();
+    const index = slides.indexOf(reveal.getCurrentSlide());
+    fitSlides(slides.slice(Math.max(0, index - 1), index + 2)
+      .filter(slide => !slide.querySelector('.slide-body').hasAttribute('data-fitted')), scope);
+  };
+  const invalidate = () => {
+    slides.forEach(slide => slide.querySelector('.slide-body').removeAttribute('data-fitted'));
+    schedule();
+  };
   let frame;
   const schedule = () => {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(fit);
   };
   const onLoad = event => {
-    if (event.target instanceof HTMLImageElement && !event.target.closest('.fit-measure')) schedule();
+    if (event.target instanceof HTMLImageElement && !event.target.closest('.fit-measure')) {
+      event.target.closest('.slide-body')?.removeAttribute('data-fitted');
+      schedule();
+    }
   };
   await document.fonts.ready;
   if (!container.isConnected) return () => {};
   fit();
-  reveal.on('resize', schedule);
-  document.fonts.addEventListener('loadingdone', schedule);
+  reveal.on('slidechanged', schedule);
+  reveal.on('resize', invalidate);
+  document.fonts.addEventListener('loadingdone', invalidate);
   container.addEventListener('load', onLoad, true);
-  window.addEventListener('beforeprint', fit);
+  container.addEventListener('code:highlighted', invalidate);
+  window.addEventListener('beforeprint', fitAll);
   return () => {
     cancelAnimationFrame(frame);
-    reveal.off('resize', schedule);
-    document.fonts.removeEventListener('loadingdone', schedule);
+    reveal.off('slidechanged', schedule);
+    reveal.off('resize', invalidate);
+    document.fonts.removeEventListener('loadingdone', invalidate);
     container.removeEventListener('load', onLoad, true);
-    window.removeEventListener('beforeprint', fit);
+    container.removeEventListener('code:highlighted', invalidate);
+    window.removeEventListener('beforeprint', fitAll);
   };
 }

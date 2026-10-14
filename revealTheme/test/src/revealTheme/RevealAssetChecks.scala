@@ -1,6 +1,41 @@
 package revealTheme
 
 class RevealAssetChecks extends munit.FunSuite:
+  test("different decks share one runtime and keep independent asset hashes") {
+    fixture { root =>
+      val firstDir = root / "first"
+      val secondDir = root / "second"
+      os.write(firstDir / "assets" / "photo.svg", "first", createFolders = true)
+      os.write(secondDir / "assets" / "photo.svg", "second", createFolders = true)
+      val first = DeckAssets.prepare(RevealAssets(publicDirectory = Some(firstDir)), DeckFonts(), new model.BuildSession, "deck_first")
+      val second = DeckAssets.prepare(RevealAssets(publicDirectory = Some(secondDir)), DeckFonts(), new model.BuildSession, "deck_second")
+      assert(first.runtimeBundle eq second.runtimeBundle)
+      assert(first.deckBundle.outputDirectory != second.deckBundle.outputDirectory)
+      assert(!first.deckBundle.files.contains(os.RelPath("vendor/reveal/dist/reveal.js")))
+      assert(!second.deckBundle.files.contains(os.RelPath("theme.css")))
+      assert(!first.deckBundle.files.contains(os.RelPath("fonts.css")))
+      val shared = first.runtimeBundle.hash
+      os.write.over(firstDir / "assets" / "photo.svg", "edited")
+      val edited = DeckAssets.prepare(RevealAssets(publicDirectory = Some(firstDir)), DeckFonts(), new model.BuildSession, "deck_first")
+      assert(edited.deckBundle.hash != first.deckBundle.hash)
+      assertEquals(edited.runtimeBundle.hash, shared)
+      assertEquals(second.runtimeBundle.hash, shared)
+    }
+  }
+
+  test("local overrides link to shared relative dependencies without copying them") {
+    fixture { root =>
+      os.write(root / "theme.css", "@font-face { src: url(assets/source-sans-pro-regular.woff) }", createFolders = true)
+      os.write(root / "custom.mjs", "import './slide-fit.mjs'; const image = 'data:image/png;base64,AAAA'; const link = 'https://example.org/';")
+      val assets = DeckAssets.prepare(RevealAssets(themeDirectory = Some(root)), DeckFonts(), new model.BuildSession)
+      val base = s"/static/${assets.runtimeBundle.outputDirectory}/"
+      assert(new String(assets.deckBundle.files(os.RelPath("theme.css")).bytes).contains(base + "assets/source-sans-pro-regular.woff"))
+      assert(new String(assets.deckBundle.files(os.RelPath("custom.mjs")).bytes).contains(base + "slide-fit.mjs"))
+      assert(new String(assets.deckBundle.files(os.RelPath("custom.mjs")).bytes).contains("data:image/png;base64,AAAA"))
+      assert(!assets.deckBundle.files.contains(os.RelPath("slide-fit.mjs")))
+    }
+  }
+
   private def fixture(body: os.Path => Unit): Unit =
     val root = os.temp.dir(prefix = "reveal-assets-")
     try body(root)

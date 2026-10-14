@@ -10,6 +10,10 @@ class LiveDeckChecks extends munit.FunSuite:
     "data-deck-assets=\"([^\"]+)\"".r.findFirstMatchIn(html).get.group(1)
   private def assets(root: os.Path): os.Path =
     root / "dist" / os.RelPath(assetBase(os.read(root / "dist" / "demo-deck" / "index.html")).stripPrefix("/"))
+  private def runtime(root: os.Path): os.Path =
+    val html = os.read(root / "dist" / "demo-deck" / "index.html")
+    val url = "data-reveal-assets=\"([^\"]+)\"".r.findFirstMatchIn(html).get.group(1)
+    root / "dist" / os.RelPath(url.stripPrefix("/"))
 
   /** A copy of the example project. */
   private def project(): os.Path =
@@ -119,7 +123,7 @@ class LiveDeckChecks extends munit.FunSuite:
       val deck = mysite.demoDeck(root)
       deck.build()
       val output = root / "dist" / "demo-deck"
-      val vendor = assets(root) / "vendor" / "reveal" / "dist" / "reveal.js"
+      val vendor = runtime(root) / "vendor" / "reveal" / "dist" / "reveal.js"
       val installedAt = os.stat(vendor).mtime
       val manifest = ujson.read(os.read(output / "deck.json"))
       os.write.append(root / "content" / "demo-deck" / "slides" / "010 - opening.md", "\nMore notes.\n")
@@ -130,9 +134,10 @@ class LiveDeckChecks extends munit.FunSuite:
       os.write.append(root / "public" / "assets" / "demo.css", "\n/* Asset invalidation check */\n")
       deck.build()
       assert(os.read(assets(root) / "assets" / "demo.css").contains("Asset invalidation check"))
+      assertEquals(os.stat(vendor).mtime, installedAt, "Deck asset edits must not reinstall the shared runtime")
       os.remove.all(root / "dist")
       deck.build()
-      assert(os.isFile(assets(root) / "vendor" / "reveal" / "dist" / "reveal.js"), "Cleared output must reinstall the full bundle")
+      assert(os.isFile(runtime(root) / "vendor" / "reveal" / "dist" / "reveal.js"), "Cleared output must reinstall the shared runtime")
       assertEquals(ujson.read(os.read(output / "deck.json")), manifest)
     finally os.remove.all(root)
   }

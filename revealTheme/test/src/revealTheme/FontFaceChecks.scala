@@ -1,6 +1,35 @@
 package revealTheme
 
 class FontFaceChecks extends munit.FunSuite:
+  test("live-only fonts select defaults for display without changing fixed-font configurations") {
+    val custom = DeckFonts(headings = "Custom, sans-serif")
+    assertEquals(custom.forMode(model.DisplayMode.Live), custom)
+    assertEquals(custom.forMode(model.DisplayMode.Static), custom)
+    assertEquals(custom.liveOnly.forMode(model.DisplayMode.Live).headings, custom.headings)
+    assertEquals(custom.liveOnly.forMode(model.DisplayMode.Static), DeckFonts())
+    val display = DeckFonts(headings = "Display, serif")
+    assertEquals(custom.copy(display = Some(display)).forMode(model.DisplayMode.Static), display)
+  }
+
+  test("changing modes copies only the selected local font faces, even with a shared build session") {
+    val root = os.temp.dir(prefix = "mode-fonts-")
+    try
+      os.write(root / "assets" / "fonts" / "Custom.woff2", "custom", createFolders = true)
+      os.write(root / "assets" / "fonts" / "Unused.woff2", "unused")
+      os.write(root / "assets" / "fonts" / "LICENSE", "license")
+      val fonts = DeckFonts(faces = Seq(FontFace("Custom", "Custom.woff2"))).liveOnly
+      val sources = RevealAssets(publicDirectory = Some(root))
+      val session = new model.BuildSession
+      for mode <- Seq(model.DisplayMode.Live, model.DisplayMode.Static, model.DisplayMode.Live) do
+        val bundle = DeckAssets.prepare(sources, fonts.forMode(mode), session).bundle
+        assertEquals(bundle.files.contains(os.RelPath("assets/fonts/Custom.woff2")), mode == model.DisplayMode.Live)
+        assert(!bundle.files.contains(os.RelPath("assets/fonts/Unused.woff2")))
+        assert(bundle.files.contains(os.RelPath("assets/fonts/LICENSE")))
+        val css = new String(bundle.files(os.RelPath("fonts.css")).bytes, java.nio.charset.StandardCharsets.UTF_8)
+        assertEquals(css.contains("@font-face"), mode == model.DisplayMode.Live)
+    finally os.remove.all(root)
+  }
+
   test("heading weights override individual levels without changing natural metrics") {
     val fonts = DeckFonts(headings = "Display, sans-serif", headingWeights = Map(1 -> 600, 2 -> 500, 3 -> 400))
     assert(fonts.cssVariables.endsWith(";--r-h1-font-weight:600;--r-h2-font-weight:500;--r-h3-font-weight:400"))

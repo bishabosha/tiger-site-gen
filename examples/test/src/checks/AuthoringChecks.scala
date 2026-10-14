@@ -94,7 +94,7 @@ import mysite.MySite
     expectFailure("unbalanced layout") {
       Slides.splitAndValidate("## Title\n{{columns}}\n## Speaker notes\nNotes", "fixture")
     }
-    expectFailure("missing notes") { Slides.splitAndValidate("## Title", "fixture") }
+    assert(Slides.splitAndValidate("## Title", "fixture") == ("## Title", ""))
 
     given SiteRoot = SiteRoot(root)
     val context = Context.fromTheme(root / "content", MySite)

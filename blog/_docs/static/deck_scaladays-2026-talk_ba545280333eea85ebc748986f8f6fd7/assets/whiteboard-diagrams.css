@@ -1,0 +1,502 @@
+/* OVERRIDE STYLES FOR ASIDES BLOCKQUOTES */
+.reveal .asides blockquote {
+  font-size: 0.8em;
+  padding-left: 0.8em;
+  border-left-color: var(--accent);
+}
+.reveal .asides blockquote p+p {
+  margin-top: 0.5em;
+}
+
+/* Semantic Markdown diagrams. All geometry follows the slide's fitted type. */
+.reveal .board-map {
+  --board-ink: #a82d39;
+  --board-line: #ce8b91;
+}
+.reveal .board-blue { --board-ink: #225f87; --board-line: #7ba4bf; }
+.reveal .board-green { --board-ink: #187b70; --board-line: #84b7ad; }
+.reveal .board-map {
+  --map-gap: 1.2em;
+  --map-root-border: 4px;
+  --map-stroke: 4px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: var(--map-gap);
+  align-items: stretch;
+  font-size: .86em;
+}
+.reveal .board-map > .map-root {
+  align-self: center;
+  border: var(--map-root-border) solid var(--board-ink);
+  border-radius: 1.2em;
+  padding: .5em .55em;
+  max-width: 8.8em;
+  text-align: center;
+  font-weight: 600;
+  color: var(--board-ink);
+  background: var(--paper);
+  line-height: 1.15;
+  position: relative;
+}
+.reveal .board-map > .map-root::before,
+.reveal .board-map > .map-root::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  /* Absolute offsets start inside the root border. Cover it and overlap the
+     stem by one stroke so fractional slide scaling cannot open a seam. */
+  width: calc(var(--map-gap) + var(--map-root-border) + var(--map-stroke));
+  height: var(--map-stroke);
+  background: var(--board-line);
+}
+.reveal .board-map > .map-root::before { right: 100%; }
+.reveal .board-map > .map-root::after { left: 100%; }
+/* The side's own midpoint stays level with the root. Its spine reaches that
+   midpoint even when the final title sits above it, or there is only one title. */
+.reveal .board-map > .map-side {
+  align-self: center;
+  gap: 0;
+  position: relative;
+}
+.reveal .board-map > .map-side::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: calc(50% + var(--map-stroke) / 2);
+  width: var(--map-stroke);
+  background: var(--board-line);
+}
+.reveal .map-side > .map-branch {
+  display: grid;
+  grid-template-columns: 1em minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 0;
+  position: relative;
+}
+/* Separate title and body rows let the spine join the actual title centre,
+   without depending on child count, wrapped labels, or a guessed text height. */
+.reveal .map-side > .map-branch::before,
+.reveal .map-side > .map-branch::after {
+  content: '';
+  grid-column: 1;
+  border-left: var(--map-stroke) solid var(--board-line);
+}
+.reveal .map-side > .map-branch::before { grid-row: 1; }
+.reveal .map-side > .map-branch::after { grid-row: 2; }
+.reveal .map-side > .map-branch:last-child::before { height: 50%; }
+.reveal .map-side > .map-branch:last-child::after { content: none; }
+.reveal .map-branch > .map-title {
+  grid-area: 1 / 1 / 2 / -1;
+  position: relative;
+  z-index: 1;
+  padding-left: 1em;
+}
+.reveal .map-title > .map-label {
+  margin: 0;
+  padding: .38em 0;
+  font-size: 1em;
+  color: var(--board-ink);
+}
+.reveal .map-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: .72em;
+  height: var(--map-stroke);
+  border-radius: calc(var(--map-stroke) / 2);
+  background: var(--board-line);
+}
+/* Trim the shared spine above the first title, including multi-line titles. */
+.reveal .map-branch:first-child > .map-title::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: calc(var(--map-stroke) + 2px);
+  height: calc(50% - var(--map-stroke) / 2);
+  background: var(--paper);
+}
+.reveal .map-branch > .map-children { grid-area: 2 / 2; padding-bottom: .38em; }
+.reveal .map-side.map-left > .map-branch { grid-template-columns: minmax(0, 1fr) 1em; }
+.reveal .map-side.map-left > .map-branch::before,
+.reveal .map-side.map-left > .map-branch::after {
+  grid-column: 2;
+  border-left: 0;
+  border-right: var(--map-stroke) solid var(--board-line);
+}
+.reveal .map-side.map-left > .map-branch > .map-children { grid-column: 1; }
+.reveal .map-side.map-left .map-title { padding-left: 0; padding-right: 1em; }
+.reveal .board-map > .map-side.map-left::before { left: auto; right: 0; }
+.reveal .map-side.map-left .map-title::before,
+.reveal .map-side.map-left .map-title::after { left: auto; right: 0; }
+.reveal .map-side.map-left .map-branch:first-child > .map-title::after { right: -1px; }
+.reveal .map-children ul {
+  --map-indent: .95em;
+  --map-label-midpoint: .75em;
+  --map-stem-rise: 0em;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: .87em;
+  line-height: 1.26;
+}
+.reveal .map-children li {
+  margin: 0;
+  position: relative;
+  padding: .12em 0 .12em var(--map-indent);
+}
+/* Border geometry shares the stem's exact edge and stroke width. Curved
+   corners keep square endpoints, so adjacent segments join without cap gaps. */
+.reveal .map-children li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(var(--map-indent) - .2em);
+  height: var(--map-label-midpoint);
+  box-sizing: border-box;
+  border-left: var(--map-stroke) solid var(--board-line);
+  border-bottom: var(--map-stroke) solid var(--board-line);
+  border-bottom-left-radius: .35em;
+}
+/* Nested lists bridge their margin back to their own parent label. */
+.reveal .map-children li:first-child::before {
+  top: calc(-1 * var(--map-stem-rise));
+  height: calc(var(--map-label-midpoint) + var(--map-stem-rise));
+}
+.reveal .map-children li::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  /* Overlap adjacent curves so fitted slide scaling cannot open hairline seams. */
+  top: -1px;
+  bottom: -1px;
+  width: var(--map-stroke);
+  background: var(--board-line);
+}
+.reveal .map-children li:last-child::after { content: none; }
+.reveal .map-children ul ul { --map-stem-rise: .2em; font-size: 1em; margin: .2em 0 0; }
+.reveal .map-children li strong { color: var(--board-ink); }
+.reveal .map-children p { font-size: .87em; line-height: 1.26; }
+.reveal .map-side.map-left { text-align: right; }
+.reveal .map-side.map-left .map-children li { padding: .12em var(--map-indent) .12em 0; }
+.reveal .map-side.map-left .map-children li::before,
+.reveal .map-side.map-left .map-children li::after {
+  left: auto;
+  right: 0;
+}
+.reveal .map-side.map-left .map-children li::before {
+  transform: scaleX(-1);
+}
+
+/* Asides belong to a branch but are prose, not additional tree nodes. */
+.reveal .map-branch > .map-aside {
+  grid-area: 3 / 2;
+  padding-top: 1em;
+  padding-bottom: .4em;
+  text-align: left;
+  position: relative;
+}
+.reveal .map-side.map-left > .map-branch > .map-aside { grid-column: 1; }
+/* Two independent stems leave the parent label: the inset one serves the
+   repositories; the other continues to the centre of the note below them. */
+.reveal .map-branch:has(> .map-aside) { --map-parent-inset: .45em; }
+.reveal .map-branch:has(> .map-aside) > .map-title > .map-label { position: relative; }
+.reveal .map-branch:has(> .map-aside) > .map-title > .map-label::before,
+.reveal .map-branch:has(> .map-aside) > .map-title > .map-label::after {
+  content: '';
+  position: absolute;
+  left: var(--map-parent-inset);
+  bottom: -.35em;
+  height: .35em;
+  border-left: var(--map-stroke) solid var(--board-line);
+}
+.reveal .map-branch:has(> .map-children):has(> .map-aside) > .map-title > .map-label::before {
+  left: calc(var(--map-parent-inset) + .8em);
+}
+.reveal .map-branch:not(:has(> .map-children)) > .map-title > .map-label::before { content: none; }
+.reveal .map-branch:has(> .map-aside) > .map-children {
+  position: relative;
+  padding-top: .35em;
+  padding-left: .8em;
+  margin-left: var(--map-parent-inset);
+}
+.reveal .map-branch:has(> .map-aside) > .map-children::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: var(--map-stroke) solid var(--board-line);
+}
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-children {
+  padding-left: 0;
+  padding-right: .8em;
+  margin-left: 0;
+  margin-right: var(--map-parent-inset);
+}
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-children::after,
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-title > .map-label::before,
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-title > .map-label::after {
+  left: auto;
+  right: 0;
+}
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-children::after,
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-title > .map-label::before,
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-title > .map-label::after {
+  border-left: 0;
+  border-right: var(--map-stroke) solid var(--board-line);
+}
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-title > .map-label::before {
+  right: calc(var(--map-parent-inset) + .8em);
+}
+.reveal .map-side.map-left .map-branch:has(> .map-aside) > .map-title > .map-label::after {
+  right: var(--map-parent-inset);
+}
+/* Two overlapping border corners make a note connector without scaling a
+   stroke inside an SVG viewport. Both ends align with the adjoining stems. */
+.reveal .map-aside {
+  --map-note-run: calc(50% - var(--map-parent-inset) + var(--map-stroke) / 2);
+}
+.reveal .map-aside::before,
+.reveal .map-aside::after {
+  content: '';
+  position: absolute;
+  width: calc(var(--map-note-run) / 2 + var(--map-stroke) / 2);
+  height: calc(.5em + var(--map-stroke) / 2);
+  box-sizing: border-box;
+}
+.reveal .map-aside::before {
+  top: 0;
+  left: var(--map-parent-inset);
+  border-left: var(--map-stroke) solid var(--board-line);
+  border-bottom: var(--map-stroke) solid var(--board-line);
+  border-bottom-left-radius: .35em;
+}
+.reveal .map-aside::after {
+  top: calc(.5em - var(--map-stroke) / 2);
+  left: calc(var(--map-parent-inset) + var(--map-note-run) / 2 - var(--map-stroke) / 2);
+  border-top: var(--map-stroke) solid var(--board-line);
+  border-right: var(--map-stroke) solid var(--board-line);
+  border-top-right-radius: .35em;
+}
+.reveal .map-aside blockquote {
+  margin: 0;
+  padding: .55em .65em;
+  border: 0;
+  background: #fff0b5;
+  box-shadow: 0 .09em .18em #19242a20;
+}
+.reveal .map-side.map-left .map-aside::before,
+.reveal .map-side.map-left .map-aside::after {
+  left: auto;
+  transform: scaleX(-1);
+}
+.reveal .map-side.map-left .map-aside::before { right: var(--map-parent-inset); }
+.reveal .map-side.map-left .map-aside::after {
+  right: calc(var(--map-parent-inset) + var(--map-note-run) / 2 - var(--map-stroke) / 2);
+}
+.reveal .map-aside blockquote + blockquote { margin-top: .5em; }
+/* One branch on each side: share title/children/aside rows through the nested
+   grids. Notes stay under their own branch without moving the root downward. */
+.reveal .board-map.map-with-asides {
+  container-type: inline-size;
+  --map-note-width: calc((100cqw - var(--map-gap)) / 2);
+  grid-template-rows: auto auto auto;
+  row-gap: 0;
+  align-content: center;
+}
+/* Let the notes use the space below the root, with one normal gap between them.
+   Their branch containers and attachment origins keep their original positions. */
+.reveal .map-with-asides .map-aside > blockquote {
+  box-sizing: border-box;
+  width: var(--map-note-width);
+}
+.reveal .map-with-asides > .map-side:not(.map-left) .map-aside > blockquote {
+  margin-left: calc(100% - var(--map-note-width));
+}
+.reveal .map-with-asides .map-aside {
+  --map-note-run: calc(100% - var(--map-note-width) / 2 - var(--map-parent-inset) + var(--map-stroke) / 2);
+}
+.reveal .map-with-asides > .map-root { grid-column: 2; grid-row: 1 / 3; }
+.reveal .map-with-asides > .map-side {
+  display: grid;
+  grid-row: 1 / 4;
+  grid-template-rows: subgrid;
+  align-self: stretch;
+}
+.reveal .map-with-asides > .map-left { grid-column: 1; }
+.reveal .map-with-asides > .map-side:not(.map-left) { grid-column: 3; }
+.reveal .map-with-asides > .map-side > .map-branch {
+  grid-area: 1 / 1 / 4 / 2;
+  grid-template-rows: subgrid;
+}
+.reveal .map-with-asides > .map-side::before {
+  position: relative;
+  grid-area: 1 / 1 / 3 / 2;
+  align-self: start;
+  justify-self: start;
+}
+.reveal .map-with-asides > .map-side.map-left::before { justify-self: end; }
+
+/* With a note below, put the repository group above its parent. Keep the
+   Markdown hierarchy intact; only the visual grid rows change. */
+.reveal .map-with-asides.map-children-above > .map-root { grid-row: 2; }
+.reveal .map-with-asides.map-children-above > .map-side::before,
+.reveal .map-with-asides.map-children-above > .map-side > .map-branch::before,
+.reveal .map-with-asides.map-children-above > .map-side > .map-branch::after,
+.reveal .map-with-asides.map-children-above .map-branch:first-child > .map-title::after {
+  content: none;
+}
+.reveal .map-with-asides.map-children-above .map-branch > .map-title {
+  grid-row: 2;
+  align-self: center;
+}
+.reveal .map-with-asides.map-children-above .map-branch > .map-children {
+  grid-row: 1;
+  align-self: end;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.reveal .map-with-asides.map-children-above .map-branch > .map-children::after { content: none; }
+.reveal .map-with-asides.map-children-above .map-branch > .map-title > .map-label::before {
+  top: -.35em;
+  bottom: auto;
+}
+.reveal .map-with-asides.map-children-above .map-children > ul > li::before {
+  top: auto;
+  bottom: 0;
+  transform: scaleY(-1);
+}
+.reveal .map-with-asides.map-children-above .map-left .map-children > ul > li::before {
+  transform: scale(-1, -1);
+}
+.reveal .map-with-asides.map-children-above .map-children > ul > li::after { content: ''; }
+.reveal .map-with-asides.map-children-above .map-children > ul > li:first-child::after { content: none; }
+
+/* Separate Markdown lists make separate upward spokes under the same parent. */
+.reveal .map-with-asides.map-children-above .map-side .map-branch > .map-children:has(> ul + ul) {
+  display: flex;
+  gap: .35em;
+  justify-content: flex-start;
+  align-items: end;
+  padding-left: 0;
+  padding-right: 0;
+}
+.reveal .map-with-asides.map-children-above .map-side.map-left .map-branch > .map-children:has(> ul + ul) { justify-content: flex-end; }
+.reveal .map-children-above .map-children:has(> ul + ul) > ul {
+  position: relative;
+  flex: 0 0 auto;
+  font-size: .84em;
+}
+.reveal .map-children-above .map-children:has(> ul + ul) > ul::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  height: .4em;
+  border-left: var(--map-stroke) solid var(--board-line);
+}
+.reveal .map-children-above .map-left .map-children:has(> ul + ul) > ul::after {
+  left: auto;
+  right: 0;
+  border-left: 0;
+  border-right: var(--map-stroke) solid var(--board-line);
+}
+.reveal .map-with-asides.map-children-above .map-branch:has(> .map-children > ul + ul) > .map-title > .map-label::before {
+  content: none;
+}
+
+/* A list may face the other way without changing its parent or siblings. */
+.reveal .map-children-above .map-left .map-children > ul.flip > li {
+  text-align: left;
+  padding-left: var(--map-indent);
+  padding-right: 0;
+}
+.reveal .map-children-above .map-left .map-children > ul.flip > li::before,
+.reveal .map-children-above .map-left .map-children > ul.flip > li::after,
+.reveal .map-children-above .map-left .map-children > ul.flip::after {
+  left: 0;
+  right: auto;
+}
+.reveal .map-children-above .map-left .map-children > ul.flip > li::before { transform: scaleY(-1); }
+.reveal .map-children-above .map-left .map-children > ul.flip::after {
+  border-left: var(--map-stroke) solid var(--board-line);
+  border-right: 0;
+}
+.reveal .map-children-above .map-side:not(.map-left) .map-children > ul.flip > li {
+  text-align: right;
+  padding-left: 0;
+  padding-right: var(--map-indent);
+}
+.reveal .map-children-above .map-side:not(.map-left) .map-children > ul.flip > li::before,
+.reveal .map-children-above .map-side:not(.map-left) .map-children > ul.flip > li::after,
+.reveal .map-children-above .map-side:not(.map-left) .map-children > ul.flip::after {
+  left: auto;
+  right: 0;
+}
+.reveal .map-children-above .map-side:not(.map-left) .map-children > ul.flip > li::before { transform: scale(-1, -1); }
+.reveal .map-children-above .map-side:not(.map-left) .map-children > ul.flip::after {
+  border-left: 0;
+  border-right: var(--map-stroke) solid var(--board-line);
+}
+
+/* An undated planning spine, matching the order on the concurrency board. */
+.reveal .roadmap-spine {
+  position: relative;
+  border-left: 4px solid var(--board-ink, #a82d39);
+  padding-left: 1.15em;
+  margin-left: .25em;
+  gap: .65em;
+}
+.reveal .roadmap-spine::after {
+  content: '';
+  position: absolute;
+  width: .46em;
+  height: .3em;
+  left: -2px;
+  bottom: -.1em;
+  background: var(--board-ink, #a82d39);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform: translateX(-50%);
+}
+.reveal .roadmap-spine > :is(p,.columns,.stack) { position: relative; padding: .12em 0; }
+.reveal .roadmap-spine > :is(p,.columns,.stack)::before {
+  content: '';
+  position: absolute;
+  top: .78em;
+  left: -1.15em;
+  width: .75em;
+  border-top: 3px solid var(--board-ink, #a82d39);
+}
+.reveal .roadmap-spine > p:last-child { margin-bottom: .35em; }
+/* A full-width spine can contain whole rows. Attach at the first text line,
+   while screenshots use the row's remaining height without stretching it. */
+.reveal .slide-body > .roadmap-spine { justify-content: flex-start; margin-bottom: .5em; }
+.reveal .roadmap-spine > .columns { flex: 1 1 0; min-height: 0; align-items: start; }
+.reveal .roadmap-spine > .columns > p:has(>img:only-child) { align-self: stretch; }
+.reveal .roadmap-spine > .columns > p > img:only-child { object-position: left top; }
+/* Milestone evidence retains the normal list indentation and item spacing. */
+.reveal :is(ul,ol).milestone-details { list-style-type: none; padding-left: 0; }
+.reveal img.milestone-image { max-height: 25vh; }
+
+@media print {
+  .reveal :is(.board-map,.roadmap-spine) {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* Polish: a tinted root node and paper-like notes, keeping the marker strokes. */
+.reveal .board-map > .map-root {
+  background: color-mix(in srgb, var(--board-ink) 7%, var(--paper));
+  box-shadow: 0 .06em 0 color-mix(in srgb, var(--board-ink) 25%, transparent), 0 .35em .7em -.45em #19242a55;
+}
+.reveal .map-aside blockquote {
+  border-radius: 2px 2px 6px 2px;
+  background: linear-gradient(180deg, #fff3bf 0%, #ffeda6 100%);
+  box-shadow: 0 .05em .1em #19242a1f, 0 .45em .8em -.5em #19242a59;
+}

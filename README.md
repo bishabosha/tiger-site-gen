@@ -649,6 +649,18 @@ val talk = LiveSite(TalkSite, RevealTheme.liveSettings(TalkSite.collection))(usi
 @main def deck(args: String*): Unit = talk.main(args)
 ```
 
+Use `fonts = MyFonts.liveOnly` to select custom fonts in live mode and default
+fonts in display/PDF mode. For a custom display configuration, use
+`MyFonts.copy(display = Some(DisplayFonts))`. Selection follows the rendering
+context, including mounted themes and drafts. Only declared font faces from
+`public/assets/fonts/` or theme overrides are copied into the asset bundle;
+unused local font files are omitted, while bundled defaults and licenses remain.
+
+Slide images use Reveal's `data-src` loading and are fetched on slide entry.
+Static pages and embedded decks import the syntax highlighter on the first code
+slide and highlight visited slides. Slide fitting measures the current slides
+as needed, while print/PDF mode still loads and prepares the entire deck.
+
 | Command | Effect |
 | --- | --- |
 | `deck dev [--port N]` | build, watch, render drafts and serve `dist/` at 8123 (default command) |
@@ -710,12 +722,20 @@ files work in both modes. There is no HTML-rewriting adapter or virtual editor
 asset route. The generic preview server supplies its reload client through the
 same hashed static pipeline and retains its draft/event transport.
 
-Reveal's bundled files, vendor files, public files, local overrides and generated
-font CSS form a `StaticBundle`. Its hash covers every relative filename and file's
-contents. URLs have the form `/static/reveal_<hash>/assets/image.png`; changing a
-public file changes the hash. The resolver registers this immutable bundle, and
-`paths.writeStaticAssets` copies those same bytes to those same paths. Relative CSS
-URLs, JavaScript imports and links inside copied HTML keep their directory structure.
+Reveal runtime files and default fonts form one shared `StaticBundle` at
+`/static/reveal_<hash>/`. Each presentation's public/vendor files, overrides and
+custom font CSS form a separate bundle at `/static/deck_<collection>_<hash>/`.
+The hashes cover filenames and bytes independently: changing an image or demo
+changes only its deck bundle. Identical runtime overrides are shared too.
+Relative references inside a bundle keep their directory structure; literal
+references from local overrides to shared files resolve to the shared runtime.
+`paths.writeStaticAssets` writes each registered runtime once per output site.
+
+`revealTheme.DeckExport.copy(build, collection, destination)` exports the current
+HTML and only the bundles it references. The `revealTheme.exportDeck` CLI accepts
+`<build> <collection> <destination> [page-source-name]`. It removes obsolete
+`deck_<collection>_*` folders for that collection, preserving all shared runtimes
+and other decks. It never clears `reveal_*` globally.
 
 Layouts use `ctx.extra.assets.url(path)` for known Reveal files. Markdown images and
 links use the normal renderer's `Theme.resolveAsset` hook, exposed to templates as
